@@ -1,30 +1,52 @@
 import js from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   js.configs.recommended,
   prettierConfig,
   {
-    files: ['**/*.js', '**/*.mjs'],
+    files: ['**/*.js', '**/*.jsx', '**/*.mjs'],
     plugins: {
       prettier: prettierPlugin,
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       globals: {
-        // Node.js globals
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
         console: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        // Node.js globals
         process: 'readonly',
         Buffer: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
-        // Node.js 18+ globals
-        fetch: 'readonly',
+        globalThis: 'readonly',
         // Runtime-specific globals
         Bun: 'readonly',
         Deno: 'readonly',
+      },
+    },
+    settings: {
+      react: {
+        version: 'detect',
       },
     },
     rules: {
@@ -32,8 +54,8 @@ export default [
       'prettier/prettier': 'error',
 
       // Code quality rules
-      'no-unused-vars': 'error',
-      'no-console': 'off', // Allow console in this project
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-console': 'off',
       'no-debugger': 'error',
 
       // Best practices
@@ -56,27 +78,37 @@ export default [
       // Comments and documentation
       'spaced-comment': ['error', 'always', { markers: ['/'] }],
 
-      // Complexity rules - reasonable thresholds for maintainability
-      complexity: ['warn', 15], // Cyclomatic complexity - allow more complex logic than strict 8
-      'max-depth': ['warn', 5], // Maximum nesting depth - slightly more lenient than strict 4
+      // Complexity rules
+      complexity: ['warn', 15],
+      'max-depth': ['warn', 5],
       'max-lines-per-function': [
         'warn',
         {
-          max: 150, // More reasonable than strict 50 lines per function
+          max: 150,
           skipBlankLines: true,
           skipComments: true,
         },
       ],
-      'max-params': ['warn', 6], // Maximum function parameters - slightly more lenient than strict 5
-      'max-statements': ['warn', 60], // Maximum statements per function - reasonable limit for orchestration functions
-      'max-lines': ['error', 1500], // Maximum lines per file - counts all lines including blank lines and comments
+      'max-params': ['warn', 6],
+      'max-statements': ['warn', 60],
+      'max-lines': ['error', 1500],
+
+      // React rules
+      'react/jsx-uses-react': 'error',
+      'react/jsx-uses-vars': 'error',
+      'react/prop-types': 'off',
+      'react/react-in-jsx-scope': 'off',
+
+      // React Hooks rules
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {
     // Test files have different requirements
-    files: ['tests/**/*.js', '**/*.test.js'],
+    files: ['tests/**/*.js', '**/*.test.js', '**/*.test.jsx'],
     rules: {
-      'require-await': 'off', // Async functions without await are common in tests
+      'require-await': 'off',
     },
   },
   {
