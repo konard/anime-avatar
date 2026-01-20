@@ -33,6 +33,19 @@ const PRESETS = [
 
 const ANIMATIONS = ['happy', 'wave', 'nod', 'thinking', 'surprised'];
 
+// Sample 3D model URLs (using public test models)
+const SAMPLE_MODELS = [
+  { name: 'None (Procedural)', url: null },
+  {
+    name: 'Robot (Test)',
+    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/RobotExpressive/glTF/RobotExpressive.gltf',
+  },
+  {
+    name: 'Duck (Test)',
+    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF/Duck.gltf',
+  },
+];
+
 function ColorInput({ label, value, onChange }) {
   return (
     <div className="config-item">
@@ -79,6 +92,21 @@ function CheckboxInput({ id, label, checked, onChange }) {
   );
 }
 
+function SelectInput({ label, value, options, onChange }) {
+  return (
+    <div className="config-item">
+      <label>{label}</label>
+      <select value={value || ''} onChange={(e) => onChange(e.target.value)}>
+        {options.map((option) => (
+          <option key={option.name} value={option.url || ''}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export function ConfigPanel({
   config,
   onConfigChange,
@@ -101,6 +129,49 @@ export function ConfigPanel({
   return (
     <div className="config-section">
       <h2>Avatar Configuration</h2>
+
+      <div className="config-group">
+        <h3>Render Mode</h3>
+        <CheckboxInput
+          id="enable3D"
+          label="Enable 3D WebGL Mode"
+          checked={config.enable3D}
+          onChange={(v) => handleChange('enable3D', v)}
+        />
+      </div>
+
+      {config.enable3D && (
+        <div className="config-group">
+          <h3>3D Settings</h3>
+          <SelectInput
+            label="3D Model"
+            value={config.modelUrl}
+            options={SAMPLE_MODELS}
+            onChange={(v) => handleChange('modelUrl', v || null)}
+          />
+          <RangeInput
+            label="Model Scale"
+            value={config.modelScale}
+            onChange={(v) => handleChange('modelScale', v)}
+            min={0.5}
+            max={2}
+            step={0.1}
+            unit="x"
+          />
+          <CheckboxInput
+            id="enableShadows"
+            label="Enable Shadows"
+            checked={config.enableShadows}
+            onChange={(v) => handleChange('enableShadows', v)}
+          />
+          <CheckboxInput
+            id="enableLOD"
+            label="Enable Level of Detail"
+            checked={config.enableLOD}
+            onChange={(v) => handleChange('enableLOD', v)}
+          />
+        </div>
+      )}
 
       <div className="config-group">
         <h3>Appearance</h3>
