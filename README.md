@@ -1,197 +1,264 @@
-# js-ai-driven-development-pipeline-template
+# Anime Avatar
 
-A comprehensive template for AI-driven JavaScript/TypeScript development with full CI/CD pipeline support.
+A configurable AI anime avatar React component with animations, designed for use as an AI speaking avatar in web applications.
+
+**[Live Demo](https://konard.github.io/anime-avatar)**
+
+## Overview
+
+This project provides a customizable anime-style avatar component built entirely with React and CSS. The avatar features natural animations like blinking, head movement, and various expressions, making it ideal for AI-powered applications where a visual character representation is needed for voice interaction or chat interfaces.
+
+The avatar is designed as a **prototype** that can be extended to support:
+
+- WebGL/Three.js for 3D rendering
+- Voice input (Speech-to-Text) and output (Text-to-Speech)
+- Local AI model integration for in-browser AI responses
+- Export compatibility with Unreal Engine and Blender
 
 ## Features
 
-- **Multi-runtime support**: Works with Bun, Node.js, and Deno
-- **Universal testing**: Uses [test-anywhere](https://github.com/link-foundation/test-anywhere) for cross-runtime tests
-- **Automated releases**: Changesets-based versioning with GitHub Actions
-- **Code quality**: ESLint + Prettier with pre-commit hooks via Husky
-- **Package manager agnostic**: Works with bun, npm, yarn, pnpm, and deno
+- **Configurable Appearance**: Customize skin, hair, eye, and clothes colors in real-time
+- **Multiple Animations**: Idle, happy, wave, nod, thinking, surprised expressions
+- **Random Animation Cycling**: Animations play randomly at configurable intervals for natural behavior
+- **Talking Mode**: Lip-sync animation for AI speaking scenarios
+- **Natural Blinking**: Random blinking with configurable timing for realistic appearance
+- **Preset Themes**: Quick appearance changes with built-in color presets (Default, Blonde, Dark, Redhead)
+- **Responsive Design**: Works on desktop and mobile devices
+- **CSS-Only Animations**: No external dependencies for smooth, performant animations
+- **Reusable Component**: Easy to integrate into any React application
 
 ## Quick Start
 
-### Using This Template
+### Prerequisites
 
-1. Click "Use this template" on GitHub to create a new repository
-2. Clone your new repository
-3. Update `package.json` with your package name and description
-4. Update the `PACKAGE_NAME` constant in these scripts:
-   - `scripts/validate-changeset.mjs`
-   - `scripts/merge-changesets.mjs`
-   - `scripts/publish-to-npm.mjs`
-   - `scripts/format-release-notes.mjs`
-   - `scripts/create-manual-changeset.mjs`
-5. Install dependencies: `bun install`
-6. Start developing!
+- Node.js 20.0.0 or higher
+- npm (comes with Node.js)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/konard/anime-avatar.git
+cd anime-avatar
+
+# Install dependencies
+npm install
+```
 
 ### Development
 
 ```bash
-# Install dependencies
-bun install
-
-# Run tests
-bun test
-
-# Or with other runtimes:
-npm test
-deno test --allow-read
-
-# Lint code
-bun run lint
-
-# Format code
-bun run format
-
-# Check all (lint + format + file size)
-bun run check
+npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser to see the demo application.
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+## Usage
+
+### Basic Usage
+
+```jsx
+import { Avatar } from './components/Avatar';
+
+function App() {
+  return <Avatar />;
+}
+```
+
+### With Full Configuration
+
+```jsx
+import { Avatar } from './components/Avatar';
+
+function App() {
+  const config = {
+    skinColor: '#ffd5c8',
+    hairColor: '#2d1b4e',
+    eyeColor: '#6b5ce7',
+    clothesColor: '#ff6b9d',
+    blinkInterval: 3000,
+    animationSpeed: 1,
+    enableIdleAnimation: true,
+    enableRandomBlink: true,
+  };
+
+  return <Avatar config={config} isTalking={false} currentAnimation="idle" />;
+}
+```
+
+### With Animation Cycling Hook
+
+The `useAnimationCycle` hook provides automatic random animation cycling:
+
+```jsx
+import { Avatar } from './components/Avatar';
+import { useAnimationCycle } from './hooks/useAnimationCycle';
+
+function App() {
+  const { currentAnimation, triggerAnimation } = useAnimationCycle({
+    enabled: true,
+    minInterval: 8000,
+    maxInterval: 20000,
+    animationDuration: 1500,
+  });
+
+  return (
+    <div>
+      <Avatar currentAnimation={currentAnimation} />
+      <button onClick={() => triggerAnimation('wave')}>Wave</button>
+      <button onClick={() => triggerAnimation('happy')}>Happy</button>
+    </div>
+  );
+}
+```
+
+### With Talking Mode (for AI Voice Applications)
+
+```jsx
+import { useState } from 'react';
+import { Avatar } from './components/Avatar';
+
+function AISpeakingAvatar() {
+  const [isTalking, setIsTalking] = useState(false);
+
+  // Toggle talking when AI starts/stops speaking
+  const handleAIResponse = (speaking) => {
+    setIsTalking(speaking);
+  };
+
+  return <Avatar isTalking={isTalking} />;
+}
+```
+
+## Configuration Options
+
+### Avatar Configuration
+
+| Option                | Type    | Default   | Description                            |
+| --------------------- | ------- | --------- | -------------------------------------- |
+| `skinColor`           | string  | `#ffd5c8` | Skin color (hex format)                |
+| `hairColor`           | string  | `#2d1b4e` | Hair color (hex format)                |
+| `eyeColor`            | string  | `#6b5ce7` | Eye/iris color (hex format)            |
+| `clothesColor`        | string  | `#ff6b9d` | Clothes/outfit color (hex format)      |
+| `blinkInterval`       | number  | `3000`    | Average time between blinks (ms)       |
+| `animationSpeed`      | number  | `1`       | Animation speed multiplier (0.5x - 2x) |
+| `enableIdleAnimation` | boolean | `true`    | Enable subtle idle breathing/sway      |
+| `enableRandomBlink`   | boolean | `true`    | Enable random natural blinking         |
+
+### Animation Cycle Hook Options
+
+| Option              | Type     | Default        | Description                          |
+| ------------------- | -------- | -------------- | ------------------------------------ |
+| `animations`        | string[] | All animations | List of animations to cycle through  |
+| `minInterval`       | number   | `5000`         | Minimum time between animations (ms) |
+| `maxInterval`       | number   | `15000`        | Maximum time between animations (ms) |
+| `animationDuration` | number   | `1000`         | How long each animation plays (ms)   |
+| `enabled`           | boolean  | `true`         | Enable/disable animation cycling     |
+| `excludeFromCycle`  | string[] | `['idle']`     | Animations to skip in random cycling |
+
+## Available Animations
+
+| Animation   | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `idle`      | Default state with subtle breathing and head sway |
+| `happy`     | Happy expression with squinting eyes and smile    |
+| `wave`      | Waving hand animation for greetings               |
+| `nod`       | Nodding head animation for acknowledgment         |
+| `thinking`  | Raised eyebrow with thoughtful expression         |
+| `surprised` | Wide-eyed surprised expression                    |
 
 ## Project Structure
 
 ```
-.
-├── .changeset/           # Changeset configuration
-├── .github/workflows/    # GitHub Actions CI/CD
-├── .husky/               # Git hooks (pre-commit)
-├── examples/             # Usage examples
-├── scripts/              # Build and release scripts
-├── src/                  # Source code
-│   ├── index.js          # Main entry point
-│   └── index.d.ts        # TypeScript definitions
-├── tests/                # Test files
-├── .eslintrc.js          # ESLint configuration
-├── .prettierrc           # Prettier configuration
-├── bunfig.toml           # Bun configuration
-├── deno.json             # Deno configuration
-└── package.json          # Node.js package manifest
+anime-avatar/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml           # Lint, test, and build on PRs
+│       └── deploy.yml       # Deploy to GitHub Pages on main
+├── src/
+│   ├── components/
+│   │   ├── Avatar.jsx       # Main avatar component with all visual elements
+│   │   └── ConfigPanel.jsx  # Configuration UI panel with controls
+│   ├── hooks/
+│   │   └── useAnimationCycle.js  # Hook for automatic animation cycling
+│   ├── styles/
+│   │   ├── index.css        # Global styles and layout
+│   │   └── avatar.css       # Avatar-specific styles and animations
+│   ├── App.jsx              # Demo application showcasing all features
+│   └── main.jsx             # Entry point
+├── tests/
+│   └── Avatar.test.jsx      # Component tests
+├── index.html               # HTML template
+├── vite.config.js           # Vite configuration
+├── eslint.config.js         # ESLint configuration
+├── .prettierrc              # Prettier configuration
+└── package.json             # Project dependencies and scripts
 ```
 
-## Design Choices
+## Development
 
-### Multi-Runtime Support
+### Available Scripts
 
-This template is designed to work seamlessly with all major JavaScript runtimes:
-
-- **Bun**: Primary runtime with highest performance, uses native test support (`bun test`)
-- **Node.js**: Alternative runtime, uses built-in test runner (`node --test`)
-- **Deno**: Secure runtime with built-in TypeScript support (`deno test`)
-
-The [test-anywhere](https://github.com/link-foundation/test-anywhere) framework provides a unified testing API that works identically across all runtimes.
-
-### Package Manager Agnostic
-
-While `package.json` is the source of truth for dependencies, the template supports:
-
-- **bun**: Primary choice, uses `bun.lockb`
-- **npm**: Uses `package-lock.json`
-- **yarn**: Uses `yarn.lock`
-- **pnpm**: Uses `pnpm-lock.yaml`
-- **deno**: Uses `deno.json` for configuration
-
-Note: `package-lock.json` is not committed by default to allow any package manager.
+| Command                | Description                      |
+| ---------------------- | -------------------------------- |
+| `npm run dev`          | Start development server         |
+| `npm run build`        | Build for production             |
+| `npm run preview`      | Preview production build locally |
+| `npm test`             | Run tests once                   |
+| `npm run test:watch`   | Run tests in watch mode          |
+| `npm run lint`         | Run ESLint                       |
+| `npm run lint:fix`     | Run ESLint with auto-fix         |
+| `npm run format`       | Format code with Prettier        |
+| `npm run format:check` | Check code formatting            |
+| `npm run check`        | Run both lint and format checks  |
 
 ### Code Quality
 
-- **ESLint**: Configured with recommended rules + Prettier integration
-- **Prettier**: Consistent code formatting
-- **Husky + lint-staged**: Pre-commit hooks ensure code quality
-- **File size limit**: Scripts must stay under 1000 lines for maintainability
+This project uses:
 
-### Release Workflow
+- **ESLint** for code linting with React-specific rules
+- **Prettier** for consistent code formatting
+- **Husky** for pre-commit hooks to ensure code quality
+- **Vitest** for fast unit testing with React Testing Library
 
-The release workflow uses [Changesets](https://github.com/changesets/changesets) for version management:
+## Roadmap
 
-1. **Creating a changeset**: Run `bun run changeset` to document changes
-2. **PR validation**: CI checks for valid changeset in each PR
-3. **Automated versioning**: Merging to `main` triggers version bump
-4. **npm publishing**: Automated via OIDC trusted publishing (no tokens needed)
-5. **GitHub releases**: Auto-created with formatted release notes
+This prototype serves as a foundation for more advanced features. See [GitHub Issues](https://github.com/konard/anime-avatar/issues) for planned enhancements:
 
-#### Manual Releases
-
-Two manual release modes are available via GitHub Actions:
-
-- **Instant release**: Immediately bump version and publish
-- **Changeset PR**: Create a PR with changeset for review
-
-### CI/CD Pipeline
-
-The GitHub Actions workflow (`.github/workflows/release.yml`) provides:
-
-1. **Changeset check**: Validates PR has exactly one changeset (added by that PR)
-2. **Lint & format**: Ensures code quality standards
-3. **Test matrix**: 3 runtimes × 3 OS = 9 test combinations
-4. **Changeset merge**: Combines multiple pending changesets at release time
-5. **Release**: Automated versioning and npm publishing
-
-#### Robust Changeset Handling
-
-The CI/CD pipeline is designed to handle concurrent PRs gracefully:
-
-- **PR Validation**: Only validates changesets **added by the current PR**, not pre-existing ones from other merged PRs. This prevents false failures when multiple PRs merge before a release cycle completes.
-
-- **Release-time Merging**: If multiple changesets exist when releasing, they are automatically merged into a single changeset with:
-  - The highest version bump type (major > minor > patch)
-  - All descriptions preserved in chronological order
-
-This design decouples PR validation from the need to pull changes from the default branch, reducing conflicts and ensuring that even if CI/CD fails, all unpublished changesets will still get published when the error is resolved.
-
-## Configuration
-
-### Updating Package Name
-
-After creating a repository from this template, update the package name in:
-
-1. `package.json`: `"name": "your-package-name"`
-2. `.changeset/config.json`: Package references
-3. Scripts that reference the package name (see Quick Start)
-
-### ESLint Rules
-
-Customize ESLint in `eslint.config.js`. Current configuration:
-
-- ES Modules support
-- Prettier integration
-- No console restrictions (common in CLI tools)
-- Strict equality enforcement
-- Async/await best practices
-- **Strict unused variables rule**: No exceptions - all unused variables, arguments, and caught errors must be removed (no `_` prefix exceptions)
-
-### Prettier Options
-
-Configured in `.prettierrc`:
-
-- Single quotes
-- Semicolons
-- 2-space indentation
-- 80-character line width
-- ES5 trailing commas
-- LF line endings
-
-## Scripts Reference
-
-| Script                 | Description                             |
-| ---------------------- | --------------------------------------- |
-| `bun test`             | Run tests with Bun                      |
-| `bun run lint`         | Check code with ESLint                  |
-| `bun run lint:fix`     | Fix ESLint issues automatically         |
-| `bun run format`       | Format code with Prettier               |
-| `bun run format:check` | Check formatting without changing files |
-| `bun run check`        | Run all checks (lint + format)          |
-| `bun run changeset`    | Create a new changeset                  |
+- [WebGL/Three.js 3D avatar support](https://github.com/konard/anime-avatar/issues/3)
+- [Voice input (STT) and output (TTS) integration](https://github.com/konard/anime-avatar/issues/4)
+- [Local AI model integration (GPT)](https://github.com/konard/anime-avatar/issues/5)
+- [Extended avatar customization (hairstyles, accessories)](https://github.com/konard/anime-avatar/issues/6)
+- [Male character support](https://github.com/konard/anime-avatar/issues/7)
+- [Unreal Engine and Blender export compatibility](https://github.com/konard/anime-avatar/issues/8)
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes
-4. Create a changeset: `bun run changeset`
-5. Commit your changes (pre-commit hooks will run automatically)
-6. Push and create a Pull Request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please ensure your code passes linting and tests before submitting:
+
+```bash
+npm run check
+npm test
+```
 
 ## License
 
-[Unlicense](LICENSE) - Public Domain
+[Unlicense](LICENSE) - This project is released into the Public Domain. You are free to use, modify, and distribute this code without any restrictions.
