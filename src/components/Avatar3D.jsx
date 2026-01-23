@@ -12,9 +12,10 @@ import * as THREE from 'three';
 import '../styles/avatar3d.css';
 
 const DEFAULT_CONFIG = {
-  skinColor: '#fce4d8',
-  hairColor: '#8b5a3c',
-  eyeColor: '#4a90d9',
+  // Colors matching reference image - school girl with brown hair (same as 2D)
+  skinColor: '#fad5c5',
+  hairColor: '#b07850',
+  eyeColor: '#4a90c2',
   clothesColor: '#ffffff',
   clothesSecondaryColor: '#1a3a5c',
   blinkInterval: 3000,

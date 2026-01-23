@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function, complexity */
 import React, { useState, useEffect, useMemo } from 'react';
 import '../styles/avatarSvg.css';
 import { adjustColor, getDetailLevel, DEFAULT_CONFIG } from './svg/utils.js';
@@ -7,7 +7,891 @@ import SVGLegs from './svg/SVGLegs.jsx';
 const ANIMATIONS = ['idle', 'happy', 'wave', 'nod', 'thinking', 'surprised'];
 
 /**
+ * Gradient definitions for the SVG avatar
+ */
+function AvatarGradients({
+  colors,
+  skinColor,
+  hairColor,
+  eyeColor,
+  clothesColor,
+  clothesSecondaryColor,
+}) {
+  return (
+    <defs>
+      {/* Sky gradient - matching reference image */}
+      <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#4da6e8" />
+        <stop offset="30%" stopColor="#6bc5f0" />
+        <stop offset="60%" stopColor="#8dd8f8" />
+        <stop offset="100%" stopColor="#b8ecff" />
+      </linearGradient>
+
+      {/* Skin gradients - soft anime shading */}
+      <linearGradient id="skinGradient" x1="30%" y1="0%" x2="70%" y2="100%">
+        <stop offset="0%" stopColor={colors.skinHighlight} />
+        <stop offset="40%" stopColor={skinColor} />
+        <stop offset="100%" stopColor={colors.skinShadow} />
+      </linearGradient>
+
+      <radialGradient id="skinRadial" cx="45%" cy="35%" r="65%">
+        <stop offset="0%" stopColor={colors.skinHighlight} />
+        <stop offset="50%" stopColor={skinColor} />
+        <stop offset="100%" stopColor={colors.skinShadow} />
+      </radialGradient>
+
+      {/* Hair gradients - rich warm tones with highlights */}
+      <linearGradient id="hairMainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor={colors.hairLightHighlight} />
+        <stop offset="20%" stopColor={colors.hairHighlight} />
+        <stop offset="50%" stopColor={hairColor} />
+        <stop offset="80%" stopColor={colors.hairShadow} />
+        <stop offset="100%" stopColor={colors.hairDeepShadow} />
+      </linearGradient>
+
+      <linearGradient id="hairSideGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor={colors.hairMidtone} />
+        <stop offset="40%" stopColor={hairColor} />
+        <stop offset="100%" stopColor={colors.hairDeepShadow} />
+      </linearGradient>
+
+      <linearGradient id="hairShineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop
+          offset="0%"
+          stopColor={colors.hairLightHighlight}
+          stopOpacity="0.8"
+        />
+        <stop offset="50%" stopColor={colors.hairHighlight} stopOpacity="0.4" />
+        <stop offset="100%" stopColor={colors.hairHighlight} stopOpacity="0" />
+      </linearGradient>
+
+      {/* Eye gradients - large detailed anime eyes */}
+      <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={colors.eyeDeepShadow} />
+        <stop offset="30%" stopColor={eyeColor} />
+        <stop offset="70%" stopColor={colors.eyeHighlight} />
+        <stop offset="100%" stopColor={colors.eyeLightHighlight} />
+      </linearGradient>
+
+      <radialGradient id="eyeRadial" cx="50%" cy="40%" r="55%">
+        <stop offset="0%" stopColor={colors.eyeLightHighlight} />
+        <stop offset="40%" stopColor={eyeColor} />
+        <stop offset="100%" stopColor={colors.eyeDeepShadow} />
+      </radialGradient>
+
+      {/* Clothes gradients */}
+      <linearGradient id="clothesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={clothesColor} />
+        <stop offset="60%" stopColor={colors.clothesShadow} />
+        <stop offset="100%" stopColor={colors.clothesDeepShadow} />
+      </linearGradient>
+
+      <linearGradient id="collarGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={colors.collarHighlight} />
+        <stop offset="50%" stopColor={clothesSecondaryColor} />
+        <stop offset="100%" stopColor={colors.collarShadow} />
+      </linearGradient>
+
+      {/* Blush gradient */}
+      <radialGradient id="blushGradient" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#ffb6c1" stopOpacity="0.6" />
+        <stop offset="60%" stopColor="#ffb6c1" stopOpacity="0.25" />
+        <stop offset="100%" stopColor="#ffb6c1" stopOpacity="0" />
+      </radialGradient>
+
+      {/* Ribbon/bow gradient */}
+      <linearGradient id="ribbonGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ff5555" />
+        <stop offset="40%" stopColor="#e84444" />
+        <stop offset="100%" stopColor="#bb2222" />
+      </linearGradient>
+
+      {/* Cherry blossom gradient */}
+      <radialGradient id="blossomGradient" cx="30%" cy="30%" r="70%">
+        <stop offset="0%" stopColor="#ffd8e0" />
+        <stop offset="50%" stopColor="#ffb7c5" />
+        <stop offset="100%" stopColor="#ff9eb0" />
+      </radialGradient>
+
+      {/* Filters */}
+      <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="1.5" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+
+      <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="1" dy="2" stdDeviation="3" floodOpacity="0.12" />
+      </filter>
+    </defs>
+  );
+}
+
+/**
+ * Background layer with cherry blossoms
+ */
+function AvatarBackground({ bgDetails, viewBoxHeight, petals }) {
+  return (
+    <g className="background-layer">
+      {/* Sky */}
+      <rect
+        x="0"
+        y="0"
+        width="400"
+        height={viewBoxHeight}
+        fill="url(#skyGradient)"
+      />
+
+      {/* Distant cityscape silhouette */}
+      {bgDetails.hasCity && (
+        <g className="cityscape" opacity="0.25">
+          {[...Array(15)].map((_, i) => (
+            <rect
+              key={i}
+              x={i * 28}
+              y={480 - (i % 4) * 20 - Math.floor(i / 3) * 10}
+              width={18 + (i % 3) * 6}
+              height={120 + (i % 4) * 30}
+              fill="#c0d0e0"
+            />
+          ))}
+        </g>
+      )}
+
+      {/* Fence/railing */}
+      {bgDetails.hasFence && (
+        <g className="fence">
+          <rect x="0" y="505" width="400" height="5" fill="#d4c4b0" />
+          <rect x="0" y="525" width="400" height="4" fill="#c8b8a4" />
+          {[...Array(12)].map((_, i) => (
+            <rect
+              key={i}
+              x={i * 35 + 10}
+              y="480"
+              width="4"
+              height="55"
+              fill="#baa890"
+            />
+          ))}
+        </g>
+      )}
+
+      {/* Cherry blossom trees - left */}
+      {bgDetails.hasTrees && (
+        <g className="cherry-tree-left">
+          <path
+            d="M 45 600 Q 40 520, 50 420 Q 55 360, 48 300 Q 45 260, 55 220"
+            stroke="#5c4033"
+            strokeWidth="18"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 50 340 Q 20 300, 5 260"
+            stroke="#5c4033"
+            strokeWidth="10"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 52 280 Q 80 250, 95 210"
+            stroke="#5c4033"
+            strokeWidth="7"
+            fill="none"
+            strokeLinecap="round"
+          />
+          {[
+            { cx: 30, cy: 160, r: 65 },
+            { cx: -15, cy: 210, r: 55 },
+            { cx: 75, cy: 140, r: 50 },
+            { cx: 50, cy: 90, r: 45 },
+            { cx: 95, cy: 180, r: 45 },
+            { cx: 5, cy: 120, r: 50 },
+            { cx: 70, cy: 240, r: 40 },
+            { cx: -5, cy: 280, r: 35 },
+          ].map((cluster, i) => (
+            <g key={i}>
+              <ellipse
+                cx={cluster.cx}
+                cy={cluster.cy}
+                rx={cluster.r}
+                ry={cluster.r * 0.85}
+                fill="url(#blossomGradient)"
+                opacity={0.92 - i * 0.03}
+              />
+              <ellipse
+                cx={cluster.cx + 12}
+                cy={cluster.cy - 12}
+                rx={cluster.r * 0.6}
+                ry={cluster.r * 0.5}
+                fill="#ffd8e4"
+                opacity={0.7}
+              />
+            </g>
+          ))}
+        </g>
+      )}
+
+      {/* Cherry blossom trees - right */}
+      {bgDetails.hasTrees && (
+        <g className="cherry-tree-right">
+          <path
+            d="M 375 600 Q 385 500, 368 400 Q 355 320, 375 250"
+            stroke="#5c4033"
+            strokeWidth="20"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 365 340 Q 410 290, 430 240"
+            stroke="#5c4033"
+            strokeWidth="12"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 370 280 Q 330 250, 315 200"
+            stroke="#5c4033"
+            strokeWidth="8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          {[
+            { cx: 390, cy: 130, r: 75 },
+            { cx: 440, cy: 180, r: 65 },
+            { cx: 340, cy: 160, r: 55 },
+            { cx: 370, cy: 70, r: 50 },
+            { cx: 420, cy: 100, r: 50 },
+            { cx: 310, cy: 120, r: 45 },
+            { cx: 400, cy: 240, r: 50 },
+            { cx: 360, cy: 200, r: 40 },
+          ].map((cluster, i) => (
+            <g key={i}>
+              <ellipse
+                cx={cluster.cx}
+                cy={cluster.cy}
+                rx={cluster.r}
+                ry={cluster.r * 0.88}
+                fill="url(#blossomGradient)"
+                opacity={0.9 - i * 0.03}
+              />
+              <ellipse
+                cx={cluster.cx - 15}
+                cy={cluster.cy - 10}
+                rx={cluster.r * 0.55}
+                ry={cluster.r * 0.45}
+                fill="#ffdce8"
+                opacity={0.65}
+              />
+            </g>
+          ))}
+        </g>
+      )}
+
+      {/* Falling petals */}
+      {bgDetails.hasPetals && (
+        <g className="falling-petals">
+          {petals.map((petal, i) => (
+            <g key={i} className={`petal petal-${i % 12}`}>
+              <ellipse
+                cx={petal.x}
+                cy={petal.y}
+                rx={petal.size}
+                ry={petal.size * 0.6}
+                fill="#ffb7c5"
+                opacity={petal.opacity}
+                transform={`rotate(${petal.rotation}, ${petal.x}, ${petal.y})`}
+              />
+            </g>
+          ))}
+        </g>
+      )}
+    </g>
+  );
+}
+
+/**
+ * Anime-style eyes component
+ */
+function AvatarEyes({ eyeDetails, isBlinking, skinColor, colors }) {
+  const renderEye = (cx, isLeft) => {
+    const xOffset = isLeft ? -2 : 2;
+    const highlightX = isLeft ? cx + 12 : cx - 12;
+    const secondaryHighlightX = isLeft ? cx - 6 : cx + 6;
+    const sparkleX = isLeft ? cx + 10 : cx - 10;
+    const lashPath1 = isLeft
+      ? `M 130 235 Q 145 220, 158 222 Q 171 220, 186 235`
+      : `M 214 235 Q 229 220, 242 222 Q 255 220, 270 235`;
+    const lashPath2 = isLeft
+      ? `M 132 232 Q 128 224, 124 218`
+      : `M 216 232 Q 211 226, 206 222`;
+    const lashPath3 = isLeft
+      ? `M 184 232 Q 189 226, 194 222`
+      : `M 268 232 Q 272 224, 276 218`;
+    const lowerLashPath = isLeft
+      ? `M 138 278 Q 158 286, 178 278`
+      : `M 222 278 Q 242 286, 262 278`;
+
+    return (
+      <g className={isLeft ? 'left-eye' : 'right-eye'}>
+        {eyeDetails.hasEyelashes && (
+          <ellipse
+            cx={cx}
+            cy="248"
+            rx="30"
+            ry="35"
+            fill={colors.skinShadow}
+            opacity="0.15"
+          />
+        )}
+        <ellipse cx={cx} cy="252" rx="27" ry="33" fill="white" />
+        {eyeDetails.hasHighlights && (
+          <ellipse
+            cx={cx}
+            cy="240"
+            rx="25"
+            ry="18"
+            fill="#e8e8f5"
+            opacity="0.6"
+          />
+        )}
+        <ellipse
+          cx={cx + xOffset}
+          cy="258"
+          rx="20"
+          ry="25"
+          fill="url(#eyeRadial)"
+        />
+        {eyeDetails.hasPatterns &&
+          [...Array(10)].map((_, i) => (
+            <line
+              key={i}
+              x1={cx + xOffset}
+              y1="258"
+              x2={cx + xOffset + Math.cos((i * Math.PI) / 5) * 18}
+              y2={258 + Math.sin((i * Math.PI) / 5) * 23}
+              stroke={colors.eyeShadow}
+              strokeWidth="1"
+              opacity="0.25"
+            />
+          ))}
+        <ellipse
+          cx={cx + xOffset + (isLeft ? 2 : -2)}
+          cy="262"
+          rx="10"
+          ry="12"
+          fill="#1a1a2e"
+        />
+        {eyeDetails.hasHighlights && (
+          <ellipse
+            cx={highlightX}
+            cy="245"
+            rx="8"
+            ry="9"
+            fill="white"
+            opacity="0.98"
+          />
+        )}
+        {eyeDetails.hasReflections && (
+          <ellipse
+            cx={secondaryHighlightX}
+            cy="268"
+            rx="4"
+            ry="5"
+            fill="white"
+            opacity="0.8"
+          />
+        )}
+        {eyeDetails.hasSparkles && (
+          <circle cx={sparkleX} cy="250" r="2" fill="white" opacity="0.9" />
+        )}
+        {eyeDetails.hasEyelashes && (
+          <>
+            <path
+              d={lashPath1}
+              stroke="#2a2a3a"
+              strokeWidth="4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path d={lashPath2} stroke="#2a2a3a" strokeWidth="2" fill="none" />
+            <path d={lashPath3} stroke="#2a2a3a" strokeWidth="2" fill="none" />
+            <path
+              d={lowerLashPath}
+              stroke="#554455"
+              strokeWidth="1"
+              fill="none"
+              opacity="0.4"
+            />
+          </>
+        )}
+        <ellipse
+          cx={cx}
+          cy="252"
+          rx="29"
+          ry="35"
+          fill={skinColor}
+          className="eyelid"
+        />
+      </g>
+    );
+  };
+
+  return (
+    <g className={`eyes ${isBlinking ? 'blinking' : ''}`}>
+      {renderEye(158, true)}
+      {renderEye(242, false)}
+    </g>
+  );
+}
+
+/**
+ * Hair components (back and front layers)
+ */
+function AvatarHairBack({ hairDetails, colors }) {
+  return (
+    <g className="hair-back">
+      <path
+        d={`M 115 140 Q 75 200, 60 300 Q 45 420, 65 520 Q 75 560, 90 590 Q 100 600, 115 595 Q 135 560, 145 480 Q 155 380, 160 280 Q 163 200, 165 160 Z`}
+        fill="url(#hairSideGradient)"
+      />
+      <path
+        d={`M 285 140 Q 325 200, 340 300 Q 355 420, 335 520 Q 325 560, 310 590 Q 300 600, 285 595 Q 265 560, 255 480 Q 245 380, 240 280 Q 237 200, 235 160 Z`}
+        fill="url(#hairSideGradient)"
+      />
+      {hairDetails.hasStrands && (
+        <>
+          <path
+            d={`M 85 220 Q 65 340, 78 460 Q 85 520, 100 570`}
+            stroke={colors.hairShadow}
+            strokeWidth="12"
+            fill="none"
+            opacity="0.7"
+            strokeLinecap="round"
+          />
+          <path
+            d={`M 315 220 Q 335 340, 322 460 Q 315 520, 300 570`}
+            stroke={colors.hairShadow}
+            strokeWidth="12"
+            fill="none"
+            opacity="0.7"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+      {hairDetails.hasHighlights && (
+        <>
+          <path
+            d="M 80 260 Q 70 350, 82 450"
+            stroke={colors.hairHighlight}
+            strokeWidth="4"
+            fill="none"
+            opacity="0.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 320 260 Q 330 350, 318 450"
+            stroke={colors.hairHighlight}
+            strokeWidth="4"
+            fill="none"
+            opacity="0.5"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+    </g>
+  );
+}
+
+function AvatarHairFront({ hairDetails, colors, hairColor }) {
+  return (
+    <g className="hair-front">
+      <path
+        d={`M 122 130 Q 135 95, 200 88 Q 265 95, 278 130 Q 285 165, 280 200 Q 270 185, 255 210 Q 240 185, 220 210 Q 200 185, 180 210 Q 160 185, 145 210 Q 130 185, 120 200 Q 115 165, 122 130 Z`}
+        fill="url(#hairMainGradient)"
+      />
+      {hairDetails.hasShine && (
+        <>
+          <path
+            d="M 152 105 Q 168 125, 156 175"
+            stroke="url(#hairShineGradient)"
+            strokeWidth="8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 178 100 Q 188 120, 180 165"
+            stroke="url(#hairShineGradient)"
+            strokeWidth="6"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 228 105 Q 240 125, 232 170"
+            stroke="url(#hairShineGradient)"
+            strokeWidth="7"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+      <path
+        d={`M 118 160 Q 95 200, 90 260 Q 87 300, 98 330 L 115 320 Q 112 270, 118 220 Q 124 180, 130 160 Z`}
+        fill={hairColor}
+      />
+      {hairDetails.hasShadows && (
+        <path
+          d={`M 95 215 Q 90 265, 100 315`}
+          stroke={colors.hairShadow}
+          strokeWidth="8"
+          fill="none"
+          opacity="0.45"
+          strokeLinecap="round"
+        />
+      )}
+      <path
+        d={`M 282 160 Q 305 200, 310 260 Q 313 300, 302 330 L 285 320 Q 288 270, 282 220 Q 276 180, 270 160 Z`}
+        fill={hairColor}
+      />
+      {hairDetails.hasShadows && (
+        <path
+          d={`M 305 215 Q 310 265, 300 315`}
+          stroke={colors.hairShadow}
+          strokeWidth="8"
+          fill="none"
+          opacity="0.45"
+          strokeLinecap="round"
+        />
+      )}
+      <ellipse cx="200" cy="88" rx="80" ry="30" fill={hairColor} />
+      {hairDetails.hasHighlights && (
+        <ellipse
+          cx="200"
+          cy="82"
+          rx="55"
+          ry="18"
+          fill={colors.hairMidtone}
+          opacity="0.65"
+        />
+      )}
+      {hairDetails.hasAhoge && (
+        <>
+          <path
+            d="M 194 68 Q 172 32, 198 20 Q 228 32, 206 68"
+            fill={hairColor}
+          />
+          <path
+            d="M 196 58 Q 182 42, 198 30"
+            stroke={colors.hairHighlight}
+            strokeWidth="3"
+            fill="none"
+            opacity="0.55"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+    </g>
+  );
+}
+
+/**
+ * Body with sailor uniform
+ */
+function AvatarBody({
+  bodyDetails,
+  colors,
+  clothesColor,
+  clothesSecondaryColor,
+}) {
+  return (
+    <g className="body">
+      <path
+        d={`M 130 400 Q 110 430, 100 490 Q 95 540, 95 600 L 305 600 Q 305 540, 300 490 Q 290 430, 270 400 Z`}
+        fill="url(#clothesGradient)"
+      />
+      {bodyDetails.hasCollar && (
+        <>
+          <path
+            d={`M 148 400 Q 130 420, 120 450 L 108 510 Q 145 475, 200 478 Q 255 475, 292 510 L 280 450 Q 270 420, 252 400 Q 225 405, 200 407 Q 175 405, 148 400 Z`}
+            fill="url(#collarGradient)"
+          />
+          <path
+            d={`M 150 400 L 105 475 L 95 520 L 155 470 L 198 492 L 200 485 Z`}
+            fill="url(#collarGradient)"
+          />
+          <path
+            d={`M 250 400 L 295 475 L 305 520 L 245 470 L 202 492 L 200 485 Z`}
+            fill="url(#collarGradient)"
+          />
+          {bodyDetails.hasDetails && (
+            <>
+              <path
+                d="M 105 485 L 152 448 L 156 456 L 109 494 Z"
+                fill={clothesColor}
+                opacity="0.95"
+              />
+              <path
+                d="M 109 496 L 155 460 L 158 467 L 112 504 Z"
+                fill={clothesColor}
+                opacity="0.95"
+              />
+              <path
+                d="M 295 485 L 248 448 L 244 456 L 291 494 Z"
+                fill={clothesColor}
+                opacity="0.95"
+              />
+              <path
+                d="M 291 496 L 245 460 L 242 467 L 288 504 Z"
+                fill={clothesColor}
+                opacity="0.95"
+              />
+            </>
+          )}
+        </>
+      )}
+      {bodyDetails.hasBow && (
+        <g className="bow" filter="url(#softGlow)">
+          <path
+            d={`M 178 428 Q 150 415, 140 430 Q 145 448, 175 445 Z`}
+            fill="url(#ribbonGradient)"
+          />
+          <path
+            d={`M 222 428 Q 250 415, 260 430 Q 255 448, 225 445 Z`}
+            fill="url(#ribbonGradient)"
+          />
+          <ellipse cx="200" cy="432" rx="12" ry="10" fill="#e84444" />
+          <ellipse
+            cx="197"
+            cy="429"
+            rx="5"
+            ry="4"
+            fill="#ff7777"
+            opacity="0.7"
+          />
+          <path
+            d="M 193 440 L 185 510 L 200 500 L 215 510 L 207 440 Z"
+            fill="url(#ribbonGradient)"
+          />
+        </g>
+      )}
+      {bodyDetails.hasSkirt && (
+        <>
+          <path
+            d={`M 110 510 Q 90 550, 70 600 L 330 600 Q 310 550, 290 510 Z`}
+            fill={clothesSecondaryColor}
+          />
+          {bodyDetails.hasDetails &&
+            [...Array(10)].map((_, i) => (
+              <path
+                key={i}
+                d={`M ${118 + i * 22} 515 L ${90 + i * 25} 600`}
+                stroke={colors.collarShadow}
+                strokeWidth="2"
+                opacity="0.5"
+              />
+            ))}
+          <path
+            d="M 155 518 Q 200 512, 245 518"
+            stroke={colors.collarHighlight}
+            strokeWidth="2"
+            fill="none"
+            opacity="0.35"
+          />
+        </>
+      )}
+    </g>
+  );
+}
+
+/**
+ * Arms component
+ */
+function AvatarArms({ skinColor }) {
+  return (
+    <g className="arms">
+      <path
+        d={`M 130 405 Q 95 440, 75 490 Q 58 535, 62 565 Q 68 580, 82 575 Q 105 555, 115 515 Q 130 460, 145 420 Z`}
+        fill="url(#skinRadial)"
+        className="left-arm"
+      />
+      <ellipse cx="70" cy="570" rx="14" ry="12" fill={skinColor} />
+      <path
+        d={`M 270 405 Q 310 375, 330 335 Q 348 295, 340 265 Q 332 250, 318 260 Q 295 285, 280 330 Q 265 380, 260 420 Z`}
+        fill="url(#skinRadial)"
+        className="right-arm"
+      />
+      <ellipse cx="332" cy="258" rx="16" ry="14" fill={skinColor} />
+      <ellipse cx="340" cy="248" rx="5" ry="7" fill={skinColor} />
+    </g>
+  );
+}
+
+/**
+ * Face component (head shape, features except eyes)
+ */
+function AvatarFace({ faceDetails, colors, skinColor, hairColor, mouthState }) {
+  return (
+    <g className="head">
+      <path
+        d={`M 128 190 Q 115 220, 115 255 Q 115 295, 135 325 Q 160 358, 185 368 Q 195 372, 200 373 Q 205 372, 215 368 Q 240 358, 265 325 Q 285 295, 285 255 Q 285 220, 272 190 Q 250 140, 200 130 Q 150 140, 128 190 Z`}
+        fill="url(#skinRadial)"
+      />
+      {faceDetails.hasShadows && (
+        <>
+          <path
+            d={`M 122 230 Q 118 270, 135 310`}
+            stroke={colors.skinShadow}
+            strokeWidth="8"
+            fill="none"
+            opacity="0.2"
+            strokeLinecap="round"
+          />
+          <path
+            d={`M 278 230 Q 282 270, 265 310`}
+            stroke={colors.skinShadow}
+            strokeWidth="8"
+            fill="none"
+            opacity="0.2"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+      {faceDetails.hasEars && (
+        <>
+          <ellipse cx="114" cy="245" rx="10" ry="18" fill={skinColor} />
+          <ellipse cx="286" cy="245" rx="10" ry="18" fill={skinColor} />
+          <ellipse
+            cx="114"
+            cy="245"
+            rx="5"
+            ry="11"
+            fill={colors.skinShadow}
+            opacity="0.25"
+          />
+          <ellipse
+            cx="286"
+            cy="245"
+            rx="5"
+            ry="11"
+            fill={colors.skinShadow}
+            opacity="0.25"
+          />
+        </>
+      )}
+      {faceDetails.hasBlush && (
+        <>
+          <ellipse
+            cx="145"
+            cy="290"
+            rx="25"
+            ry="14"
+            fill="url(#blushGradient)"
+          />
+          <ellipse
+            cx="255"
+            cy="290"
+            rx="25"
+            ry="14"
+            fill="url(#blushGradient)"
+          />
+        </>
+      )}
+      {faceDetails.hasEyes && (
+        <>
+          <path
+            d="M 135 218 Q 155 208, 182 218"
+            stroke={hairColor}
+            strokeWidth="5"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 218 218 Q 245 208, 265 218"
+            stroke={hairColor}
+            strokeWidth="5"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+      {faceDetails.hasNose && (
+        <>
+          <path
+            d="M 196 298 Q 200 308, 204 298"
+            stroke={colors.skinShadow}
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+          {faceDetails.hasHighlights && (
+            <ellipse
+              cx="200"
+              cy="290"
+              rx="3"
+              ry="2"
+              fill={colors.skinHighlight}
+              opacity="0.35"
+            />
+          )}
+        </>
+      )}
+      {faceDetails.hasMouth && (
+        <g className={`mouth ${mouthState}`}>
+          {mouthState === 'talking' ? (
+            <g>
+              <ellipse
+                cx="200"
+                cy="332"
+                rx="16"
+                ry="12"
+                fill="#c46666"
+                className="mouth-talking"
+              />
+              <ellipse
+                cx="200"
+                cy="328"
+                rx="12"
+                ry="6"
+                fill="#ffb6b6"
+                opacity="0.6"
+              />
+              <path
+                d="M 186 335 Q 200 344, 214 335"
+                stroke="#aa4444"
+                strokeWidth="1.5"
+                fill="none"
+              />
+            </g>
+          ) : (
+            <g>
+              <path
+                d="M 186 325 Q 200 338, 214 325"
+                stroke="#cc6666"
+                strokeWidth="4"
+                fill="none"
+                strokeLinecap="round"
+                className="mouth-normal"
+              />
+              <path
+                d="M 192 328 Q 200 334, 208 328"
+                stroke="#ffaaaa"
+                strokeWidth="1.5"
+                fill="none"
+                opacity="0.5"
+              />
+            </g>
+          )}
+        </g>
+      )}
+    </g>
+  );
+}
+
+/**
  * High-quality anime-style SVG Avatar component
+ * Designed to match reference image style closely
  * Features configurable detail levels and modular body parts
  */
 export function AvatarSVG({
@@ -20,31 +904,25 @@ export function AvatarSVG({
   const [activeAnimation, setActiveAnimation] = useState('idle');
   const [mouthState, setMouthState] = useState('normal');
 
-  // Get detail level from config (default to max)
   const detailLevel = mergedConfig.detailLevel || 10;
 
-  // Handle blinking
   useEffect(() => {
     if (!mergedConfig.enableRandomBlink) {
       return;
     }
-
     const scheduleNextBlink = () => {
       const variance = Math.random() * 2000 - 1000;
       const interval = mergedConfig.blinkInterval + variance;
-
       return setTimeout(() => {
         setIsBlinking(true);
         setTimeout(() => setIsBlinking(false), 150);
         scheduleNextBlink();
       }, interval);
     };
-
     const timeoutId = scheduleNextBlink();
     return () => clearTimeout(timeoutId);
   }, [mergedConfig.blinkInterval, mergedConfig.enableRandomBlink]);
 
-  // Handle current animation
   useEffect(() => {
     if (currentAnimation && ANIMATIONS.includes(currentAnimation)) {
       setActiveAnimation(currentAnimation);
@@ -53,13 +931,8 @@ export function AvatarSVG({
     }
   }, [currentAnimation, mergedConfig.enableIdleAnimation]);
 
-  // Handle talking state
   useEffect(() => {
-    if (isTalking) {
-      setMouthState('talking');
-    } else {
-      setMouthState('normal');
-    }
+    setMouthState(isTalking ? 'talking' : 'normal');
   }, [isTalking]);
 
   const {
@@ -72,65 +945,52 @@ export function AvatarSVG({
     showLegs,
   } = mergedConfig;
 
-  // Get legs detail to determine if they should be shown
   const legsDetails = getDetailLevel(detailLevel, 'legs');
   const displayLegs = showLegs && legsDetails.shapes > 0;
-
-  // ViewBox dimensions based on whether legs are shown
   const viewBoxHeight = displayLegs ? 1050 : 600;
   const viewBoxWidth = 400;
 
-  // Get detail settings for each component
   const faceDetails = getDetailLevel(detailLevel, 'face');
   const hairDetails = getDetailLevel(detailLevel, 'hair');
   const eyeDetails = getDetailLevel(detailLevel, 'eyes');
   const bodyDetails = getDetailLevel(detailLevel, 'body');
   const bgDetails = getDetailLevel(detailLevel, 'background');
 
-  // Memoize derived colors to avoid recalculation
   const colors = useMemo(
     () => ({
-      skinHighlight: adjustColor(skinColor, 15),
-      skinShadow: adjustColor(skinColor, -25),
-      skinDeepShadow: adjustColor(skinColor, -40),
-      hairHighlight: adjustColor(hairColor, 40),
-      hairMidtone: adjustColor(hairColor, 15),
-      hairShadow: adjustColor(hairColor, -25),
-      hairDeepShadow: adjustColor(hairColor, -45),
-      eyeHighlight: adjustColor(eyeColor, 35),
-      eyeShadow: adjustColor(eyeColor, -30),
-      clothesShadow: adjustColor(clothesColor, -20),
-      collarHighlight: adjustColor(clothesSecondaryColor, 20),
+      skinHighlight: adjustColor(skinColor, 20),
+      skinMidtone: adjustColor(skinColor, 5),
+      skinShadow: adjustColor(skinColor, -20),
+      skinDeepShadow: adjustColor(skinColor, -35),
+      hairHighlight: adjustColor(hairColor, 50),
+      hairLightHighlight: adjustColor(hairColor, 70),
+      hairMidtone: adjustColor(hairColor, 20),
+      hairShadow: adjustColor(hairColor, -20),
+      hairDeepShadow: adjustColor(hairColor, -40),
+      eyeHighlight: adjustColor(eyeColor, 40),
+      eyeLightHighlight: adjustColor(eyeColor, 60),
+      eyeShadow: adjustColor(eyeColor, -25),
+      eyeDeepShadow: adjustColor(eyeColor, -40),
+      clothesShadow: adjustColor(clothesColor, -15),
+      clothesDeepShadow: adjustColor(clothesColor, -30),
+      collarHighlight: adjustColor(clothesSecondaryColor, 25),
+      collarShadow: adjustColor(clothesSecondaryColor, -20),
     }),
     [skinColor, hairColor, eyeColor, clothesColor, clothesSecondaryColor]
   );
 
-  // Memoize petal positions for performance
   const petals = useMemo(() => {
     if (!bgDetails.hasPetals) {
       return [];
     }
-    return [...Array(20)].map((_, i) => ({
-      x: 30 + ((i * 19) % 360),
-      y: 50 + ((i * 37) % 400),
-      rotation: i * 30,
-      opacity: 0.6 + (i % 4) * 0.1,
+    return [...Array(25)].map((_, i) => ({
+      x: 20 + ((i * 17) % 370),
+      y: 40 + ((i * 31) % 520),
+      rotation: i * 27,
+      opacity: 0.5 + (i % 5) * 0.1,
+      size: 4 + (i % 3),
     }));
   }, [bgDetails.hasPetals]);
-
-  // Memoize buildings for performance
-  const buildings = useMemo(() => {
-    if (!bgDetails.hasCity) {
-      return [];
-    }
-    return [...Array(12)].map((_, i) => ({
-      x: i * 35 + Math.floor(i * 0.5),
-      y: 450 + (i % 3) * 15,
-      width: 20 + (i % 3) * 5,
-      height: 150 - (i % 4) * 15,
-      opacity: 0.3 + (i % 3) * 0.1,
-    }));
-  }, [bgDetails.hasCity]);
 
   return (
     <div className={`avatar-svg-container ${activeAnimation}`}>
@@ -140,1010 +1000,101 @@ export function AvatarSVG({
         className="avatar-svg"
         preserveAspectRatio="xMidYMid slice"
       >
-        <defs>
-          {/* Advanced gradients for realistic shading */}
-          <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#5bb5e8" />
-            <stop offset="40%" stopColor="#87ceeb" />
-            <stop offset="100%" stopColor="#b8e4f9" />
-          </linearGradient>
+        <AvatarGradients
+          colors={colors}
+          skinColor={skinColor}
+          hairColor={hairColor}
+          eyeColor={eyeColor}
+          clothesColor={clothesColor}
+          clothesSecondaryColor={clothesSecondaryColor}
+        />
 
-          <linearGradient id="skinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={colors.skinHighlight} />
-            <stop offset="50%" stopColor={skinColor} />
-            <stop offset="100%" stopColor={colors.skinShadow} />
-          </linearGradient>
-
-          <radialGradient id="skinRadial" cx="40%" cy="30%" r="70%">
-            <stop offset="0%" stopColor={colors.skinHighlight} />
-            <stop offset="60%" stopColor={skinColor} />
-            <stop offset="100%" stopColor={colors.skinShadow} />
-          </radialGradient>
-
-          <linearGradient
-            id="hairMainGradient"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor={colors.hairHighlight} />
-            <stop offset="30%" stopColor={colors.hairMidtone} />
-            <stop offset="70%" stopColor={hairColor} />
-            <stop offset="100%" stopColor={colors.hairShadow} />
-          </linearGradient>
-
-          <linearGradient
-            id="hairSideGradient"
-            x1="100%"
-            y1="0%"
-            x2="0%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor={colors.hairMidtone} />
-            <stop offset="50%" stopColor={hairColor} />
-            <stop offset="100%" stopColor={colors.hairDeepShadow} />
-          </linearGradient>
-
-          <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={colors.eyeHighlight} />
-            <stop offset="40%" stopColor={eyeColor} />
-            <stop offset="100%" stopColor={colors.eyeShadow} />
-          </linearGradient>
-
-          <radialGradient id="eyeRadial" cx="50%" cy="30%" r="60%">
-            <stop offset="0%" stopColor={colors.eyeHighlight} />
-            <stop offset="50%" stopColor={eyeColor} />
-            <stop offset="100%" stopColor={colors.eyeShadow} />
-          </radialGradient>
-
-          <linearGradient
-            id="clothesGradient"
-            x1="0%"
-            y1="0%"
-            x2="0%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor={clothesColor} />
-            <stop offset="100%" stopColor={colors.clothesShadow} />
-          </linearGradient>
-
-          <linearGradient id="collarGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={colors.collarHighlight} />
-            <stop offset="100%" stopColor={clothesSecondaryColor} />
-          </linearGradient>
-
-          <radialGradient id="blushGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffb6c1" stopOpacity="0.5" />
-            <stop offset="70%" stopColor="#ffb6c1" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#ffb6c1" stopOpacity="0" />
-          </radialGradient>
-
-          <linearGradient id="ribbonGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#e84444" />
-            <stop offset="50%" stopColor="#cc3333" />
-            <stop offset="100%" stopColor="#aa2222" />
-          </linearGradient>
-
-          {/* Filters for soft effects */}
-          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
-          <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="2" dy="3" stdDeviation="4" floodOpacity="0.15" />
-          </filter>
-
-          <filter id="hairShine" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
-            <feOffset dx="1" dy="1" />
-            <feComposite
-              in2="SourceAlpha"
-              operator="arithmetic"
-              k2="-1"
-              k3="1"
-            />
-            <feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.3 0" />
-            <feMerge>
-              <feMergeNode />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* Background with cherry blossoms and scene */}
         {showBackground && bgDetails.shapes > 0 && (
-          <g className="background-layer">
-            {/* Sky */}
-            <rect
-              x="0"
-              y="0"
-              width="400"
-              height="600"
-              fill="url(#skyGradient)"
-            />
-
-            {/* Distant cityscape */}
-            {bgDetails.hasCity && (
-              <g className="cityscape" opacity="0.3">
-                <rect x="0" y="480" width="400" height="120" fill="#c8d4e0" />
-                {buildings.map((b, i) => (
-                  <rect
-                    key={i}
-                    x={b.x}
-                    y={b.y}
-                    width={b.width}
-                    height={b.height}
-                    fill={`rgba(180, 190, 200, ${b.opacity})`}
-                  />
-                ))}
-              </g>
-            )}
-
-            {/* Bridge/fence in middle ground */}
-            {bgDetails.hasFence && (
-              <g className="fence">
-                <rect x="0" y="520" width="400" height="8" fill="#e8ddd0" />
-                <rect
-                  x="0"
-                  y="528"
-                  width="400"
-                  height="72"
-                  fill="#d4c8b8"
-                  opacity="0.4"
-                />
-                {[...Array(10)].map((_, i) => (
-                  <g key={i}>
-                    <rect
-                      x={i * 45 + 10}
-                      y="490"
-                      width="4"
-                      height="40"
-                      fill="#b8a898"
-                    />
-                    <rect
-                      x={i * 45 + 8}
-                      y="505"
-                      width="8"
-                      height="3"
-                      fill="#c8b8a8"
-                    />
-                  </g>
-                ))}
-                <rect x="0" y="500" width="400" height="3" fill="#c8b8a8" />
-                <rect x="0" y="515" width="400" height="3" fill="#c8b8a8" />
-              </g>
-            )}
-
-            {/* Power lines */}
-            {bgDetails.hasPowerLines && (
-              <g
-                className="power-lines"
-                stroke="#555"
-                strokeWidth="0.5"
-                opacity="0.3"
-              >
-                <line x1="50" y1="0" x2="50" y2="350" />
-                <line x1="48" y1="100" x2="100" y2="102" />
-                <line x1="48" y1="150" x2="150" y2="152" />
-                <line x1="0" y1="80" x2="400" y2="85" />
-              </g>
-            )}
-
-            {/* Cherry blossom trees - left */}
-            {bgDetails.hasTrees && (
-              <g className="cherry-tree-left">
-                <path
-                  d="M 40 600 Q 35 500, 50 400 Q 55 350, 45 300"
-                  stroke="#5c4033"
-                  strokeWidth="15"
-                  fill="none"
-                />
-                <path
-                  d="M 45 350 Q 20 300, 10 250"
-                  stroke="#5c4033"
-                  strokeWidth="8"
-                  fill="none"
-                />
-                <path
-                  d="M 50 320 Q 80 280, 90 220"
-                  stroke="#5c4033"
-                  strokeWidth="6"
-                  fill="none"
-                />
-                {[
-                  { cx: 30, cy: 180, r: 60 },
-                  { cx: -10, cy: 220, r: 50 },
-                  { cx: 70, cy: 150, r: 55 },
-                  { cx: 50, cy: 100, r: 45 },
-                  { cx: 90, cy: 200, r: 40 },
-                  { cx: 10, cy: 130, r: 50 },
-                  { cx: 60, cy: 250, r: 35 },
-                ].map((cluster, i) => (
-                  <g key={i}>
-                    <ellipse
-                      cx={cluster.cx}
-                      cy={cluster.cy}
-                      rx={cluster.r}
-                      ry={cluster.r * 0.8}
-                      fill="#ffb7c5"
-                      opacity={0.9 - i * 0.05}
-                    />
-                    <ellipse
-                      cx={cluster.cx + 10}
-                      cy={cluster.cy - 10}
-                      rx={cluster.r * 0.7}
-                      ry={cluster.r * 0.5}
-                      fill="#ffc8d4"
-                      opacity={0.7}
-                    />
-                  </g>
-                ))}
-              </g>
-            )}
-
-            {/* Cherry blossom trees - right */}
-            {bgDetails.hasTrees && (
-              <g className="cherry-tree-right">
-                <path
-                  d="M 370 600 Q 380 480, 360 380 Q 350 320, 370 260"
-                  stroke="#5c4033"
-                  strokeWidth="18"
-                  fill="none"
-                />
-                <path
-                  d="M 360 350 Q 400 300, 420 240"
-                  stroke="#5c4033"
-                  strokeWidth="10"
-                  fill="none"
-                />
-                <path
-                  d="M 365 300 Q 330 260, 320 200"
-                  stroke="#5c4033"
-                  strokeWidth="7"
-                  fill="none"
-                />
-                {[
-                  { cx: 380, cy: 150, r: 70 },
-                  { cx: 420, cy: 200, r: 60 },
-                  { cx: 340, cy: 180, r: 55 },
-                  { cx: 360, cy: 80, r: 50 },
-                  { cx: 400, cy: 120, r: 45 },
-                  { cx: 320, cy: 130, r: 40 },
-                  { cx: 390, cy: 250, r: 45 },
-                ].map((cluster, i) => (
-                  <g key={i}>
-                    <ellipse
-                      cx={cluster.cx}
-                      cy={cluster.cy}
-                      rx={cluster.r}
-                      ry={cluster.r * 0.85}
-                      fill="#ffb7c5"
-                      opacity={0.9 - i * 0.04}
-                    />
-                    <ellipse
-                      cx={cluster.cx - 15}
-                      cy={cluster.cy - 8}
-                      rx={cluster.r * 0.6}
-                      ry={cluster.r * 0.45}
-                      fill="#ffd0dc"
-                      opacity={0.6}
-                    />
-                  </g>
-                ))}
-              </g>
-            )}
-
-            {/* Falling petals */}
-            {bgDetails.hasPetals && (
-              <g className="falling-petals">
-                {petals.map((petal, i) => (
-                  <g key={i} className={`petal petal-${i % 12}`}>
-                    <ellipse
-                      cx={petal.x}
-                      cy={petal.y}
-                      rx="5"
-                      ry="3"
-                      fill="#ffb7c5"
-                      opacity={petal.opacity}
-                      transform={`rotate(${petal.rotation}, ${petal.x}, ${petal.y})`}
-                    />
-                  </g>
-                ))}
-              </g>
-            )}
-          </g>
+          <AvatarBackground
+            bgDetails={bgDetails}
+            viewBoxHeight={viewBoxHeight}
+            petals={petals}
+          />
         )}
 
-        {/* Character */}
         <g className="character-group" filter="url(#softShadow)">
-          {/* Hair back layer - long flowing hair */}
           {hairDetails.shapes > 0 && (
-            <g className="hair-back">
-              <path
-                d={`M 110 130 Q 70 180, 60 280 Q 50 380, 70 480 Q 80 540, 95 580 Q 100 590, 110 585 Q 130 550, 140 480 Q 150 400, 155 320 Q 158 260, 160 200 Z`}
-                fill="url(#hairSideGradient)"
-              />
-              <path
-                d={`M 290 130 Q 330 180, 340 280 Q 350 380, 330 480 Q 320 540, 305 580 Q 300 590, 290 585 Q 270 550, 260 480 Q 250 400, 245 320 Q 242 260, 240 200 Z`}
-                fill="url(#hairSideGradient)"
-              />
-              {hairDetails.hasStrands && (
-                <>
-                  <path
-                    d={`M 95 200 Q 75 300, 85 420 Q 90 480, 100 530 L 115 520 Q 110 450, 115 360 Q 118 280, 115 200 Z`}
-                    fill={colors.hairShadow}
-                  />
-                  <path
-                    d={`M 305 200 Q 325 300, 315 420 Q 310 480, 300 530 L 285 520 Q 290 450, 285 360 Q 282 280, 285 200 Z`}
-                    fill={colors.hairShadow}
-                  />
-                </>
-              )}
-              {hairDetails.hasHighlights && (
-                <>
-                  <path
-                    d="M 85 250 Q 80 320, 88 400"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="3"
-                    fill="none"
-                    opacity="0.4"
-                  />
-                  <path
-                    d="M 315 250 Q 320 320, 312 400"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="3"
-                    fill="none"
-                    opacity="0.4"
-                  />
-                </>
-              )}
-            </g>
+            <AvatarHairBack hairDetails={hairDetails} colors={colors} />
           )}
 
-          {/* Neck */}
           {bodyDetails.shapes > 0 && (
             <>
               <path
-                d="M 175 320 L 173 375 Q 175 392, 190 395 L 210 395 Q 225 392, 227 375 L 225 320 Z"
+                d="M 178 325 L 176 385 Q 180 400, 195 402 L 205 402 Q 220 400, 224 385 L 222 325 Z"
                 fill="url(#skinGradient)"
               />
               <ellipse
                 cx="200"
-                cy="330"
-                rx="20"
-                ry="8"
+                cy="340"
+                rx="18"
+                ry="6"
                 fill={colors.skinShadow}
-                opacity="0.3"
+                opacity="0.25"
               />
             </>
           )}
 
-          {/* Body - Sailor uniform */}
           {bodyDetails.shapes > 0 && bodyDetails.hasClothes && (
-            <g className="body">
-              <path
-                d={`M 125 395 Q 105 420, 95 480 Q 90 530, 90 600 L 310 600 Q 310 530, 305 480 Q 295 420, 275 395 Z`}
-                fill="url(#clothesGradient)"
-              />
-
-              {bodyDetails.hasCollar && (
-                <>
-                  <path
-                    d={`M 145 395 Q 130 410, 125 430 L 115 480 Q 150 450, 200 455 Q 250 450, 285 480 L 275 430 Q 270 410, 255 395 Q 225 400, 200 402 Q 175 400, 145 395 Z`}
-                    fill="url(#collarGradient)"
-                  />
-                  <path
-                    d={`M 148 395 L 110 460 L 100 500 L 155 455 L 195 475 L 200 470 Z`}
-                    fill="url(#collarGradient)"
-                  />
-                  <path
-                    d={`M 252 395 L 290 460 L 300 500 L 245 455 L 205 475 L 200 470 Z`}
-                    fill="url(#collarGradient)"
-                  />
-                  {bodyDetails.hasDetails && (
-                    <>
-                      <path
-                        d="M 108 468 L 152 435 L 157 445 L 113 478 Z"
-                        fill={clothesColor}
-                        opacity="0.95"
-                      />
-                      <path
-                        d="M 112 478 L 155 446 L 158 454 L 116 486 Z"
-                        fill={clothesColor}
-                        opacity="0.95"
-                      />
-                      <path
-                        d="M 292 468 L 248 435 L 243 445 L 287 478 Z"
-                        fill={clothesColor}
-                        opacity="0.95"
-                      />
-                      <path
-                        d="M 288 478 L 245 446 L 242 454 L 284 486 Z"
-                        fill={clothesColor}
-                        opacity="0.95"
-                      />
-                    </>
-                  )}
-                </>
-              )}
-
-              {bodyDetails.hasBow && (
-                <g className="bow" filter="url(#softGlow)">
-                  <path
-                    d={`M 180 420 Q 155 408, 145 420 Q 148 435, 175 435 Z`}
-                    fill="url(#ribbonGradient)"
-                  />
-                  <path
-                    d={`M 220 420 Q 245 408, 255 420 Q 252 435, 225 435 Z`}
-                    fill="url(#ribbonGradient)"
-                  />
-                  <ellipse cx="200" cy="425" rx="10" ry="8" fill="#dd4444" />
-                  <ellipse
-                    cx="198"
-                    cy="423"
-                    rx="4"
-                    ry="3"
-                    fill="#ee6666"
-                    opacity="0.6"
-                  />
-                  <path
-                    d="M 195 433 L 188 485 L 200 478 L 212 485 L 205 433 Z"
-                    fill="url(#ribbonGradient)"
-                  />
-                </g>
-              )}
-
-              {bodyDetails.hasSkirt && (
-                <>
-                  <path
-                    d={`M 105 500 Q 90 530, 75 600 L 325 600 Q 310 530, 295 500 Z`}
-                    fill={clothesSecondaryColor}
-                  />
-                  {bodyDetails.hasDetails &&
-                    [...Array(8)].map((_, i) => (
-                      <path
-                        key={i}
-                        d={`M ${115 + i * 25} 505 L ${95 + i * 28} 600`}
-                        stroke={adjustColor(clothesSecondaryColor, -25)}
-                        strokeWidth="2"
-                        opacity="0.6"
-                      />
-                    ))}
-                  <path
-                    d="M 150 510 Q 200 505, 250 510"
-                    stroke={adjustColor(clothesSecondaryColor, 20)}
-                    strokeWidth="2"
-                    fill="none"
-                    opacity="0.4"
-                  />
-                </>
-              )}
-            </g>
+            <AvatarBody
+              bodyDetails={bodyDetails}
+              colors={colors}
+              clothesColor={clothesColor}
+              clothesSecondaryColor={clothesSecondaryColor}
+            />
           )}
 
-          {/* Legs (if enabled and detail level supports it) */}
           {displayLegs && (
             <SVGLegs config={mergedConfig} detailLevel={detailLevel} />
           )}
 
-          {/* Arms */}
-          {bodyDetails.hasArms && (
-            <g className="arms">
-              <path
-                d={`M 125 400 Q 90 430, 70 475 Q 55 510, 58 540 Q 62 555, 75 550 Q 95 530, 105 495 Q 120 450, 135 415 Z`}
-                fill="url(#skinRadial)"
-                className="left-arm"
-              />
-              <ellipse cx="65" cy="545" rx="12" ry="10" fill={skinColor} />
-              <path
-                d={`M 275 400 Q 305 375, 325 340 Q 342 305, 335 280 Q 330 268, 318 275 Q 300 295, 288 335 Q 275 375, 268 415 Z`}
-                fill="url(#skinRadial)"
-                className="right-arm"
-              />
-              <ellipse cx="328" cy="272" rx="14" ry="12" fill={skinColor} />
-              <ellipse cx="335" cy="265" rx="4" ry="6" fill={skinColor} />
-            </g>
-          )}
+          {bodyDetails.hasArms && <AvatarArms skinColor={skinColor} />}
 
-          {/* Face/Head */}
           {faceDetails.shapes > 0 && (
-            <g className="head">
-              <path
-                d={`M 130 185 Q 118 210, 118 245 Q 118 285, 135 315 Q 155 345, 175 355 Q 190 362, 200 363 Q 210 362, 225 355 Q 245 345, 265 315 Q 282 285, 282 245 Q 282 210, 270 185 Q 250 135, 200 125 Q 150 135, 130 185 Z`}
-                fill="url(#skinRadial)"
+            <>
+              <AvatarFace
+                faceDetails={faceDetails}
+                colors={colors}
+                skinColor={skinColor}
+                hairColor={hairColor}
+                mouthState={mouthState}
               />
-
-              {faceDetails.hasShadows && (
-                <>
-                  <path
-                    d={`M 125 220 Q 120 260, 135 300 Q 130 280, 125 220 Z`}
-                    fill={colors.skinShadow}
-                    opacity="0.3"
-                  />
-                  <path
-                    d={`M 275 220 Q 280 260, 265 300 Q 270 280, 275 220 Z`}
-                    fill={colors.skinShadow}
-                    opacity="0.3"
-                  />
-                </>
-              )}
-
-              {faceDetails.hasEars && (
-                <>
-                  <ellipse cx="116" cy="235" rx="10" ry="16" fill={skinColor} />
-                  <ellipse cx="284" cy="235" rx="10" ry="16" fill={skinColor} />
-                  <ellipse
-                    cx="116"
-                    cy="235"
-                    rx="5"
-                    ry="10"
-                    fill={colors.skinShadow}
-                    opacity="0.3"
-                  />
-                  <ellipse
-                    cx="284"
-                    cy="235"
-                    rx="5"
-                    ry="10"
-                    fill={colors.skinShadow}
-                    opacity="0.3"
-                  />
-                </>
-              )}
-
-              {faceDetails.hasBlush && (
-                <>
-                  <ellipse
-                    cx="148"
-                    cy="280"
-                    rx="22"
-                    ry="12"
-                    fill="url(#blushGradient)"
-                  />
-                  <ellipse
-                    cx="252"
-                    cy="280"
-                    rx="22"
-                    ry="12"
-                    fill="url(#blushGradient)"
-                  />
-                </>
-              )}
-
-              {/* Eyes - highly detailed anime style */}
               {eyeDetails.shapes > 0 && (
-                <g className={`eyes ${isBlinking ? 'blinking' : ''}`}>
-                  {/* Left eye */}
-                  <g className="left-eye">
-                    {eyeDetails.hasEyelashes && (
-                      <path
-                        d="M 138 218 Q 160 210, 182 218"
-                        stroke={colors.skinDeepShadow}
-                        strokeWidth="1.5"
-                        fill="none"
-                        opacity="0.4"
-                      />
-                    )}
-                    <ellipse cx="160" cy="245" rx="24" ry="30" fill="white" />
-                    {eyeDetails.hasHighlights && (
-                      <ellipse
-                        cx="160"
-                        cy="235"
-                        rx="22"
-                        ry="15"
-                        fill="#e8e8f0"
-                        opacity="0.5"
-                      />
-                    )}
-                    <ellipse
-                      cx="162"
-                      cy="250"
-                      rx="18"
-                      ry="22"
-                      fill="url(#eyeRadial)"
-                    />
-                    {eyeDetails.hasPatterns &&
-                      [...Array(8)].map((_, i) => (
-                        <line
-                          key={i}
-                          x1="162"
-                          y1="250"
-                          x2={162 + Math.cos((i * Math.PI) / 4) * 16}
-                          y2={250 + Math.sin((i * Math.PI) / 4) * 20}
-                          stroke={colors.eyeShadow}
-                          strokeWidth="1"
-                          opacity="0.3"
-                        />
-                      ))}
-                    <ellipse cx="164" cy="253" rx="9" ry="11" fill="#1a1a2e" />
-                    {eyeDetails.hasHighlights && (
-                      <ellipse
-                        cx="170"
-                        cy="240"
-                        rx="6"
-                        ry="7"
-                        fill="white"
-                        opacity="0.95"
-                      />
-                    )}
-                    {eyeDetails.hasReflections && (
-                      <ellipse
-                        cx="155"
-                        cy="258"
-                        rx="3"
-                        ry="4"
-                        fill="white"
-                        opacity="0.7"
-                      />
-                    )}
-                    {eyeDetails.hasSparkles && (
-                      <circle
-                        cx="168"
-                        cy="245"
-                        r="2"
-                        fill="white"
-                        opacity="0.8"
-                      />
-                    )}
-                    {eyeDetails.hasEyelashes && (
-                      <>
-                        <path
-                          d="M 136 230 Q 150 218, 160 220 Q 170 218, 184 230"
-                          stroke="#2a2a3a"
-                          strokeWidth="3"
-                          fill="none"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M 138 228 Q 135 222, 132 218"
-                          stroke="#2a2a3a"
-                          strokeWidth="1.5"
-                          fill="none"
-                        />
-                        <path
-                          d="M 182 228 Q 186 224, 190 222"
-                          stroke="#2a2a3a"
-                          strokeWidth="1.5"
-                          fill="none"
-                        />
-                        <path
-                          d="M 142 265 Q 160 272, 178 265"
-                          stroke="#554455"
-                          strokeWidth="1"
-                          fill="none"
-                          opacity="0.5"
-                        />
-                      </>
-                    )}
-                    <ellipse
-                      cx="160"
-                      cy="245"
-                      rx="26"
-                      ry="32"
-                      fill={skinColor}
-                      className="eyelid"
-                    />
-                  </g>
-
-                  {/* Right eye */}
-                  <g className="right-eye">
-                    {eyeDetails.hasEyelashes && (
-                      <path
-                        d="M 218 218 Q 240 210, 262 218"
-                        stroke={colors.skinDeepShadow}
-                        strokeWidth="1.5"
-                        fill="none"
-                        opacity="0.4"
-                      />
-                    )}
-                    <ellipse cx="240" cy="245" rx="24" ry="30" fill="white" />
-                    {eyeDetails.hasHighlights && (
-                      <ellipse
-                        cx="240"
-                        cy="235"
-                        rx="22"
-                        ry="15"
-                        fill="#e8e8f0"
-                        opacity="0.5"
-                      />
-                    )}
-                    <ellipse
-                      cx="238"
-                      cy="250"
-                      rx="18"
-                      ry="22"
-                      fill="url(#eyeRadial)"
-                    />
-                    {eyeDetails.hasPatterns &&
-                      [...Array(8)].map((_, i) => (
-                        <line
-                          key={i}
-                          x1="238"
-                          y1="250"
-                          x2={238 + Math.cos((i * Math.PI) / 4) * 16}
-                          y2={250 + Math.sin((i * Math.PI) / 4) * 20}
-                          stroke={colors.eyeShadow}
-                          strokeWidth="1"
-                          opacity="0.3"
-                        />
-                      ))}
-                    <ellipse cx="236" cy="253" rx="9" ry="11" fill="#1a1a2e" />
-                    {eyeDetails.hasHighlights && (
-                      <ellipse
-                        cx="230"
-                        cy="240"
-                        rx="6"
-                        ry="7"
-                        fill="white"
-                        opacity="0.95"
-                      />
-                    )}
-                    {eyeDetails.hasReflections && (
-                      <ellipse
-                        cx="245"
-                        cy="258"
-                        rx="3"
-                        ry="4"
-                        fill="white"
-                        opacity="0.7"
-                      />
-                    )}
-                    {eyeDetails.hasSparkles && (
-                      <circle
-                        cx="232"
-                        cy="245"
-                        r="2"
-                        fill="white"
-                        opacity="0.8"
-                      />
-                    )}
-                    {eyeDetails.hasEyelashes && (
-                      <>
-                        <path
-                          d="M 216 230 Q 230 218, 240 220 Q 250 218, 264 230"
-                          stroke="#2a2a3a"
-                          strokeWidth="3"
-                          fill="none"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M 218 228 Q 214 224, 210 222"
-                          stroke="#2a2a3a"
-                          strokeWidth="1.5"
-                          fill="none"
-                        />
-                        <path
-                          d="M 262 228 Q 265 222, 268 218"
-                          stroke="#2a2a3a"
-                          strokeWidth="1.5"
-                          fill="none"
-                        />
-                        <path
-                          d="M 222 265 Q 240 272, 258 265"
-                          stroke="#554455"
-                          strokeWidth="1"
-                          fill="none"
-                          opacity="0.5"
-                        />
-                      </>
-                    )}
-                    <ellipse
-                      cx="240"
-                      cy="245"
-                      rx="26"
-                      ry="32"
-                      fill={skinColor}
-                      className="eyelid"
-                    />
-                  </g>
-                </g>
+                <AvatarEyes
+                  eyeDetails={eyeDetails}
+                  isBlinking={isBlinking}
+                  skinColor={skinColor}
+                  colors={colors}
+                />
               )}
-
-              {/* Eyebrows */}
-              {faceDetails.hasEyes && (
-                <>
-                  <path
-                    d="M 138 212 Q 155 205, 178 212"
-                    stroke={hairColor}
-                    strokeWidth="4"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 222 212 Q 245 205, 262 212"
-                    stroke={hairColor}
-                    strokeWidth="4"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </>
-              )}
-
-              {/* Nose */}
-              {faceDetails.hasNose && (
-                <>
-                  <path
-                    d="M 197 285 Q 200 292, 203 285"
-                    stroke={colors.skinShadow}
-                    strokeWidth="2"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  {faceDetails.hasHighlights && (
-                    <ellipse
-                      cx="200"
-                      cy="278"
-                      rx="3"
-                      ry="2"
-                      fill={colors.skinHighlight}
-                      opacity="0.4"
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Mouth */}
-              {faceDetails.hasMouth && (
-                <g className={`mouth ${mouthState}`}>
-                  {mouthState === 'talking' ? (
-                    <g>
-                      <ellipse
-                        cx="200"
-                        cy="318"
-                        rx="14"
-                        ry="10"
-                        fill="#c46666"
-                        className="mouth-talking"
-                      />
-                      <ellipse
-                        cx="200"
-                        cy="315"
-                        rx="10"
-                        ry="5"
-                        fill="#ffb6b6"
-                        opacity="0.5"
-                      />
-                      <path
-                        d="M 188 320 Q 200 328, 212 320"
-                        stroke="#aa4444"
-                        strokeWidth="1"
-                        fill="none"
-                      />
-                    </g>
-                  ) : (
-                    <g>
-                      <path
-                        d="M 188 312 Q 200 322, 212 312"
-                        stroke="#cc6666"
-                        strokeWidth="3"
-                        fill="none"
-                        strokeLinecap="round"
-                        className="mouth-normal"
-                      />
-                      <path
-                        d="M 193 314 Q 200 318, 207 314"
-                        stroke="#ffaaaa"
-                        strokeWidth="1"
-                        fill="none"
-                        opacity="0.5"
-                      />
-                    </g>
-                  )}
-                </g>
-              )}
-            </g>
+            </>
           )}
 
-          {/* Hair front layer - detailed bangs */}
           {hairDetails.shapes > 0 && (
-            <g className="hair-front" filter="url(#hairShine)">
-              <path
-                d={`M 125 130 Q 135 95, 200 90 Q 265 95, 275 130 Q 280 160, 275 190 Q 270 175, 255 195 Q 245 175, 230 195 Q 215 175, 200 195 Q 185 175, 170 195 Q 155 175, 145 195 Q 130 175, 125 190 Q 120 160, 125 130 Z`}
-                fill="url(#hairMainGradient)"
-              />
-
-              {hairDetails.hasShine && (
-                <>
-                  <path
-                    d="M 155 105 Q 170 120, 160 160"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="6"
-                    fill="none"
-                    opacity="0.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 175 100 Q 185 115, 180 150"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="4"
-                    fill="none"
-                    opacity="0.4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 225 105 Q 235 120, 230 155"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="5"
-                    fill="none"
-                    opacity="0.45"
-                    strokeLinecap="round"
-                  />
-                </>
-              )}
-
-              <path
-                d={`M 120 155 Q 100 190, 95 240 Q 92 270, 100 295 L 115 285 Q 115 250, 120 210 Q 125 175, 130 155 Z`}
-                fill={hairColor}
-              />
-              {hairDetails.hasShadows && (
-                <path
-                  d={`M 100 200 Q 95 240, 102 280 L 108 275 Q 105 240, 108 200 Z`}
-                  fill={colors.hairShadow}
-                  opacity="0.5"
-                />
-              )}
-
-              <path
-                d={`M 280 155 Q 300 190, 305 240 Q 308 270, 300 295 L 285 285 Q 285 250, 280 210 Q 275 175, 270 155 Z`}
-                fill={hairColor}
-              />
-              {hairDetails.hasShadows && (
-                <path
-                  d={`M 300 200 Q 305 240, 298 280 L 292 275 Q 295 240, 292 200 Z`}
-                  fill={colors.hairShadow}
-                  opacity="0.5"
-                />
-              )}
-
-              <ellipse cx="200" cy="88" rx="75" ry="28" fill={hairColor} />
-              {hairDetails.hasHighlights && (
-                <ellipse
-                  cx="200"
-                  cy="82"
-                  rx="50"
-                  ry="15"
-                  fill={colors.hairMidtone}
-                  opacity="0.6"
-                />
-              )}
-
-              {hairDetails.hasAhoge && (
-                <>
-                  <path
-                    d="M 195 68 Q 175 35, 198 25 Q 222 35, 205 68"
-                    fill={hairColor}
-                  />
-                  <path
-                    d="M 197 60 Q 185 45, 198 35"
-                    stroke={colors.hairHighlight}
-                    strokeWidth="2"
-                    fill="none"
-                    opacity="0.5"
-                  />
-                </>
-              )}
-            </g>
+            <AvatarHairFront
+              hairDetails={hairDetails}
+              colors={colors}
+              hairColor={hairColor}
+            />
           )}
 
-          {/* Bag strap */}
           {bodyDetails.hasBag && (
             <>
               <path
-                d="M 278 395 Q 300 420, 315 500 L 325 498 Q 312 415, 285 390 Z"
+                d="M 275 405 Q 300 435, 318 520 L 330 518 Q 315 430, 285 400 Z"
                 fill="#2a2a2a"
-                opacity="0.85"
+                opacity="0.88"
               />
               <path
-                d="M 280 400 Q 298 420, 310 480"
+                d="M 280 415 Q 302 440, 315 500"
                 stroke="#444"
-                strokeWidth="1"
+                strokeWidth="1.5"
                 fill="none"
-                opacity="0.5"
+                opacity="0.45"
               />
             </>
           )}
