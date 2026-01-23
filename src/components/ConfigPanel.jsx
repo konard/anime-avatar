@@ -2,32 +2,36 @@ import React from 'react';
 
 const PRESETS = [
   {
-    name: 'Default',
-    skin: '#ffd5c8',
-    hair: '#2d1b4e',
-    eye: '#6b5ce7',
-    clothes: '#ff6b9d',
+    name: 'Schoolgirl',
+    skin: '#fad5c5',
+    hair: '#b07850',
+    eye: '#4a90c2',
+    clothes: '#ffffff',
+    clothesSecondary: '#1a3a5c',
   },
   {
     name: 'Blonde',
     skin: '#ffe4c4',
-    hair: '#ffcc00',
+    hair: '#f0c050',
     eye: '#00bfff',
-    clothes: '#4169e1',
+    clothes: '#ffffff',
+    clothesSecondary: '#1a3a5c',
   },
   {
     name: 'Dark',
-    skin: '#d4a574',
-    hair: '#1a1a1a',
-    eye: '#8b4513',
-    clothes: '#228b22',
+    skin: '#e0b090',
+    hair: '#2a1a0a',
+    eye: '#5a4030',
+    clothes: '#ffffff',
+    clothesSecondary: '#1a3a5c',
   },
   {
-    name: 'Redhead',
-    skin: '#ffefd5',
-    hair: '#dc143c',
-    eye: '#ff4500',
-    clothes: '#1a1a1a',
+    name: 'Pink',
+    skin: '#ffd5c8',
+    hair: '#ff69b4',
+    eye: '#ff1493',
+    clothes: '#ffffff',
+    clothesSecondary: '#ff6b9d',
   },
 ];
 
@@ -124,6 +128,7 @@ export function ConfigPanel({
       hairColor: preset.hair,
       eyeColor: preset.eye,
       clothesColor: preset.clothes,
+      clothesSecondaryColor: preset.clothesSecondary || '#1a3a5c',
     });
 
   return (
@@ -137,6 +142,12 @@ export function ConfigPanel({
           label="Enable 3D WebGL Mode"
           checked={config.enable3D}
           onChange={(v) => handleChange('enable3D', v)}
+        />
+        <CheckboxInput
+          id="showBackground"
+          label="Show Cherry Blossom Background"
+          checked={config.showBackground}
+          onChange={(v) => handleChange('showBackground', v)}
         />
       </div>
 
