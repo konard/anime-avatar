@@ -6,13 +6,25 @@ A configurable AI anime avatar React component with animations, designed for use
 
 ## Screenshots
 
-### 2D SVG Avatar with Cherry Blossom Background
+### 2D SVG Avatar - Fullscreen Immersive View
 
 ![2D SVG Avatar](screenshots/avatar-2d-main.png)
 
-### 3D WebGL Avatar with Cherry Blossom Background
+_Detailed anime-style avatar with cherry blossom background, featuring anime eyes with reflections, detailed hair with highlights, and sailor uniform_
+
+### 3D WebGL Avatar - Fullscreen Immersive View
 
 ![3D WebGL Avatar](screenshots/avatar-3d-main.png)
+
+_3D procedural avatar with animated falling cherry blossom petals and detailed background scene_
+
+### Mobile View - Responsive Design
+
+| Collapsed Menu                              | Open Menu                                             |
+| ------------------------------------------- | ----------------------------------------------------- |
+| ![Mobile View](screenshots/mobile-view.png) | ![Mobile Menu Open](screenshots/mobile-menu-open.png) |
+
+_Mobile-first design with hamburger menu and glassmorphism semi-transparent settings panel_
 
 ### Preset Customization (Pink Theme)
 
@@ -24,9 +36,11 @@ This project provides a customizable anime-style avatar component built with Rea
 
 The avatar includes:
 
-- **2D SVG Mode**: Scalable vector graphics for crisp rendering at any size
-- **3D WebGL Mode**: Three.js-powered 3D avatar with the same visual style
-- **Cherry Blossom Background**: Beautiful animated background scene for both modes
+- **Fullscreen Immersive Design**: Avatar fills the entire screen for maximum impact
+- **Mobile-First Responsive UI**: Hamburger menu with glassmorphism semi-transparent settings panel
+- **2D SVG Mode**: Highly detailed scalable vector graphics with anime-style eyes, detailed hair with highlights/shadows, and sailor uniform
+- **3D WebGL Mode**: Three.js-powered 3D avatar with procedural geometry and animated falling petals
+- **Cherry Blossom Background**: Beautiful animated background scene with trees, falling petals, fence/bridge, and cityscape silhouette
 - **Color Customization**: Real-time color changes with preset themes
 
 Future planned features:
@@ -37,17 +51,36 @@ Future planned features:
 
 ## Features
 
+### Visual Design
+
+- **Highly Detailed 2D Avatar**: Anime-style SVG with detailed eyes (iris patterns, multiple highlights, reflections), hair with highlights and shadows, and authentic sailor uniform
+- **Procedural 3D Avatar**: Three.js avatar with detailed anime head, hair, eyes with blush, and sailor uniform body
+- **Cherry Blossom Background**: Full scene with cherry trees, animated falling petals, wooden fence/bridge, and cityscape silhouette
 - **Dual Render Modes**: Switch between 2D SVG and 3D WebGL rendering
-- **Synchronized Styles**: Both 2D and 3D avatars share the same visual design (anime schoolgirl with sailor uniform)
-- **Cherry Blossom Background**: Animated falling petals in both 2D and 3D modes
-- **Configurable Appearance**: Customize skin, hair, eye, and clothes colors in real-time
+
+### User Interface
+
+- **Fullscreen Immersive Experience**: Avatar fills the entire viewport for maximum visual impact
+- **Glassmorphism Settings Panel**: Semi-transparent settings panel with backdrop blur effect
+- **Mobile-First Design**: Hamburger menu that slides in from the right on mobile devices
+- **Responsive Layout**: Adapts seamlessly from mobile to desktop
+
+### Animations & Interactivity
+
 - **Multiple Animations**: Idle, happy, wave, nod, thinking, surprised expressions
 - **Random Animation Cycling**: Animations play randomly at configurable intervals for natural behavior
 - **Talking Mode**: Lip-sync animation for AI speaking scenarios
 - **Natural Blinking**: Random blinking with configurable timing for realistic appearance
+- **Animated Falling Petals**: Cherry blossom petals fall continuously in both 2D and 3D modes
+
+### Customization
+
+- **Configurable Appearance**: Customize skin, hair, eye, and clothes colors in real-time
 - **Preset Themes**: Quick appearance changes with built-in color presets (Schoolgirl, Blonde, Dark, Pink)
 - **3D Model Support**: Load external GLTF/GLB models with automatic color customization
-- **Responsive Design**: Works on desktop and mobile devices
+
+### Developer Experience
+
 - **Separate Test Pages**: Dedicated pages for testing 2D and 3D modes independently
 - **Reusable Component**: Easy to integrate into any React application
 

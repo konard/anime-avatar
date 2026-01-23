@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import React, { useState } from 'react';
 import Avatar3D from '../components/Avatar3D.jsx';
 import { useAnimationCycle } from '../hooks/useAnimationCycle.js';

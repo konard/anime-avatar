@@ -8,30 +8,387 @@
   --primary-color: #ff6b9d;
   --secondary-color: #c44569;
   --background-color: #1a1a2e;
-  --surface-color: #16213e;
+  --surface-color: rgba(22, 33, 62, 0.85);
+  --surface-color-solid: #16213e;
   --text-color: #eee;
   --text-secondary: #aaa;
   --accent-color: #0f3460;
+  --panel-blur: 12px;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
     sans-serif;
-  background: linear-gradient(
-    135deg,
-    var(--background-color),
-    var(--accent-color)
-  );
+  background: var(--background-color);
   color: var(--text-color);
-  min-height: 100vh;
 }
 
 #root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
+
+/* ============================================
+   FULLSCREEN IMMERSIVE LAYOUT
+   ============================================ */
+
+.app-fullscreen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.avatar-fullscreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ============================================
+   SETTINGS PANEL - Semi-transparent, right side
+   ============================================ */
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--surface-color);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+.settings-panel-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 80px;
+}
+
+/* Hide scrollbar but allow scrolling */
+.settings-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   MOBILE MENU TOGGLE BUTTON
+   ============================================ */
+
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  background: var(--surface-color);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+  background: rgba(22, 33, 62, 0.95);
+}
+
+.menu-icon {
+  position: relative;
+  width: 20px;
+  height: 2px;
+  background: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.menu-icon::before,
+.menu-icon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.menu-icon::before {
+  top: -6px;
+}
+
+.menu-icon::after {
+  top: 6px;
+}
+
+/* Animate to X when open */
+.menu-toggle.open .menu-icon {
+  background: transparent;
+}
+
+.menu-toggle.open .menu-icon::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.menu-toggle.open .menu-icon::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
+
+/* ============================================
+   MOBILE OVERLAY
+   ============================================ */
+
+.menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  .settings-panel {
+    width: 100%;
+    max-width: 360px;
+    transform: translateX(100%);
+    background: rgba(22, 33, 62, 0.95);
+  }
+
+  .settings-panel.open {
+    transform: translateX(0);
+  }
+
+  .menu-overlay {
+    display: block;
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 480px) {
+  .settings-panel {
+    max-width: 100%;
+  }
+
+  .menu-toggle {
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ============================================
+   CONFIG PANEL STYLES
+   ============================================ */
+
+.config-section {
+  background: transparent;
+}
+
+.config-section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+  color: var(--primary-color);
+  text-shadow: 0 0 20px rgba(255, 107, 157, 0.3);
+}
+
+.config-group {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.config-group:last-child {
+  border-bottom: none;
+}
+
+.config-group h3 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config-item {
+  margin-bottom: 12px;
+}
+
+.config-item label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: var(--text-color);
+}
+
+.config-item input[type='range'] {
+  width: 100%;
+  accent-color: var(--primary-color);
+  background: transparent;
+}
+
+.config-item input[type='color'] {
+  width: 100%;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.config-item select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.config-item select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.config-value {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--secondary-color);
+  box-shadow: 0 0 15px rgba(255, 107, 157, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(15, 52, 96, 0.8);
+  color: var(--text-color);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover {
+  background: rgba(26, 74, 122, 0.9);
+}
+
+.btn-active {
+  background: var(--secondary-color);
+  box-shadow: 0 0 15px rgba(255, 107, 157, 0.5);
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-group input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(15, 52, 96, 0.6);
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+}
+
+.status-dot.talking {
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   LEGACY APP STYLES (for test pages)
+   ============================================ */
 
 .app {
   flex: 1;
@@ -41,6 +398,8 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  height: 100%;
+  overflow: auto;
 }
 
 .app-header {
@@ -78,164 +437,4 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.config-section {
-  width: 320px;
-  background: var(--surface-color);
-  border-radius: 12px;
-  padding: 20px;
-  max-height: calc(100vh - 160px);
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-  .config-section {
-    width: 100%;
-    max-height: none;
-  }
-}
-
-.config-section h2 {
-  font-size: 1.2rem;
-  margin-bottom: 16px;
-  color: var(--primary-color);
-}
-
-.config-group {
-  margin-bottom: 20px;
-}
-
-.config-group h3 {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.config-item {
-  margin-bottom: 12px;
-}
-
-.config-item label {
-  display: block;
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-  color: var(--text-color);
-}
-
-.config-item input[type='range'] {
-  width: 100%;
-  accent-color: var(--primary-color);
-}
-
-.config-item input[type='color'] {
-  width: 100%;
-  height: 36px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.config-item select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--accent-color);
-  border-radius: 6px;
-  background: var(--background-color);
-  color: var(--text-color);
-  font-size: 0.9rem;
-}
-
-.config-item select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-.config-value {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  text-align: right;
-}
-
-.button-group {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--secondary-color);
-}
-
-.btn-secondary {
-  background: var(--accent-color);
-  color: var(--text-color);
-}
-
-.btn-secondary:hover {
-  background: #1a4a7a;
-}
-
-.btn-active {
-  background: var(--secondary-color);
-  box-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.checkbox-group input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary-color);
-}
-
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: var(--accent-color);
-  border-radius: 12px;
-  font-size: 0.8rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #4caf50;
-}
-
-.status-dot.talking {
-  animation: pulse 0.5s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
 }

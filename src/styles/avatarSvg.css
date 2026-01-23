@@ -2,8 +2,6 @@
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 400px;
-  max-height: 600px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -13,8 +11,7 @@
 .avatar-svg {
   width: 100%;
   height: 100%;
-  max-width: 400px;
-  max-height: 600px;
+  object-fit: cover;
 }
 
 /* Blinking animation */
@@ -31,62 +28,83 @@
 /* Falling petals animation */
 @keyframes petalFall {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) rotate(0deg) translateX(0);
     opacity: 0.7;
   }
-  50% {
+  25% {
+    transform: translateY(150px) rotate(90deg) translateX(20px);
     opacity: 0.9;
   }
+  50% {
+    transform: translateY(300px) rotate(180deg) translateX(-10px);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(450px) rotate(270deg) translateX(15px);
+    opacity: 0.6;
+  }
   100% {
-    transform: translateY(500px) rotate(360deg);
+    transform: translateY(600px) rotate(360deg) translateX(0);
     opacity: 0;
   }
 }
 
 .petal {
-  animation: petalFall 8s linear infinite;
+  animation: petalFall 10s linear infinite;
 }
 
 .petal-0 {
   animation-delay: 0s;
+  animation-duration: 8s;
 }
 .petal-1 {
-  animation-delay: 0.7s;
+  animation-delay: 0.8s;
+  animation-duration: 9s;
 }
 .petal-2 {
-  animation-delay: 1.4s;
+  animation-delay: 1.5s;
+  animation-duration: 11s;
 }
 .petal-3 {
-  animation-delay: 2.1s;
+  animation-delay: 2.3s;
+  animation-duration: 8.5s;
 }
 .petal-4 {
-  animation-delay: 2.8s;
+  animation-delay: 3s;
+  animation-duration: 10s;
 }
 .petal-5 {
-  animation-delay: 3.5s;
+  animation-delay: 3.8s;
+  animation-duration: 9.5s;
 }
 .petal-6 {
-  animation-delay: 4.2s;
+  animation-delay: 4.5s;
+  animation-duration: 8s;
 }
 .petal-7 {
-  animation-delay: 4.9s;
+  animation-delay: 5.2s;
+  animation-duration: 11s;
 }
 .petal-8 {
-  animation-delay: 5.6s;
+  animation-delay: 6s;
+  animation-duration: 9s;
 }
 .petal-9 {
-  animation-delay: 6.3s;
+  animation-delay: 6.8s;
+  animation-duration: 10s;
 }
 .petal-10 {
-  animation-delay: 7s;
+  animation-delay: 7.5s;
+  animation-duration: 8.5s;
 }
 .petal-11 {
-  animation-delay: 7.7s;
+  animation-delay: 8.2s;
+  animation-duration: 9.5s;
 }
 
 /* Idle breathing animation */
 .avatar-svg-container.idle .character-group {
-  animation: breathe 3s ease-in-out infinite;
+  animation: breathe 3.5s ease-in-out infinite;
 }
 
 @keyframes breathe {
@@ -95,13 +113,13 @@
     transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-2px) scale(1.005);
+    transform: translateY(-3px) scale(1.003);
   }
 }
 
 /* Head sway animation */
 .avatar-svg-container.idle .head {
-  animation: headSway 4s ease-in-out infinite;
+  animation: headSway 5s ease-in-out infinite;
   transform-origin: 200px 350px;
 }
 
@@ -110,18 +128,18 @@
   100% {
     transform: rotate(0deg);
   }
-  25% {
+  30% {
     transform: rotate(0.5deg);
   }
-  75% {
+  70% {
     transform: rotate(-0.5deg);
   }
 }
 
-/* Hair movement */
+/* Hair movement - more natural flow */
 .avatar-svg-container.idle .hair-back,
 .avatar-svg-container.idle .hair-front {
-  animation: hairSway 3s ease-in-out infinite;
+  animation: hairSway 4s ease-in-out infinite;
   transform-origin: 200px 100px;
 }
 
@@ -130,17 +148,20 @@
   100% {
     transform: rotate(0deg) translateX(0);
   }
-  33% {
-    transform: rotate(0.3deg) translateX(1px);
+  25% {
+    transform: rotate(0.2deg) translateX(1px);
   }
-  66% {
-    transform: rotate(-0.3deg) translateX(-1px);
+  50% {
+    transform: rotate(0deg) translateX(0);
+  }
+  75% {
+    transform: rotate(-0.2deg) translateX(-1px);
   }
 }
 
 /* Happy animation */
 .avatar-svg-container.happy .eyes {
-  animation: happyEyes 0.5s ease-in-out;
+  animation: happyEyes 0.6s ease-in-out;
 }
 
 @keyframes happyEyes {
@@ -148,13 +169,16 @@
   100% {
     transform: scaleY(1);
   }
-  50% {
-    transform: scaleY(0.3);
+  40% {
+    transform: scaleY(0.2);
+  }
+  60% {
+    transform: scaleY(0.2);
   }
 }
 
 .avatar-svg-container.happy .mouth {
-  animation: happyMouth 0.5s ease-in-out;
+  animation: happyMouth 0.6s ease-in-out;
 }
 
 @keyframes happyMouth {
@@ -163,13 +187,13 @@
     transform: scaleY(1);
   }
   50% {
-    transform: scaleY(1.5);
+    transform: scaleY(1.4);
   }
 }
 
 /* Wave animation */
 .avatar-svg-container.wave .right-arm {
-  animation: wave 0.8s ease-in-out;
+  animation: wave 1s ease-in-out;
   transform-origin: 280px 400px;
 }
 
@@ -178,14 +202,17 @@
   100% {
     transform: rotate(0deg);
   }
-  25% {
+  20% {
     transform: rotate(-15deg);
   }
-  50% {
-    transform: rotate(0deg);
+  40% {
+    transform: rotate(5deg);
   }
-  75% {
-    transform: rotate(-20deg);
+  60% {
+    transform: rotate(-18deg);
+  }
+  80% {
+    transform: rotate(5deg);
   }
 }
 
@@ -193,7 +220,7 @@
 .avatar-svg-container.nod .head,
 .avatar-svg-container.nod .hair-front,
 .avatar-svg-container.nod .hair-back {
-  animation: nod 0.6s ease-in-out;
+  animation: nod 0.7s ease-in-out;
   transform-origin: 200px 350px;
 }
 
@@ -215,7 +242,7 @@
 
 /* Thinking animation */
 .avatar-svg-container.thinking .head {
-  animation: thinking 2s ease-in-out infinite;
+  animation: thinking 2.5s ease-in-out infinite;
   transform-origin: 200px 350px;
 }
 
@@ -224,7 +251,10 @@
   100% {
     transform: rotate(0deg) translateX(0);
   }
-  50% {
+  30% {
+    transform: rotate(2deg) translateX(3px);
+  }
+  70% {
     transform: rotate(2deg) translateX(3px);
   }
 }
@@ -261,7 +291,7 @@
 
 /* Mouth talking animation */
 .mouth.talking .mouth-talking {
-  animation: talk 0.3s infinite;
+  animation: talk 0.25s infinite;
 }
 
 @keyframes talk {
@@ -270,46 +300,45 @@
     transform: scaleY(1);
   }
   25% {
-    transform: scaleY(1.5);
+    transform: scaleY(1.4);
   }
   50% {
-    transform: scaleY(0.8);
+    transform: scaleY(0.7);
   }
   75% {
-    transform: scaleY(1.3);
+    transform: scaleY(1.2);
   }
 }
 
 /* Cherry tree subtle animation */
 .cherry-tree-left,
 .cherry-tree-right {
-  animation: treeWave 6s ease-in-out infinite;
+  animation: treeWave 8s ease-in-out infinite;
 }
 
 .cherry-tree-right {
-  animation-delay: -3s;
+  animation-delay: -4s;
 }
 
 @keyframes treeWave {
   0%,
   100% {
-    transform: translateX(-50px) translateY(50px) scale(1);
+    transform: scale(1) translateX(0);
   }
   50% {
-    transform: translateX(-48px) translateY(48px) scale(1.01);
+    transform: scale(1.01) translateX(2px);
   }
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments - removed max constraints for fullscreen */
 @media (max-width: 600px) {
   .avatar-svg-container {
-    max-width: 300px;
-    max-height: 450px;
+    /* Allow fullscreen on mobile */
   }
 }
 
 @media (min-height: 800px) {
   .avatar-svg-container {
-    max-height: 700px;
+    /* Allow fullscreen on large screens */
   }
 }

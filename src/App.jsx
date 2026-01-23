@@ -29,6 +29,7 @@ const INITIAL_CONFIG = {
 function App() {
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [isTalking, setIsTalking] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const { currentAnimation, triggerAnimation } = useAnimationCycle({
     enabled: config.enableIdleAnimation,
@@ -52,32 +53,42 @@ function App() {
     setIsTalking((prev) => !prev);
   }, []);
 
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen((prev) => !prev);
+  }, []);
+
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Anime Avatar</h1>
-        <p>Configurable AI Avatar with Animations</p>
-      </header>
+    <div className="app-fullscreen">
+      {/* Fullscreen Avatar Area */}
+      <div className="avatar-fullscreen">
+        {config.enable3D ? (
+          <Avatar3D
+            config={config}
+            isTalking={isTalking}
+            currentAnimation={currentAnimation}
+            modelUrl={config.modelUrl}
+          />
+        ) : (
+          <AvatarSVG
+            config={config}
+            isTalking={isTalking}
+            currentAnimation={currentAnimation}
+          />
+        )}
+      </div>
 
-      <main className="main-content">
-        <section className="avatar-section">
-          {config.enable3D ? (
-            <Avatar3D
-              config={config}
-              isTalking={isTalking}
-              currentAnimation={currentAnimation}
-              modelUrl={config.modelUrl}
-            />
-          ) : (
-            <AvatarSVG
-              config={config}
-              isTalking={isTalking}
-              currentAnimation={currentAnimation}
-            />
-          )}
-        </section>
+      {/* Mobile Menu Toggle Button */}
+      <button
+        className={`menu-toggle ${isMenuOpen ? 'open' : ''}`}
+        onClick={toggleMenu}
+        aria-label="Toggle settings menu"
+      >
+        <span className="menu-icon"></span>
+      </button>
 
-        <aside>
+      {/* Settings Panel - Right side, semi-transparent */}
+      <aside className={`settings-panel ${isMenuOpen ? 'open' : ''}`}>
+        <div className="settings-panel-content">
           <ConfigPanel
             config={config}
             onConfigChange={handleConfigChange}
@@ -85,8 +96,11 @@ function App() {
             isTalking={isTalking}
             onTalkingToggle={handleTalkingToggle}
           />
-        </aside>
-      </main>
+        </div>
+      </aside>
+
+      {/* Overlay for mobile when menu is open */}
+      {isMenuOpen && <div className="menu-overlay" onClick={toggleMenu}></div>}
     </div>
   );
 }
