@@ -27,10 +27,13 @@ vi.mock('@react-three/drei', () => ({
 
 vi.mock('three', () => ({
   MeshStandardMaterial: vi.fn(),
-  Color: vi.fn(),
+  Color: vi.fn().mockImplementation(() => ({
+    offsetHSL: vi.fn().mockReturnThis(),
+  })),
   MathUtils: {
     lerp: (a, b, t) => a + (b - a) * t,
   },
+  DoubleSide: 2,
 }));
 
 describe('Avatar3D Component', () => {
