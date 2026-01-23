@@ -1,18 +1,23 @@
 import React, { useState, useCallback } from 'react';
-import Avatar from './components/Avatar.jsx';
+import AvatarSVG from './components/AvatarSVG.jsx';
 import Avatar3D from './components/Avatar3D.jsx';
 import ConfigPanel from './components/ConfigPanel.jsx';
 import { useAnimationCycle } from './hooks/useAnimationCycle.js';
 
 const INITIAL_CONFIG = {
-  skinColor: '#ffd5c8',
-  hairColor: '#2d1b4e',
-  eyeColor: '#6b5ce7',
-  clothesColor: '#ff6b9d',
+  // Colors matching reference image - school girl with brown hair
+  skinColor: '#fad5c5',
+  hairColor: '#b07850',
+  eyeColor: '#4a90c2',
+  clothesColor: '#ffffff',
+  clothesSecondaryColor: '#1a3a5c',
   blinkInterval: 3000,
   animationSpeed: 1,
   enableIdleAnimation: true,
   enableRandomBlink: true,
+  showBackground: true,
+  // Render mode: 'svg' (new), 'css' (legacy), or '3d'
+  renderMode: 'svg',
   // 3D specific settings
   enable3D: false,
   enableLOD: true,
@@ -64,7 +69,7 @@ function App() {
               modelUrl={config.modelUrl}
             />
           ) : (
-            <Avatar
+            <AvatarSVG
               config={config}
               isTalking={isTalking}
               currentAnimation={currentAnimation}

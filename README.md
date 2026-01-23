@@ -4,27 +4,51 @@ A configurable AI anime avatar React component with animations, designed for use
 
 **[Live Demo](https://konard.github.io/anime-avatar)**
 
+## Screenshots
+
+### 2D SVG Avatar with Cherry Blossom Background
+
+![2D SVG Avatar](screenshots/avatar-2d-main.png)
+
+### 3D WebGL Avatar with Cherry Blossom Background
+
+![3D WebGL Avatar](screenshots/avatar-3d-main.png)
+
+### Preset Customization (Pink Theme)
+
+![Pink Preset](screenshots/avatar-3d-pink-preset.png)
+
 ## Overview
 
-This project provides a customizable anime-style avatar component built entirely with React and CSS. The avatar features natural animations like blinking, head movement, and various expressions, making it ideal for AI-powered applications where a visual character representation is needed for voice interaction or chat interfaces.
+This project provides a customizable anime-style avatar component built with React. The avatar supports both **2D SVG rendering** (scalable to any screen size) and **3D WebGL/Three.js rendering** with synchronized styles. It features natural animations like blinking, head movement, and various expressions, making it ideal for AI-powered applications where a visual character representation is needed for voice interaction or chat interfaces.
 
-The avatar is designed as a **prototype** that can be extended to support:
+The avatar includes:
 
-- WebGL/Three.js for 3D rendering
+- **2D SVG Mode**: Scalable vector graphics for crisp rendering at any size
+- **3D WebGL Mode**: Three.js-powered 3D avatar with the same visual style
+- **Cherry Blossom Background**: Beautiful animated background scene for both modes
+- **Color Customization**: Real-time color changes with preset themes
+
+Future planned features:
+
 - Voice input (Speech-to-Text) and output (Text-to-Speech)
 - Local AI model integration for in-browser AI responses
 - Export compatibility with Unreal Engine and Blender
 
 ## Features
 
+- **Dual Render Modes**: Switch between 2D SVG and 3D WebGL rendering
+- **Synchronized Styles**: Both 2D and 3D avatars share the same visual design (anime schoolgirl with sailor uniform)
+- **Cherry Blossom Background**: Animated falling petals in both 2D and 3D modes
 - **Configurable Appearance**: Customize skin, hair, eye, and clothes colors in real-time
 - **Multiple Animations**: Idle, happy, wave, nod, thinking, surprised expressions
 - **Random Animation Cycling**: Animations play randomly at configurable intervals for natural behavior
 - **Talking Mode**: Lip-sync animation for AI speaking scenarios
 - **Natural Blinking**: Random blinking with configurable timing for realistic appearance
-- **Preset Themes**: Quick appearance changes with built-in color presets (Default, Blonde, Dark, Redhead)
+- **Preset Themes**: Quick appearance changes with built-in color presets (Schoolgirl, Blonde, Dark, Pink)
+- **3D Model Support**: Load external GLTF/GLB models with automatic color customization
 - **Responsive Design**: Works on desktop and mobile devices
-- **CSS-Only Animations**: No external dependencies for smooth, performant animations
+- **Separate Test Pages**: Dedicated pages for testing 2D and 3D modes independently
 - **Reusable Component**: Easy to integrate into any React application
 
 ## Quick Start
@@ -67,34 +91,57 @@ npm run preview
 
 ## Usage
 
-### Basic Usage
+### Basic Usage (2D SVG)
 
 ```jsx
-import { Avatar } from './components/Avatar';
+import AvatarSVG from './components/AvatarSVG';
 
 function App() {
-  return <Avatar />;
+  return <AvatarSVG />;
+}
+```
+
+### Basic Usage (3D WebGL)
+
+```jsx
+import Avatar3D from './components/Avatar3D';
+
+function App() {
+  return <Avatar3D />;
 }
 ```
 
 ### With Full Configuration
 
 ```jsx
-import { Avatar } from './components/Avatar';
+import AvatarSVG from './components/AvatarSVG';
+import Avatar3D from './components/Avatar3D';
 
 function App() {
   const config = {
-    skinColor: '#ffd5c8',
-    hairColor: '#2d1b4e',
-    eyeColor: '#6b5ce7',
-    clothesColor: '#ff6b9d',
+    skinColor: '#fad5c5',
+    hairColor: '#b07850',
+    eyeColor: '#4a90c2',
+    clothesColor: '#ffffff',
+    clothesSecondaryColor: '#1a3a5c',
     blinkInterval: 3000,
     animationSpeed: 1,
     enableIdleAnimation: true,
     enableRandomBlink: true,
+    showBackground: true,
+    // 3D-specific options
+    enable3D: true,
+    enableShadows: true,
+    enableLOD: true,
+    modelScale: 1,
   };
 
-  return <Avatar config={config} isTalking={false} currentAnimation="idle" />;
+  // Use AvatarSVG for 2D or Avatar3D for 3D
+  return config.enable3D ? (
+    <Avatar3D config={config} isTalking={false} currentAnimation="idle" />
+  ) : (
+    <AvatarSVG config={config} isTalking={false} currentAnimation="idle" />
+  );
 }
 ```
 
@@ -103,7 +150,7 @@ function App() {
 The `useAnimationCycle` hook provides automatic random animation cycling:
 
 ```jsx
-import { Avatar } from './components/Avatar';
+import AvatarSVG from './components/AvatarSVG';
 import { useAnimationCycle } from './hooks/useAnimationCycle';
 
 function App() {
@@ -116,7 +163,7 @@ function App() {
 
   return (
     <div>
-      <Avatar currentAnimation={currentAnimation} />
+      <AvatarSVG currentAnimation={currentAnimation} />
       <button onClick={() => triggerAnimation('wave')}>Wave</button>
       <button onClick={() => triggerAnimation('happy')}>Happy</button>
     </div>
@@ -128,7 +175,7 @@ function App() {
 
 ```jsx
 import { useState } from 'react';
-import { Avatar } from './components/Avatar';
+import AvatarSVG from './components/AvatarSVG';
 
 function AISpeakingAvatar() {
   const [isTalking, setIsTalking] = useState(false);
@@ -138,7 +185,7 @@ function AISpeakingAvatar() {
     setIsTalking(speaking);
   };
 
-  return <Avatar isTalking={isTalking} />;
+  return <AvatarSVG isTalking={isTalking} />;
 }
 ```
 
@@ -146,16 +193,23 @@ function AISpeakingAvatar() {
 
 ### Avatar Configuration
 
-| Option                | Type    | Default   | Description                            |
-| --------------------- | ------- | --------- | -------------------------------------- |
-| `skinColor`           | string  | `#ffd5c8` | Skin color (hex format)                |
-| `hairColor`           | string  | `#2d1b4e` | Hair color (hex format)                |
-| `eyeColor`            | string  | `#6b5ce7` | Eye/iris color (hex format)            |
-| `clothesColor`        | string  | `#ff6b9d` | Clothes/outfit color (hex format)      |
-| `blinkInterval`       | number  | `3000`    | Average time between blinks (ms)       |
-| `animationSpeed`      | number  | `1`       | Animation speed multiplier (0.5x - 2x) |
-| `enableIdleAnimation` | boolean | `true`    | Enable subtle idle breathing/sway      |
-| `enableRandomBlink`   | boolean | `true`    | Enable random natural blinking         |
+| Option                  | Type    | Default   | Description                            |
+| ----------------------- | ------- | --------- | -------------------------------------- |
+| `skinColor`             | string  | `#fad5c5` | Skin color (hex format)                |
+| `hairColor`             | string  | `#b07850` | Hair color (hex format)                |
+| `eyeColor`              | string  | `#4a90c2` | Eye/iris color (hex format)            |
+| `clothesColor`          | string  | `#ffffff` | Clothes/outfit color (hex format)      |
+| `clothesSecondaryColor` | string  | `#1a3a5c` | Secondary clothes color (collar, etc.) |
+| `blinkInterval`         | number  | `3000`    | Average time between blinks (ms)       |
+| `animationSpeed`        | number  | `1`       | Animation speed multiplier (0.5x - 2x) |
+| `enableIdleAnimation`   | boolean | `true`    | Enable subtle idle breathing/sway      |
+| `enableRandomBlink`     | boolean | `true`    | Enable random natural blinking         |
+| `showBackground`        | boolean | `true`    | Show cherry blossom background         |
+| `enable3D`              | boolean | `false`   | Enable 3D WebGL mode (in main App)     |
+| `enableShadows`         | boolean | `true`    | Enable shadows in 3D mode              |
+| `enableLOD`             | boolean | `true`    | Enable Level of Detail in 3D mode      |
+| `modelScale`            | number  | `1`       | Scale factor for 3D model              |
+| `modelUrl`              | string  | `null`    | URL to external GLTF/GLB model         |
 
 ### Animation Cycle Hook Options
 
@@ -185,26 +239,40 @@ function AISpeakingAvatar() {
 anime-avatar/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml           # Lint, test, and build on PRs
-│       └── deploy.yml       # Deploy to GitHub Pages on main
+│       ├── ci.yml             # Lint, test, and build on PRs
+│       └── deploy.yml         # Deploy to GitHub Pages on main
+├── screenshots/               # Visual documentation
+│   ├── avatar-2d-main.png     # 2D SVG avatar screenshot
+│   ├── avatar-3d-main.png     # 3D WebGL avatar screenshot
+│   └── avatar-3d-pink-preset.png  # Preset customization example
 ├── src/
 │   ├── components/
-│   │   ├── Avatar.jsx       # Main avatar component with all visual elements
-│   │   └── ConfigPanel.jsx  # Configuration UI panel with controls
+│   │   ├── Avatar.jsx         # Legacy CSS-based avatar (deprecated)
+│   │   ├── AvatarSVG.jsx      # 2D SVG avatar component
+│   │   ├── Avatar3D.jsx       # 3D WebGL avatar component
+│   │   └── ConfigPanel.jsx    # Configuration UI panel with controls
 │   ├── hooks/
 │   │   └── useAnimationCycle.js  # Hook for automatic animation cycling
+│   ├── pages/
+│   │   ├── Test2D.jsx         # Standalone 2D test page
+│   │   └── Test3D.jsx         # Standalone 3D test page
 │   ├── styles/
-│   │   ├── index.css        # Global styles and layout
-│   │   └── avatar.css       # Avatar-specific styles and animations
-│   ├── App.jsx              # Demo application showcasing all features
-│   └── main.jsx             # Entry point
+│   │   ├── index.css          # Global styles and layout
+│   │   ├── avatar.css         # Legacy avatar styles
+│   │   ├── avatarSvg.css      # SVG avatar animations
+│   │   └── avatar3d.css       # 3D avatar styles
+│   ├── App.jsx                # Demo application showcasing all features
+│   └── main.jsx               # Entry point
 ├── tests/
-│   └── Avatar.test.jsx      # Component tests
-├── index.html               # HTML template
-├── vite.config.js           # Vite configuration
-├── eslint.config.js         # ESLint configuration
-├── .prettierrc              # Prettier configuration
-└── package.json             # Project dependencies and scripts
+│   ├── Avatar.test.jsx        # SVG component tests
+│   └── Avatar3D.test.jsx      # 3D component tests
+├── index.html                 # Main HTML template
+├── test-2d.html               # 2D test page entry point
+├── test-3d.html               # 3D test page entry point
+├── vite.config.js             # Vite configuration
+├── eslint.config.js           # ESLint configuration
+├── .prettierrc                # Prettier configuration
+└── package.json               # Project dependencies and scripts
 ```
 
 ## Development
@@ -233,11 +301,20 @@ This project uses:
 - **Husky** for pre-commit hooks to ensure code quality
 - **Vitest** for fast unit testing with React Testing Library
 
+## Test Pages
+
+The project includes dedicated test pages for isolated testing of each render mode:
+
+- **2D Test Page**: `/test-2d.html` - Test SVG rendering independently
+- **3D Test Page**: `/test-3d.html` - Test WebGL rendering independently
+
+Both test pages include the full configuration panel and navigation between modes.
+
 ## Roadmap
 
 This prototype serves as a foundation for more advanced features. See [GitHub Issues](https://github.com/konard/anime-avatar/issues) for planned enhancements:
 
-- [WebGL/Three.js 3D avatar support](https://github.com/konard/anime-avatar/issues/3)
+- ~~[WebGL/Three.js 3D avatar support](https://github.com/konard/anime-avatar/issues/3)~~ ✅ Completed
 - [Voice input (STT) and output (TTS) integration](https://github.com/konard/anime-avatar/issues/4)
 - [Local AI model integration (GPT)](https://github.com/konard/anime-avatar/issues/5)
 - [Extended avatar customization (hairstyles, accessories)](https://github.com/konard/anime-avatar/issues/6)
