@@ -39,8 +39,11 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@react-three/drei": "^9.117.3",
+    "@react-three/fiber": "^8.17.10",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.0",

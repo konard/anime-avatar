@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import Avatar from './components/Avatar.jsx';
+import Avatar3D from './components/Avatar3D.jsx';
 import ConfigPanel from './components/ConfigPanel.jsx';
 import { useAnimationCycle } from './hooks/useAnimationCycle.js';
 
@@ -12,6 +13,12 @@ const INITIAL_CONFIG = {
   animationSpeed: 1,
   enableIdleAnimation: true,
   enableRandomBlink: true,
+  // 3D specific settings
+  enable3D: false,
+  enableLOD: true,
+  enableShadows: true,
+  modelScale: 1,
+  modelUrl: null,
 };
 
 function App() {
@@ -49,11 +56,20 @@ function App() {
 
       <main className="main-content">
         <section className="avatar-section">
-          <Avatar
-            config={config}
-            isTalking={isTalking}
-            currentAnimation={currentAnimation}
-          />
+          {config.enable3D ? (
+            <Avatar3D
+              config={config}
+              isTalking={isTalking}
+              currentAnimation={currentAnimation}
+              modelUrl={config.modelUrl}
+            />
+          ) : (
+            <Avatar
+              config={config}
+              isTalking={isTalking}
+              currentAnimation={currentAnimation}
+            />
+          )}
         </section>
 
         <aside>
