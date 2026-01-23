@@ -13,6 +13,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         test2d: resolve(__dirname, 'test-2d.html'),
         test3d: resolve(__dirname, 'test-3d.html'),
+        testComponents: resolve(__dirname, 'test-components.html'),
       },
     },
   },
