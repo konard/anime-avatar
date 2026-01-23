@@ -243,25 +243,25 @@ function AISpeakingAvatar() {
 
 ### Avatar Configuration
 
-| Option                  | Type    | Default   | Description                                    |
-| ----------------------- | ------- | --------- | ---------------------------------------------- |
-| `skinColor`             | string  | `#fad5c5` | Skin color (hex format)                        |
-| `hairColor`             | string  | `#b07850` | Hair color (hex format)                        |
-| `eyeColor`              | string  | `#4a90c2` | Eye/iris color (hex format)                    |
-| `clothesColor`          | string  | `#ffffff` | Clothes/outfit color (hex format)              |
-| `clothesSecondaryColor` | string  | `#1a3a5c` | Secondary clothes color (collar, etc.)         |
-| `blinkInterval`         | number  | `3000`    | Average time between blinks (ms)               |
-| `animationSpeed`        | number  | `1`       | Animation speed multiplier (0.5x - 2x)         |
-| `enableIdleAnimation`   | boolean | `true`    | Enable subtle idle breathing/sway              |
-| `enableRandomBlink`     | boolean | `true`    | Enable random natural blinking                 |
-| `showBackground`        | boolean | `true`    | Show cherry blossom background                 |
-| `detailLevel`           | number  | `10`      | Detail level 1-10 (controls shapes rendered)   |
-| `showLegs`              | boolean | `false`   | Show full body with legs (Genshin Impact style)|
-| `enable3D`              | boolean | `false`   | Enable 3D WebGL mode (in main App)             |
-| `enableShadows`         | boolean | `true`    | Enable shadows in 3D mode                      |
-| `enableLOD`             | boolean | `true`    | Enable Level of Detail in 3D mode              |
-| `modelScale`            | number  | `1`       | Scale factor for 3D model                      |
-| `modelUrl`              | string  | `null`    | URL to external GLTF/GLB model                 |
+| Option                  | Type    | Default   | Description                                     |
+| ----------------------- | ------- | --------- | ----------------------------------------------- |
+| `skinColor`             | string  | `#fad5c5` | Skin color (hex format)                         |
+| `hairColor`             | string  | `#b07850` | Hair color (hex format)                         |
+| `eyeColor`              | string  | `#4a90c2` | Eye/iris color (hex format)                     |
+| `clothesColor`          | string  | `#ffffff` | Clothes/outfit color (hex format)               |
+| `clothesSecondaryColor` | string  | `#1a3a5c` | Secondary clothes color (collar, etc.)          |
+| `blinkInterval`         | number  | `3000`    | Average time between blinks (ms)                |
+| `animationSpeed`        | number  | `1`       | Animation speed multiplier (0.5x - 2x)          |
+| `enableIdleAnimation`   | boolean | `true`    | Enable subtle idle breathing/sway               |
+| `enableRandomBlink`     | boolean | `true`    | Enable random natural blinking                  |
+| `showBackground`        | boolean | `true`    | Show cherry blossom background                  |
+| `detailLevel`           | number  | `10`      | Detail level 1-10 (controls shapes rendered)    |
+| `showLegs`              | boolean | `false`   | Show full body with legs (Genshin Impact style) |
+| `enable3D`              | boolean | `false`   | Enable 3D WebGL mode (in main App)              |
+| `enableShadows`         | boolean | `true`    | Enable shadows in 3D mode                       |
+| `enableLOD`             | boolean | `true`    | Enable Level of Detail in 3D mode               |
+| `modelScale`            | number  | `1`       | Scale factor for 3D model                       |
+| `modelUrl`              | string  | `null`    | URL to external GLTF/GLB model                  |
 
 ### Animation Cycle Hook Options
 
