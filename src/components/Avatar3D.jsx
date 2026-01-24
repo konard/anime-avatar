@@ -229,6 +229,7 @@ function Scene({ children, config }) {
       <ThreeBackground
         showBackground={config.showBackground}
         detailLevel={config.detailLevel}
+        backgroundModel={config.backgroundModel}
       />
       {children}
     </>
@@ -276,12 +277,21 @@ export function Avatar3D({
     setModelError(error);
   };
 
+  // Build camera position from cameraY and cameraZ config params
+  // This allows render-level alignment via URL params
+  // Default cameraY=0.5 centers on face, cameraZ=1.2 zooms in for portrait framing
+  const cameraPosition = [
+    0,
+    mergedConfig.cameraY ?? 0.5,
+    mergedConfig.cameraZ ?? 1.2,
+  ];
+
   return (
     <div className="avatar3d-container">
       <Canvas
         shadows={mergedConfig.enableShadows}
         camera={{
-          position: mergedConfig.cameraPosition,
+          position: cameraPosition,
           fov: 45,
           near: 0.1,
           far: 100,
@@ -319,7 +329,7 @@ export function Avatar3D({
           maxPolarAngle={Math.PI / 2}
           target={[0, 0.4, 0]}
         />
-        <PerspectiveCamera makeDefault position={mergedConfig.cameraPosition} />
+        <PerspectiveCamera makeDefault position={cameraPosition} />
       </Canvas>
     </div>
   );

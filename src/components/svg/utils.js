@@ -282,4 +282,8 @@ export const DEFAULT_CONFIG = {
   characterScale: 1,
   characterModel: 'school-girl',
   backgroundModel: 'cherry-blossom-road',
+  // Render-level alignment: vertical center of the viewport (in SVG coordinate space)
+  // This allows adjusting the framing to match reference images
+  // Default centers on face area (y=250 in SVG coords)
+  viewportCenterY: null, // null = auto (default behavior)
 };

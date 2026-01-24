@@ -5,11 +5,15 @@ import { useFrame } from '@react-three/fiber';
 import { getDetailLevel3D } from './utils.js';
 
 /**
- * Enhanced Cherry blossom background scene with more detail
+ * Enhanced background scene with cherry blossoms or plain colors
  * Can be rendered and tested independently
  */
 const ThreeBackground = forwardRef(function ThreeBackground(
-  { showBackground = true, detailLevel = 10 },
+  {
+    showBackground = true,
+    detailLevel = 10,
+    backgroundModel = 'cherry-blossom-road',
+  },
   ref
 ) {
   const petalRefs = useRef([]);
@@ -67,6 +71,30 @@ const ThreeBackground = forwardRef(function ThreeBackground(
     return null;
   }
 
+  // Plain background modes
+  if (backgroundModel === 'plain-white') {
+    return (
+      <group ref={ref}>
+        <mesh position={[0, 0, -8]}>
+          <planeGeometry args={[30, 30]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (backgroundModel === 'plain-gray') {
+    return (
+      <group ref={ref}>
+        <mesh position={[0, 0, -8]}>
+          <planeGeometry args={[30, 30]} />
+          <meshBasicMaterial color="#808080" />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Cherry blossom road (default)
   return (
     <group ref={ref}>
       {/* Sky gradient background - larger for fullscreen */}
