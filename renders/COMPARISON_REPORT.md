@@ -1,13 +1,13 @@
 # Avatar Render Comparison Report
 
-Generated: 2026-01-24T20:29:09.488Z
+Generated: 2026-01-24T20:55:03.394Z
 
 ## Summary
 
 | Model | Mode | Difference | Target | Status |
 | ----- | ---- | ---------- | ------ | ------ |
-| Alice | 2D   | 56.85%     | ≤10%   | ⚠️ WIP |
-| Alice | 3D   | 83.98%     | ≤10%   | ⚠️ WIP |
+| Alice | 2D   | 72.31%     | ≤10%   | ⚠️ WIP |
+| Alice | 3D   | 84.47%     | ≤10%   | ⚠️ WIP |
 
 ## Comparison Method
 

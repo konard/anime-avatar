@@ -279,10 +279,11 @@ export function Avatar3D({
 
   // Build camera position from cameraY and cameraZ config params
   // This allows render-level alignment via URL params
+  // Default cameraY=0.5 centers on face, cameraZ=1.2 zooms in for portrait framing
   const cameraPosition = [
     0,
-    mergedConfig.cameraY ?? 0.6,
-    mergedConfig.cameraZ ?? 1.8,
+    mergedConfig.cameraY ?? 0.5,
+    mergedConfig.cameraZ ?? 1.2,
   ];
 
   return (

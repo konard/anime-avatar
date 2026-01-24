@@ -528,7 +528,7 @@ function AvatarHairBack({ hairDetails, colors }) {
   );
 }
 
-function AvatarHairFront({ hairDetails, colors, hairColor }) {
+function AvatarHairFront({ hairDetails, colors, hairColor, noAhoge = false }) {
   return (
     <g className="hair-front">
       <path
@@ -588,18 +588,39 @@ function AvatarHairFront({ hairDetails, colors, hairColor }) {
           strokeLinecap="round"
         />
       )}
-      <ellipse cx="200" cy="88" rx="80" ry="30" fill={hairColor} />
-      {hairDetails.hasHighlights && (
-        <ellipse
-          cx="200"
-          cy="82"
-          rx="55"
-          ry="18"
-          fill={colors.hairMidtone}
-          opacity="0.65"
-        />
+      {/* Hair crown/top - only show large bun if ahoge is enabled */}
+      {!noAhoge && (
+        <>
+          <ellipse cx="200" cy="88" rx="80" ry="30" fill={hairColor} />
+          {hairDetails.hasHighlights && (
+            <ellipse
+              cx="200"
+              cy="82"
+              rx="55"
+              ry="18"
+              fill={colors.hairMidtone}
+              opacity="0.65"
+            />
+          )}
+        </>
       )}
-      {hairDetails.hasAhoge && (
+      {/* Flatter hair crown when noAhoge is set */}
+      {noAhoge && (
+        <>
+          <ellipse cx="200" cy="95" rx="75" ry="12" fill={hairColor} />
+          {hairDetails.hasHighlights && (
+            <ellipse
+              cx="200"
+              cy="93"
+              rx="50"
+              ry="8"
+              fill={colors.hairMidtone}
+              opacity="0.65"
+            />
+          )}
+        </>
+      )}
+      {hairDetails.hasAhoge && !noAhoge && (
         <>
           <path
             d="M 194 68 Q 172 32, 198 20 Q 228 32, 206 68"
@@ -730,8 +751,34 @@ function AvatarBody({
 
 /**
  * Arms component
+ * @param {Object} props
+ * @param {string} props.skinColor - The skin color for the arms
+ * @param {boolean} props.staticPose - If true, render arms at rest position (down at sides)
  */
-function AvatarArms({ skinColor }) {
+function AvatarArms({ skinColor, staticPose = false }) {
+  // Static pose: arms at sides (similar to reference image)
+  if (staticPose) {
+    return (
+      <g className="arms">
+        {/* Left arm - at rest, slightly away from body */}
+        <path
+          d={`M 130 405 Q 115 450, 105 500 Q 100 540, 105 570 Q 112 585, 125 580 Q 135 560, 140 520 Q 145 470, 145 420 Z`}
+          fill="url(#skinRadial)"
+          className="left-arm"
+        />
+        <ellipse cx="115" cy="580" rx="14" ry="12" fill={skinColor} />
+        {/* Right arm - at rest, slightly away from body */}
+        <path
+          d={`M 270 405 Q 285 450, 295 500 Q 300 540, 295 570 Q 288 585, 275 580 Q 265 560, 260 520 Q 255 470, 255 420 Z`}
+          fill="url(#skinRadial)"
+          className="right-arm"
+        />
+        <ellipse cx="285" cy="580" rx="14" ry="12" fill={skinColor} />
+      </g>
+    );
+  }
+
+  // Dynamic pose: left arm down, right arm raised (waving)
   return (
     <g className="arms">
       <path
@@ -968,6 +1015,8 @@ export function AvatarSVG({
     showLegs,
     characterScale = 1,
     backgroundModel = 'cherry-blossom-road',
+    staticPose = false,
+    noAhoge = false,
   } = mergedConfig;
 
   const legsDetails = getDetailLevel(detailLevel, 'legs');
@@ -1106,7 +1155,9 @@ export function AvatarSVG({
             <SVGLegs config={mergedConfig} detailLevel={detailLevel} />
           )}
 
-          {bodyDetails.hasArms && <AvatarArms skinColor={skinColor} />}
+          {bodyDetails.hasArms && (
+            <AvatarArms skinColor={skinColor} staticPose={staticPose} />
+          )}
 
           {faceDetails.shapes > 0 && (
             <>
@@ -1133,6 +1184,7 @@ export function AvatarSVG({
               hairDetails={hairDetails}
               colors={colors}
               hairColor={hairColor}
+              noAhoge={noAhoge}
             />
           )}
 

@@ -661,9 +661,11 @@ describeE2E('Avatar Image Comparison Tests', () => {
 
       // Take screenshot with Alice model selected (2D mode)
       // showLegs=false to match reference image framing (head + upper body only)
+      // staticPose=true to have arms at rest position (like reference)
+      // noAhoge=true to disable hair ornament (matching reference)
       // Use white background to match reference
       await takeAvatarScreenshot(
-        'http://localhost:5173/?model=alice&bg=plain-white&mode=2d&showLegs=false',
+        'http://localhost:5173/?model=alice&bg=plain-white&mode=2d&showLegs=false&staticPose=true&noAhoge=true',
         renderPath,
         '#ffffff'
       );
@@ -738,6 +740,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
       // Take screenshot with Alice model selected (3D mode)
       // showLegs=false to match reference image framing (head + upper body only)
       // Use gray background to match reference
+      // Note: 3D mode currently uses ThreeCharacter which doesn't support staticPose/noAhoge yet
       await takeAvatarScreenshot(
         'http://localhost:5173/?model=alice&bg=plain-gray&mode=3d&showLegs=false',
         renderPath,

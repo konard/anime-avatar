@@ -139,6 +139,18 @@ function parseUrlParams() {
     result.viewportCenterY = viewportCenterY;
   }
 
+  // Static pose mode: arms down, no animation, for e2e comparison
+  const staticPose = parseBooleanParam(params, 'staticPose');
+  if (staticPose !== null) {
+    result.staticPose = staticPose;
+  }
+
+  // Disable ahoge (hair tuft on top) for reference matching
+  const noAhoge = parseBooleanParam(params, 'noAhoge');
+  if (noAhoge !== null) {
+    result.noAhoge = noAhoge;
+  }
+
   return result;
 }
 
