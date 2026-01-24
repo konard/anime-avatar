@@ -130,9 +130,32 @@ function AvatarGradients({
 }
 
 /**
- * Background layer with cherry blossoms
+ * Background layer with cherry blossoms or plain colors
  */
-function AvatarBackground({ bgDetails, viewBoxHeight, petals }) {
+function AvatarBackground({
+  bgDetails,
+  viewBoxHeight,
+  petals,
+  backgroundModel = 'cherry-blossom-road',
+}) {
+  // Plain background modes
+  if (backgroundModel === 'plain-white') {
+    return (
+      <g className="background-layer">
+        <rect x="0" y="0" width="400" height={viewBoxHeight} fill="#ffffff" />
+      </g>
+    );
+  }
+
+  if (backgroundModel === 'plain-gray') {
+    return (
+      <g className="background-layer">
+        <rect x="0" y="0" width="400" height={viewBoxHeight} fill="#808080" />
+      </g>
+    );
+  }
+
+  // Cherry blossom road (default)
   return (
     <g className="background-layer">
       {/* Sky */}
@@ -944,6 +967,7 @@ export function AvatarSVG({
     showBackground,
     showLegs,
     characterScale = 1,
+    backgroundModel = 'cherry-blossom-road',
   } = mergedConfig;
 
   const legsDetails = getDetailLevel(detailLevel, 'legs');
@@ -1027,11 +1051,12 @@ export function AvatarSVG({
           clothesSecondaryColor={clothesSecondaryColor}
         />
 
-        {showBackground && bgDetails.shapes > 0 && (
+        {showBackground && (
           <AvatarBackground
             bgDetails={bgDetails}
             viewBoxHeight={viewBoxHeight}
             petals={petals}
+            backgroundModel={backgroundModel}
           />
         )}
 

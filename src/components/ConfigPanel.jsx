@@ -38,19 +38,39 @@ const PRESETS = [
 
 const ANIMATIONS = ['happy', 'wave', 'nod', 'thinking', 'surprised'];
 
-// Procedural character models (prepared for future expansion)
+// Procedural character models with their preset colors
 const CHARACTER_MODELS = [
-  { name: 'School Girl', value: 'school-girl' },
-  // Future: { name: 'Casual Girl', value: 'casual-girl' },
-  // Future: { name: 'School Boy', value: 'school-boy' },
+  { name: 'Isabella (Brown Hair)', value: 'isabella' },
+  { name: 'Alice (Black Hair)', value: 'alice' },
 ];
 
-// Procedural background models (prepared for future expansion)
+// Character model presets with specific colors
+const CHARACTER_PRESETS = {
+  isabella: {
+    name: 'Isabella school student girl',
+    skinColor: '#fad5c5',
+    hairColor: '#b07850',
+    eyeColor: '#4a90c2',
+    clothesColor: '#ffffff',
+    clothesSecondaryColor: '#1a3a5c',
+    defaultBackground: 'cherry-blossom-road',
+  },
+  alice: {
+    name: 'Alice school student girl',
+    skinColor: '#fde8dc',
+    hairColor: '#1a1a2e',
+    eyeColor: '#7b68ee',
+    clothesColor: '#ffffff',
+    clothesSecondaryColor: '#1a3a5c',
+    defaultBackground: 'plain-white',
+  },
+};
+
+// Procedural background models
 const BACKGROUND_MODELS = [
   { name: 'Road Surrounded by Cherry Blossoms', value: 'cherry-blossom-road' },
-  // Future: { name: 'Night City', value: 'night-city' },
-  // Future: { name: 'Beach', value: 'beach' },
-  // Future: { name: 'Forest', value: 'forest' },
+  { name: 'Plain White', value: 'plain-white' },
+  { name: 'Plain Gray', value: 'plain-gray' },
 ];
 
 function ColorInput({ label, value, onChange }) {
@@ -127,6 +147,24 @@ export function ConfigPanel({
   const handleChange = (key, value) =>
     onConfigChange({ ...config, [key]: value });
 
+  const handleCharacterModelChange = (modelValue) => {
+    const preset = CHARACTER_PRESETS[modelValue];
+    if (preset) {
+      onConfigChange({
+        ...config,
+        characterModel: modelValue,
+        skinColor: preset.skinColor,
+        hairColor: preset.hairColor,
+        eyeColor: preset.eyeColor,
+        clothesColor: preset.clothesColor,
+        clothesSecondaryColor: preset.clothesSecondaryColor,
+        backgroundModel: preset.defaultBackground,
+      });
+    } else {
+      handleChange('characterModel', modelValue);
+    }
+  };
+
   const applyPreset = (preset) =>
     onConfigChange({
       ...config,
@@ -184,9 +222,9 @@ export function ConfigPanel({
         <h3>Model Selection</h3>
         <SelectInput
           label="Character Model"
-          value={config.characterModel || 'school-girl'}
+          value={config.characterModel || 'isabella'}
           options={CHARACTER_MODELS}
-          onChange={(v) => handleChange('characterModel', v)}
+          onChange={handleCharacterModelChange}
         />
         <SelectInput
           label="Background Model"

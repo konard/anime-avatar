@@ -1,11 +1,72 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import AvatarSVG from './components/AvatarSVG.jsx';
 import Avatar3D from './components/Avatar3D.jsx';
 import ConfigPanel from './components/ConfigPanel.jsx';
 import { useAnimationCycle } from './hooks/useAnimationCycle.js';
 
+// Character model presets with specific colors
+const CHARACTER_PRESETS = {
+  isabella: {
+    name: 'Isabella school student girl',
+    skinColor: '#fad5c5',
+    hairColor: '#b07850',
+    eyeColor: '#4a90c2',
+    clothesColor: '#ffffff',
+    clothesSecondaryColor: '#1a3a5c',
+    defaultBackground: 'cherry-blossom-road',
+  },
+  alice: {
+    name: 'Alice school student girl',
+    skinColor: '#fde8dc',
+    hairColor: '#1a1a2e',
+    eyeColor: '#7b68ee',
+    clothesColor: '#ffffff',
+    clothesSecondaryColor: '#1a3a5c',
+    defaultBackground: 'plain-white',
+  },
+};
+
+/**
+ * Parse URL parameters for e2e testing support
+ * Supports: ?model=isabella|alice&bg=cherry-blossom-road|plain-white|plain-gray&mode=2d|3d
+ */
+function parseUrlParams() {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const params = new window.URLSearchParams(window.location.search);
+  const result = {};
+
+  const model = params.get('model');
+  if (model && CHARACTER_PRESETS[model]) {
+    result.characterModel = model;
+    const preset = CHARACTER_PRESETS[model];
+    result.skinColor = preset.skinColor;
+    result.hairColor = preset.hairColor;
+    result.eyeColor = preset.eyeColor;
+    result.clothesColor = preset.clothesColor;
+    result.clothesSecondaryColor = preset.clothesSecondaryColor;
+    result.backgroundModel = preset.defaultBackground;
+  }
+
+  const bg = params.get('bg');
+  if (bg && ['cherry-blossom-road', 'plain-white', 'plain-gray'].includes(bg)) {
+    result.backgroundModel = bg;
+  }
+
+  const mode = params.get('mode');
+  if (mode === '3d') {
+    result.enable3D = true;
+  } else if (mode === '2d') {
+    result.enable3D = false;
+  }
+
+  return result;
+}
+
 const INITIAL_CONFIG = {
-  // Colors matching reference image - school girl with brown hair
+  // Colors matching reference image - Isabella (brown hair)
   skinColor: '#fad5c5',
   hairColor: '#b07850',
   eyeColor: '#4a90c2',
@@ -30,15 +91,31 @@ const INITIAL_CONFIG = {
   modelUrl: null,
   // Character scale for 2D (similar to modelScale for 3D)
   characterScale: 1,
-  // Model selection (procedural only for now)
-  characterModel: 'school-girl',
+  // Model selection
+  characterModel: 'isabella',
   backgroundModel: 'cherry-blossom-road',
 };
 
 function App() {
-  const [config, setConfig] = useState(INITIAL_CONFIG);
+  // Memoize URL params to avoid re-parsing on every render
+  const urlParams = useMemo(() => parseUrlParams(), []);
+
+  // Merge URL params with initial config
+  const initialConfigWithUrlParams = useMemo(
+    () => ({ ...INITIAL_CONFIG, ...urlParams }),
+    [urlParams]
+  );
+
+  const [config, setConfig] = useState(initialConfigWithUrlParams);
   const [isTalking, setIsTalking] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Update config when URL params change (for e2e testing)
+  useEffect(() => {
+    if (Object.keys(urlParams).length > 0) {
+      setConfig((prev) => ({ ...prev, ...urlParams }));
+    }
+  }, [urlParams]);
 
   const { currentAnimation, triggerAnimation } = useAnimationCycle({
     enabled: config.enableIdleAnimation,

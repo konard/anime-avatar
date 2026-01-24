@@ -229,6 +229,7 @@ function Scene({ children, config }) {
       <ThreeBackground
         showBackground={config.showBackground}
         detailLevel={config.detailLevel}
+        backgroundModel={config.backgroundModel}
       />
       {children}
     </>
