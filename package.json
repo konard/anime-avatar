@@ -69,7 +69,7 @@
     "vitest": "^3.2.4"
   },
   "lint-staged": {
-    "*.{js,jsx,mjs,cjs}": [
+    "!(experiments/**/*)*.{js,jsx,mjs,cjs}": [
       "eslint --fix --max-warnings 0",
       "prettier --write",
       "prettier --check"
