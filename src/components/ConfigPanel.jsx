@@ -38,17 +38,19 @@ const PRESETS = [
 
 const ANIMATIONS = ['happy', 'wave', 'nod', 'thinking', 'surprised'];
 
-// Sample 3D model URLs (using public test models)
-const SAMPLE_MODELS = [
-  { name: 'None (Procedural)', url: null },
-  {
-    name: 'Robot (Test)',
-    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/RobotExpressive/glTF/RobotExpressive.gltf',
-  },
-  {
-    name: 'Duck (Test)',
-    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF/Duck.gltf',
-  },
+// Procedural character models (prepared for future expansion)
+const CHARACTER_MODELS = [
+  { name: 'School Girl', value: 'school-girl' },
+  // Future: { name: 'Casual Girl', value: 'casual-girl' },
+  // Future: { name: 'School Boy', value: 'school-boy' },
+];
+
+// Procedural background models (prepared for future expansion)
+const BACKGROUND_MODELS = [
+  { name: 'Road Surrounded by Cherry Blossoms', value: 'cherry-blossom-road' },
+  // Future: { name: 'Night City', value: 'night-city' },
+  // Future: { name: 'Beach', value: 'beach' },
+  // Future: { name: 'Forest', value: 'forest' },
 ];
 
 function ColorInput({ label, value, onChange }) {
@@ -97,13 +99,16 @@ function CheckboxInput({ id, label, checked, onChange }) {
   );
 }
 
-function SelectInput({ label, value, options, onChange }) {
+function SelectInput({ label, value, options, onChange, valueKey = 'value' }) {
   return (
     <div className="config-item">
       <label>{label}</label>
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)}>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value || null)}
+      >
         {options.map((option) => (
-          <option key={option.name} value={option.url || ''}>
+          <option key={option.name} value={option[valueKey] || ''}>
             {option.name}
           </option>
         ))}
@@ -146,7 +151,7 @@ export function ConfigPanel({
         />
         <CheckboxInput
           id="showBackground"
-          label="Show Cherry Blossom Background"
+          label="Show Background"
           checked={config.showBackground}
           onChange={(v) => handleChange('showBackground', v)}
         />
@@ -164,26 +169,36 @@ export function ConfigPanel({
           max={10}
           step={1}
         />
+        <RangeInput
+          label="Character Scale"
+          value={config.characterScale || 1}
+          onChange={(v) => handleChange('characterScale', v)}
+          min={0.5}
+          max={2}
+          step={0.1}
+          unit="x"
+        />
+      </div>
+
+      <div className="config-group">
+        <h3>Model Selection</h3>
+        <SelectInput
+          label="Character Model"
+          value={config.characterModel || 'school-girl'}
+          options={CHARACTER_MODELS}
+          onChange={(v) => handleChange('characterModel', v)}
+        />
+        <SelectInput
+          label="Background Model"
+          value={config.backgroundModel || 'cherry-blossom-road'}
+          options={BACKGROUND_MODELS}
+          onChange={(v) => handleChange('backgroundModel', v)}
+        />
       </div>
 
       {config.enable3D && (
         <div className="config-group">
           <h3>3D Settings</h3>
-          <SelectInput
-            label="3D Model"
-            value={config.modelUrl}
-            options={SAMPLE_MODELS}
-            onChange={(v) => handleChange('modelUrl', v || null)}
-          />
-          <RangeInput
-            label="Model Scale"
-            value={config.modelScale}
-            onChange={(v) => handleChange('modelScale', v)}
-            min={0.5}
-            max={2}
-            step={0.1}
-            unit="x"
-          />
           <CheckboxInput
             id="enableShadows"
             label="Enable Shadows"
@@ -300,6 +315,33 @@ export function ConfigPanel({
               {preset.name}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="config-group">
+        <h3>Developer Tools</h3>
+        <div className="button-group">
+          <a
+            href="/test-components.html"
+            className="btn btn-secondary"
+            style={{ textDecoration: 'none', textAlign: 'center' }}
+          >
+            Component Tester
+          </a>
+          <a
+            href="/test-2d.html"
+            className="btn btn-secondary"
+            style={{ textDecoration: 'none', textAlign: 'center' }}
+          >
+            2D Test Page
+          </a>
+          <a
+            href="/test-3d.html"
+            className="btn btn-secondary"
+            style={{ textDecoration: 'none', textAlign: 'center' }}
+          >
+            3D Test Page
+          </a>
         </div>
       </div>
     </div>

@@ -18,8 +18,8 @@ const INITIAL_CONFIG = {
   showBackground: true,
   // Detail level: 1 (minimal) to 10 (maximum detail)
   detailLevel: 10,
-  // Whether to show full body with legs
-  showLegs: false,
+  // Whether to show full body with legs (enabled by default)
+  showLegs: true,
   // Render mode: 'svg' (new), 'css' (legacy), or '3d'
   renderMode: 'svg',
   // 3D specific settings
@@ -28,6 +28,11 @@ const INITIAL_CONFIG = {
   enableShadows: true,
   modelScale: 1,
   modelUrl: null,
+  // Character scale for 2D (similar to modelScale for 3D)
+  characterScale: 1,
+  // Model selection (procedural only for now)
+  characterModel: 'school-girl',
+  backgroundModel: 'cherry-blossom-road',
 };
 
 function App() {

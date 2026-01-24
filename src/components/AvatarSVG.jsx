@@ -943,12 +943,30 @@ export function AvatarSVG({
     clothesSecondaryColor,
     showBackground,
     showLegs,
+    characterScale = 1,
   } = mergedConfig;
 
   const legsDetails = getDetailLevel(detailLevel, 'legs');
   const displayLegs = showLegs && legsDetails.shapes > 0;
-  const viewBoxHeight = displayLegs ? 1050 : 600;
-  const viewBoxWidth = 400;
+  // Base dimensions - full body is 1050, bust is 600
+  const baseViewBoxHeight = displayLegs ? 1050 : 600;
+  const baseViewBoxWidth = 400;
+  // characterScale controls zoom: 1 = normal, <1 = zoomed out (see more), >1 = zoomed in
+  // When characterScale > 1, reduce viewBox to zoom in (show less, centered on face)
+  // When characterScale < 1, expand viewBox to zoom out (show more of the scene)
+  const viewBoxHeight = baseViewBoxHeight / characterScale;
+  const viewBoxWidth = baseViewBoxWidth / characterScale;
+  // For full body mode at scale=1, we want to see the whole character from head to feet
+  // The viewBox should start from y=0 to ensure the head is always visible
+  // The preserveAspectRatio will handle centering horizontally
+  const viewBoxX = (baseViewBoxWidth - viewBoxWidth) / 2;
+  // Start from top (y=0) by default to ensure face/head is visible
+  // When zoomed in (scale > 1), center on face area
+  const faceCenterY = 250; // Face is centered around y=250
+  const viewBoxY =
+    characterScale > 1
+      ? Math.max(0, faceCenterY - viewBoxHeight / 2) // Zoom in: center on face
+      : 0; // Normal/zoom out: start from top
 
   const faceDetails = getDetailLevel(detailLevel, 'face');
   const hairDetails = getDetailLevel(detailLevel, 'hair');
@@ -995,10 +1013,10 @@ export function AvatarSVG({
   return (
     <div className={`avatar-svg-container ${activeAnimation}`}>
       <svg
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         className="avatar-svg"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMin meet"
       >
         <AvatarGradients
           colors={colors}

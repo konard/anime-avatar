@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 // Utility functions for SVG avatar components
 
 /**
@@ -276,4 +277,9 @@ export const DEFAULT_CONFIG = {
   clothesSecondaryColor: '#1a3a5c',
   detailLevel: 10,
   enableAnimations: true,
+  showLegs: true, // Legs enabled by default
+  showBackground: true,
+  characterScale: 1,
+  characterModel: 'school-girl',
+  backgroundModel: 'cherry-blossom-road',
 };
