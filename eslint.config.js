@@ -118,6 +118,7 @@ export default [
       'dist/**',
       '*.min.js',
       '.eslintcache',
+      'experiments/**',
     ],
   },
 ];

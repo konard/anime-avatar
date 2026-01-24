@@ -1,13 +1,24 @@
 # Avatar Render Comparison Report
 
-Generated: 2026-01-24T19:26:24.198Z
+Generated: 2026-01-24T19:51:02.214Z
 
 ## Summary
 
 | Model | Mode | Difference | Target | Status |
 | ----- | ---- | ---------- | ------ | ------ |
-| Alice | 2D   | 46.20%     | ≤10%   | ⚠️ WIP |
-| Alice | 3D   | 69.31%     | ≤10%   | ⚠️ WIP |
+| Alice | 2D   | 41.54%     | ≤10%   | ⚠️ WIP |
+| Alice | 3D   | 64.20%     | ≤10%   | ⚠️ WIP |
+
+## Alignment Method
+
+Images are compared using **landmark-based alignment**:
+
+1. Eye centers are detected in both reference and render images (using purple iris color)
+2. The render image is scaled so eye distances match
+3. The render image is translated so eye midpoints align
+4. Pixel comparison is performed on the aligned images
+
+This ensures differences reflect actual art style disparities, not framing issues.
 
 ## Details
 
@@ -16,10 +27,12 @@ Current renders are procedural (SVG/WebGL) approximations of the detailed anime 
 
 ### Files Generated
 
-- `alice-2d-render.png` - Current render output
-- `alice-2d-diff.png` - Pixel difference visualization
-- `alice-3d-render.png` - Current render output
-- `alice-3d-diff.png` - Pixel difference visualization
+- `alice-2d-render.png` - Original render output
+- `alice-2d-aligned.png` - Render aligned to reference landmarks
+- `alice-2d-diff.png` - Pixel difference visualization (aligned)
+- `alice-3d-render.png` - Original render output
+- `alice-3d-aligned.png` - Render aligned to reference landmarks
+- `alice-3d-diff.png` - Pixel difference visualization (aligned)
 
 ### Reference Images
 
@@ -28,7 +41,7 @@ Current renders are procedural (SVG/WebGL) approximations of the detailed anime 
 
 ## How to Improve
 
-1. Enhance SVG avatar detail to better match reference proportions
-2. Improve hair rendering with more realistic shading
-3. Add more detailed eye rendering
+1. Match eye proportions more closely to reference
+2. Improve hair silhouette and shading
+3. Add more detailed facial features
 4. Refine clothing details and shading
