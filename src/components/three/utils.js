@@ -296,7 +296,10 @@ export const DEFAULT_CONFIG = {
   enableLOD: true,
   enableShadows: true,
   showBackground: true,
-  showLegs: false,
-  cameraPosition: [0, 0.3, 2.2],
+  showLegs: true, // Legs enabled by default
+  cameraPosition: [0, 0.5, 2.5], // Camera centered on head/face area
   modelScale: 1,
+  characterScale: 1,
+  characterModel: 'school-girl',
+  backgroundModel: 'cherry-blossom-road',
 };
