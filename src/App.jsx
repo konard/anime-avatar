@@ -16,6 +16,10 @@ const INITIAL_CONFIG = {
   enableIdleAnimation: true,
   enableRandomBlink: true,
   showBackground: true,
+  // Detail level: 1 (minimal) to 10 (maximum detail)
+  detailLevel: 10,
+  // Whether to show full body with legs
+  showLegs: false,
   // Render mode: 'svg' (new), 'css' (legacy), or '3d'
   renderMode: 'svg',
   // 3D specific settings

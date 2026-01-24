@@ -150,6 +150,20 @@ export function ConfigPanel({
           checked={config.showBackground}
           onChange={(v) => handleChange('showBackground', v)}
         />
+        <CheckboxInput
+          id="showLegs"
+          label="Show Full Body with Legs"
+          checked={config.showLegs}
+          onChange={(v) => handleChange('showLegs', v)}
+        />
+        <RangeInput
+          label="Detail Level"
+          value={config.detailLevel}
+          onChange={(v) => handleChange('detailLevel', v)}
+          min={1}
+          max={10}
+          step={1}
+        />
       </div>
 
       {config.enable3D && (

@@ -28,7 +28,21 @@ _Mobile-first design with hamburger menu and glassmorphism semi-transparent sett
 
 ### Preset Customization (Pink Theme)
 
-![Pink Preset](screenshots/avatar-3d-pink-preset.png)
+![Pink Preset](screenshots/avatar-pink-preset.png)
+
+_Color presets allow quick customization - shown here with pink hair and eyes_
+
+### Full Body Mode with Legs
+
+![Full Body with Legs](screenshots/avatar-with-legs.png)
+
+_Full body view showing the sailor uniform skirt, legs with socks, and shoes (Genshin Impact style)_
+
+### Talking Animation
+
+![Talking Animation](screenshots/avatar-talking.png)
+
+_Talking mode with animated mouth for AI speaking scenarios_
 
 ## Overview
 
@@ -54,6 +68,9 @@ Future planned features:
 ### Visual Design
 
 - **Highly Detailed 2D Avatar**: Anime-style SVG with detailed eyes (iris patterns, multiple highlights, reflections), hair with highlights and shadows, and authentic sailor uniform
+- **Full Body Mode**: Optional full body view with legs, socks, and shoes (Genshin Impact style)
+- **Configurable Detail Levels**: Adjustable detail from 1 (minimal) to 10 (maximum) controlling shape budgets for performance optimization
+- **Modular SVG Architecture**: Separate React components for each body part (face, eyes, hair, body, legs, background) allowing independent testing and customization
 - **Procedural 3D Avatar**: Three.js avatar with detailed anime head, hair, eyes with blush, and sailor uniform body
 - **Cherry Blossom Background**: Full scene with cherry trees, animated falling petals, wooden fence/bridge, and cityscape silhouette
 - **Dual Render Modes**: Switch between 2D SVG and 3D WebGL rendering
@@ -226,23 +243,25 @@ function AISpeakingAvatar() {
 
 ### Avatar Configuration
 
-| Option                  | Type    | Default   | Description                            |
-| ----------------------- | ------- | --------- | -------------------------------------- |
-| `skinColor`             | string  | `#fad5c5` | Skin color (hex format)                |
-| `hairColor`             | string  | `#b07850` | Hair color (hex format)                |
-| `eyeColor`              | string  | `#4a90c2` | Eye/iris color (hex format)            |
-| `clothesColor`          | string  | `#ffffff` | Clothes/outfit color (hex format)      |
-| `clothesSecondaryColor` | string  | `#1a3a5c` | Secondary clothes color (collar, etc.) |
-| `blinkInterval`         | number  | `3000`    | Average time between blinks (ms)       |
-| `animationSpeed`        | number  | `1`       | Animation speed multiplier (0.5x - 2x) |
-| `enableIdleAnimation`   | boolean | `true`    | Enable subtle idle breathing/sway      |
-| `enableRandomBlink`     | boolean | `true`    | Enable random natural blinking         |
-| `showBackground`        | boolean | `true`    | Show cherry blossom background         |
-| `enable3D`              | boolean | `false`   | Enable 3D WebGL mode (in main App)     |
-| `enableShadows`         | boolean | `true`    | Enable shadows in 3D mode              |
-| `enableLOD`             | boolean | `true`    | Enable Level of Detail in 3D mode      |
-| `modelScale`            | number  | `1`       | Scale factor for 3D model              |
-| `modelUrl`              | string  | `null`    | URL to external GLTF/GLB model         |
+| Option                  | Type    | Default   | Description                                     |
+| ----------------------- | ------- | --------- | ----------------------------------------------- |
+| `skinColor`             | string  | `#fad5c5` | Skin color (hex format)                         |
+| `hairColor`             | string  | `#b07850` | Hair color (hex format)                         |
+| `eyeColor`              | string  | `#4a90c2` | Eye/iris color (hex format)                     |
+| `clothesColor`          | string  | `#ffffff` | Clothes/outfit color (hex format)               |
+| `clothesSecondaryColor` | string  | `#1a3a5c` | Secondary clothes color (collar, etc.)          |
+| `blinkInterval`         | number  | `3000`    | Average time between blinks (ms)                |
+| `animationSpeed`        | number  | `1`       | Animation speed multiplier (0.5x - 2x)          |
+| `enableIdleAnimation`   | boolean | `true`    | Enable subtle idle breathing/sway               |
+| `enableRandomBlink`     | boolean | `true`    | Enable random natural blinking                  |
+| `showBackground`        | boolean | `true`    | Show cherry blossom background                  |
+| `detailLevel`           | number  | `10`      | Detail level 1-10 (controls shapes rendered)    |
+| `showLegs`              | boolean | `false`   | Show full body with legs (Genshin Impact style) |
+| `enable3D`              | boolean | `false`   | Enable 3D WebGL mode (in main App)              |
+| `enableShadows`         | boolean | `true`    | Enable shadows in 3D mode                       |
+| `enableLOD`             | boolean | `true`    | Enable Level of Detail in 3D mode               |
+| `modelScale`            | number  | `1`       | Scale factor for 3D model                       |
+| `modelUrl`              | string  | `null`    | URL to external GLTF/GLB model                  |
 
 ### Animation Cycle Hook Options
 
@@ -283,7 +302,18 @@ anime-avatar/
 │   │   ├── Avatar.jsx         # Legacy CSS-based avatar (deprecated)
 │   │   ├── AvatarSVG.jsx      # 2D SVG avatar component
 │   │   ├── Avatar3D.jsx       # 3D WebGL avatar component
-│   │   └── ConfigPanel.jsx    # Configuration UI panel with controls
+│   │   ├── ConfigPanel.jsx    # Configuration UI panel with controls
+│   │   └── svg/               # Modular SVG components
+│   │       ├── index.js       # Component exports
+│   │       ├── utils.js       # Utility functions and config
+│   │       ├── SVGCharacter.jsx  # Full character assembly
+│   │       ├── SVGHead.jsx    # Head (face + hair)
+│   │       ├── SVGFace.jsx    # Face with eyes, nose, mouth
+│   │       ├── SVGEyes.jsx    # Detailed anime eyes
+│   │       ├── SVGHair.jsx    # Hair with strands and highlights
+│   │       ├── SVGBody.jsx    # Body with sailor uniform
+│   │       ├── SVGLegs.jsx    # Legs with socks and shoes
+│   │       └── SVGBackground.jsx # Cherry blossom scene
 │   ├── hooks/
 │   │   └── useAnimationCycle.js  # Hook for automatic animation cycling
 │   ├── pages/
