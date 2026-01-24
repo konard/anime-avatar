@@ -299,7 +299,9 @@ export const DEFAULT_CONFIG = {
   showLegs: true, // Legs enabled by default
   // Camera position: zoomed in on head/upper body
   // y=0.6 centers on face, z=1.8 brings camera closer for better detail
-  cameraPosition: [0, 0.6, 1.8],
+  // These can be overridden by cameraY and cameraZ URL params for render-level alignment
+  cameraY: 0.6,
+  cameraZ: 1.8,
   modelScale: 1,
   characterScale: 1,
   characterModel: 'school-girl',

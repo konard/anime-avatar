@@ -277,12 +277,20 @@ export function Avatar3D({
     setModelError(error);
   };
 
+  // Build camera position from cameraY and cameraZ config params
+  // This allows render-level alignment via URL params
+  const cameraPosition = [
+    0,
+    mergedConfig.cameraY ?? 0.6,
+    mergedConfig.cameraZ ?? 1.8,
+  ];
+
   return (
     <div className="avatar3d-container">
       <Canvas
         shadows={mergedConfig.enableShadows}
         camera={{
-          position: mergedConfig.cameraPosition,
+          position: cameraPosition,
           fov: 45,
           near: 0.1,
           far: 100,
@@ -320,7 +328,7 @@ export function Avatar3D({
           maxPolarAngle={Math.PI / 2}
           target={[0, 0.4, 0]}
         />
-        <PerspectiveCamera makeDefault position={mergedConfig.cameraPosition} />
+        <PerspectiveCamera makeDefault position={cameraPosition} />
       </Canvas>
     </div>
   );

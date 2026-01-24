@@ -27,8 +27,62 @@ const CHARACTER_PRESETS = {
 };
 
 /**
+ * Parse a numeric URL parameter
+ * @param {URLSearchParams} params - URL parameters
+ * @param {string} name - Parameter name
+ * @param {Function} validator - Optional validation function
+ * @returns {number|null} - Parsed number or null if invalid
+ */
+function parseNumericParam(params, name, validator = () => true) {
+  const value = params.get(name);
+  if (!value) {
+    return null;
+  }
+  const num = parseFloat(value);
+  return !isNaN(num) && validator(num) ? num : null;
+}
+
+/**
+ * Parse boolean URL parameter
+ * @param {URLSearchParams} params - URL parameters
+ * @param {string} name - Parameter name
+ * @returns {boolean|null} - Parsed boolean or null if not specified
+ */
+function parseBooleanParam(params, name) {
+  const value = params.get(name);
+  if (value === 'false' || value === '0') {
+    return false;
+  }
+  if (value === 'true' || value === '1') {
+    return true;
+  }
+  return null;
+}
+
+/**
+ * Apply character model preset to result
+ */
+function applyCharacterPreset(params, result) {
+  const model = params.get('model');
+  if (!model || !CHARACTER_PRESETS[model]) {
+    return;
+  }
+  const preset = CHARACTER_PRESETS[model];
+  Object.assign(result, {
+    characterModel: model,
+    skinColor: preset.skinColor,
+    hairColor: preset.hairColor,
+    eyeColor: preset.eyeColor,
+    clothesColor: preset.clothesColor,
+    clothesSecondaryColor: preset.clothesSecondaryColor,
+    backgroundModel: preset.defaultBackground,
+  });
+}
+
+/**
  * Parse URL parameters for e2e testing support
  * Supports: ?model=isabella|alice&bg=cherry-blossom-road|plain-white|plain-gray&mode=2d|3d&showLegs=true|false&scale=number
+ * Camera params for render-level alignment: cameraY, cameraZ (for 3D), viewportCenterY (for 2D SVG)
  */
 function parseUrlParams() {
   if (typeof window === 'undefined') {
@@ -38,23 +92,17 @@ function parseUrlParams() {
   const params = new window.URLSearchParams(window.location.search);
   const result = {};
 
-  const model = params.get('model');
-  if (model && CHARACTER_PRESETS[model]) {
-    result.characterModel = model;
-    const preset = CHARACTER_PRESETS[model];
-    result.skinColor = preset.skinColor;
-    result.hairColor = preset.hairColor;
-    result.eyeColor = preset.eyeColor;
-    result.clothesColor = preset.clothesColor;
-    result.clothesSecondaryColor = preset.clothesSecondaryColor;
-    result.backgroundModel = preset.defaultBackground;
-  }
+  // Character model preset
+  applyCharacterPreset(params, result);
 
+  // Background model override
   const bg = params.get('bg');
-  if (bg && ['cherry-blossom-road', 'plain-white', 'plain-gray'].includes(bg)) {
+  const validBackgrounds = ['cherry-blossom-road', 'plain-white', 'plain-gray'];
+  if (bg && validBackgrounds.includes(bg)) {
     result.backgroundModel = bg;
   }
 
+  // Render mode (2D/3D)
   const mode = params.get('mode');
   if (mode === '3d') {
     result.enable3D = true;
@@ -62,22 +110,33 @@ function parseUrlParams() {
     result.enable3D = false;
   }
 
-  // Support showLegs parameter (default: true)
-  const showLegs = params.get('showLegs');
-  if (showLegs === 'false' || showLegs === '0') {
-    result.showLegs = false;
-  } else if (showLegs === 'true' || showLegs === '1') {
-    result.showLegs = true;
+  // Show legs toggle
+  const showLegs = parseBooleanParam(params, 'showLegs');
+  if (showLegs !== null) {
+    result.showLegs = showLegs;
   }
 
-  // Support scale parameter for character zoom
-  const scale = params.get('scale');
-  if (scale) {
-    const scaleValue = parseFloat(scale);
-    if (!isNaN(scaleValue) && scaleValue > 0) {
-      result.characterScale = scaleValue;
-      result.modelScale = scaleValue;
-    }
+  // Scale parameter (positive numbers only)
+  const scale = parseNumericParam(params, 'scale', (n) => n > 0);
+  if (scale !== null) {
+    result.characterScale = scale;
+    result.modelScale = scale;
+  }
+
+  // Render-level alignment params
+  const cameraY = parseNumericParam(params, 'cameraY');
+  if (cameraY !== null) {
+    result.cameraY = cameraY;
+  }
+
+  const cameraZ = parseNumericParam(params, 'cameraZ');
+  if (cameraZ !== null) {
+    result.cameraZ = cameraZ;
+  }
+
+  const viewportCenterY = parseNumericParam(params, 'viewportCenterY');
+  if (viewportCenterY !== null) {
+    result.viewportCenterY = viewportCenterY;
   }
 
   return result;

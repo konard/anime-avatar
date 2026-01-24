@@ -5,9 +5,9 @@
  * These tests compare the 2D (SVG) and 3D procedural models against reference images.
  * The target is to achieve no more than 10% difference (work in progress).
  *
- * LANDMARK-BASED ALIGNMENT:
- * Images are aligned by facial landmarks (eyes, nose, mouth) before comparison.
- * This ensures that differences reflect actual art style disparities, not framing issues.
+ * RENDER-LEVEL ALIGNMENT:
+ * Alignment is achieved through render parameters (camera position, viewport settings)
+ * rather than post-processing image transformations. This ensures accurate comparison.
  *
  * NOTE: These tests require Playwright browsers to be installed.
  * Run `npx playwright install chromium` before running these tests.
@@ -54,219 +54,68 @@ let devServerProcess;
 // Store results for summary
 const testResults = [];
 
-// ============================================================================
-// FACIAL LANDMARK DETECTION
-// ============================================================================
-
 /**
- * Check if color is a purple/violet iris color (Alice's eye color)
- * @param {number} r - Red value (0-255)
- * @param {number} g - Green value (0-255)
- * @param {number} b - Blue value (0-255)
- * @returns {boolean}
- */
-function isEyePurple(r, g, b) {
-  // Purple/violet: medium R, low-medium G, high B
-  // Alice's eyes: #7b68ee type colors
-  return (
-    r > 80 &&
-    r < 200 && // Medium red
-    g < 140 && // Low-medium green
-    b > 160 && // High blue
-    b > r && // Blue dominant over red
-    b > g + 50
-  ); // Blue significantly higher than green
-}
-
-/**
- * Find eye regions in an image by detecting purple iris pixels
- * @param {PNG} png - PNG image object
- * @returns {Object} - { left, right, midpoint, eyeDistance }
- */
-function findEyeRegions(png) {
-  const { width, height, data } = png;
-  const points = [];
-
-  // Collect all purple pixels
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
-
-      if (a > 128 && isEyePurple(r, g, b)) {
-        points.push({ x, y });
-      }
-    }
-  }
-
-  if (points.length < 10) {
-    return { left: null, right: null, midpoint: null, eyeDistance: null };
-  }
-
-  // Find the Y level where most purple pixels are concentrated (eye level)
-  const yHist = {};
-  points.forEach((p) => {
-    const yBin = Math.floor(p.y / 10) * 10;
-    yHist[yBin] = (yHist[yBin] || 0) + 1;
-  });
-
-  let maxYBin = 0;
-  let maxCount = 0;
-  for (const [yBin, count] of Object.entries(yHist)) {
-    if (count > maxCount) {
-      maxCount = count;
-      maxYBin = parseInt(yBin);
-    }
-  }
-
-  // Filter to points near detected eye level (within 60 pixels)
-  const eyeLevelPoints = points.filter((p) => Math.abs(p.y - maxYBin) < 60);
-
-  // Split into left and right eyes by X position
-  const midX = width / 2;
-  const leftPoints = eyeLevelPoints.filter((p) => p.x < midX);
-  const rightPoints = eyeLevelPoints.filter((p) => p.x >= midX);
-
-  const calcCenter = (pts) => {
-    if (pts.length === 0) {
-      return null;
-    }
-    const sumX = pts.reduce((sum, p) => sum + p.x, 0);
-    const sumY = pts.reduce((sum, p) => sum + p.y, 0);
-    return {
-      x: Math.round(sumX / pts.length),
-      y: Math.round(sumY / pts.length),
-    };
-  };
-
-  const leftCenter = calcCenter(leftPoints);
-  const rightCenter = calcCenter(rightPoints);
-
-  let midpoint = null;
-  let eyeDistance = null;
-
-  if (leftCenter && rightCenter) {
-    midpoint = {
-      x: Math.round((leftCenter.x + rightCenter.x) / 2),
-      y: Math.round((leftCenter.y + rightCenter.y) / 2),
-    };
-    eyeDistance = Math.sqrt(
-      Math.pow(rightCenter.x - leftCenter.x, 2) +
-        Math.pow(rightCenter.y - leftCenter.y, 2)
-    );
-  }
-
-  return {
-    left: leftCenter
-      ? { center: leftCenter, pixelCount: leftPoints.length }
-      : null,
-    right: rightCenter
-      ? { center: rightCenter, pixelCount: rightPoints.length }
-      : null,
-    midpoint,
-    eyeDistance,
-  };
-}
-
-/**
- * Estimate nose position from eye positions
- * Nose is typically at the horizontal center of eyes, about 35% down toward mouth area
- * @param {Object} eyes - Eye detection result
- * @param {number} imageHeight - Image height
- * @returns {Object|null} - { x, y } or null
- */
-function estimateNoseFromEyes(eyes, imageHeight) {
-  if (!eyes.midpoint) {
-    return null;
-  }
-
-  // Estimate nose at ~35% below eye level toward bottom of face
-  // For a typical portrait, nose is roughly 15-20% below eyes
-  const noseY = Math.round(eyes.midpoint.y + imageHeight * 0.15);
-
-  return {
-    x: eyes.midpoint.x,
-    y: noseY,
-  };
-}
-
-/**
- * Calculate alignment parameters to transform render image to match reference
- * @param {Object} refLandmarks - Reference image landmarks { eyes, nose }
- * @param {Object} renderLandmarks - Render image landmarks { eyes, nose }
- * @returns {Object} - { scale, translateX, translateY }
- */
-function calculateAlignmentParams(refLandmarks, renderLandmarks) {
-  const params = { scale: 1, translateX: 0, translateY: 0 };
-
-  if (!refLandmarks.eyes.eyeDistance || !renderLandmarks.eyes.eyeDistance) {
-    return params;
-  }
-
-  // Calculate scale factor to match eye distances
-  params.scale =
-    refLandmarks.eyes.eyeDistance / renderLandmarks.eyes.eyeDistance;
-
-  // Calculate translation to align eye midpoints (after scaling)
-  if (refLandmarks.eyes.midpoint && renderLandmarks.eyes.midpoint) {
-    const scaledRenderEyeX = renderLandmarks.eyes.midpoint.x * params.scale;
-    const scaledRenderEyeY = renderLandmarks.eyes.midpoint.y * params.scale;
-
-    params.translateX = refLandmarks.eyes.midpoint.x - scaledRenderEyeX;
-    params.translateY = refLandmarks.eyes.midpoint.y - scaledRenderEyeY;
-  }
-
-  return params;
-}
-
-// ============================================================================
-// IMAGE TRANSFORMATION AND COMPARISON
-// ============================================================================
-
-/**
- * Apply scale and translation transform to an image
- * @param {PNG} png - Source PNG image
+ * Resize an image to match target dimensions by center-cropping or padding
+ * This is a simple approach - no scaling or transformation
+ * @param {PNG} srcPng - Source PNG image
  * @param {number} targetWidth - Target width
  * @param {number} targetHeight - Target height
- * @param {Object} params - { scale, translateX, translateY }
- * @param {Array} bgColor - Background color [r, g, b, a] for areas outside source
- * @returns {Buffer} - Transformed image data
+ * @param {Array} bgColor - Background color [r, g, b, a] for padding
+ * @returns {PNG} - Resized PNG
  */
-function transformImage(
-  png,
+function resizeToMatch(
+  srcPng,
   targetWidth,
   targetHeight,
-  params,
   bgColor = [255, 255, 255, 255]
 ) {
-  const { width: srcWidth, height: srcHeight, data: srcData } = png;
-  const { scale, translateX, translateY } = params;
-  const result = Buffer.alloc(targetWidth * targetHeight * 4);
+  const result = new PNG({ width: targetWidth, height: targetHeight });
 
+  // Fill with background color
   for (let y = 0; y < targetHeight; y++) {
     for (let x = 0; x < targetWidth; x++) {
-      const dstIdx = (y * targetWidth + x) * 4;
+      const idx = (y * targetWidth + x) * 4;
+      result.data[idx] = bgColor[0];
+      result.data[idx + 1] = bgColor[1];
+      result.data[idx + 2] = bgColor[2];
+      result.data[idx + 3] = bgColor[3];
+    }
+  }
 
-      // Inverse transform: find source pixel for this destination pixel
-      // dst = src * scale + translate => src = (dst - translate) / scale
-      const srcX = Math.round((x - translateX) / scale);
-      const srcY = Math.round((y - translateY) / scale);
+  // Calculate centering offsets
+  const srcWidth = srcPng.width;
+  const srcHeight = srcPng.height;
 
-      if (srcX >= 0 && srcX < srcWidth && srcY >= 0 && srcY < srcHeight) {
+  // Source area to copy (center crop if source is larger)
+  const srcStartX = Math.max(0, Math.floor((srcWidth - targetWidth) / 2));
+  const srcStartY = Math.max(0, Math.floor((srcHeight - targetHeight) / 2));
+  const copyWidth = Math.min(srcWidth, targetWidth);
+  const copyHeight = Math.min(srcHeight, targetHeight);
+
+  // Destination area to paste (center if destination is larger)
+  const dstStartX = Math.max(0, Math.floor((targetWidth - srcWidth) / 2));
+  const dstStartY = Math.max(0, Math.floor((targetHeight - srcHeight) / 2));
+
+  // Copy pixels
+  for (let dy = 0; dy < copyHeight; dy++) {
+    for (let dx = 0; dx < copyWidth; dx++) {
+      const srcX = srcStartX + dx;
+      const srcY = srcStartY + dy;
+      const dstX = dstStartX + dx;
+      const dstY = dstStartY + dy;
+
+      if (
+        srcX < srcWidth &&
+        srcY < srcHeight &&
+        dstX < targetWidth &&
+        dstY < targetHeight
+      ) {
         const srcIdx = (srcY * srcWidth + srcX) * 4;
-        result[dstIdx] = srcData[srcIdx];
-        result[dstIdx + 1] = srcData[srcIdx + 1];
-        result[dstIdx + 2] = srcData[srcIdx + 2];
-        result[dstIdx + 3] = srcData[srcIdx + 3];
-      } else {
-        // Outside source bounds - use background color
-        result[dstIdx] = bgColor[0];
-        result[dstIdx + 1] = bgColor[1];
-        result[dstIdx + 2] = bgColor[2];
-        result[dstIdx + 3] = bgColor[3];
+        const dstIdx = (dstY * targetWidth + dstX) * 4;
+        result.data[dstIdx] = srcPng.data[srcIdx];
+        result.data[dstIdx + 1] = srcPng.data[srcIdx + 1];
+        result.data[dstIdx + 2] = srcPng.data[srcIdx + 2];
+        result.data[dstIdx + 3] = srcPng.data[srcIdx + 3];
       }
     }
   }
@@ -275,13 +124,13 @@ function transformImage(
 }
 
 /**
- * Compare two images with landmark-based alignment
+ * Compare two images directly (with simple dimension matching)
  * @param {Buffer} refBuffer - Reference image buffer
  * @param {Buffer} renderBuffer - Render image buffer
- * @param {Array} bgColor - Background color for alignment [r, g, b, a]
- * @returns {Object} - { diffPercentage, diffPixels, totalPixels, diffImage, landmarks }
+ * @param {Array} bgColor - Background color [r, g, b, a] for dimension matching
+ * @returns {Object} - { diffPercentage, diffPixels, totalPixels, diffImage, width, height }
  */
-function compareImagesWithAlignment(
+function compareImages(
   refBuffer,
   renderBuffer,
   bgColor = [255, 255, 255, 255]
@@ -289,84 +138,45 @@ function compareImagesWithAlignment(
   const refPng = PNG.sync.read(refBuffer);
   const renderPng = PNG.sync.read(renderBuffer);
 
-  // Detect landmarks in both images
-  const refEyes = findEyeRegions(refPng);
-  const renderEyes = findEyeRegions(renderPng);
-
-  const refNose = estimateNoseFromEyes(refEyes, refPng.height);
-  const renderNose = estimateNoseFromEyes(renderEyes, renderPng.height);
-
-  const refLandmarks = { eyes: refEyes, nose: refNose };
-  const renderLandmarks = { eyes: renderEyes, nose: renderNose };
-
-  // Calculate alignment parameters
-  const alignParams = calculateAlignmentParams(refLandmarks, renderLandmarks);
-
-  console.log('  Landmark-based alignment:');
-  console.log(
-    `    Reference eyes at: (${refEyes.midpoint?.x}, ${refEyes.midpoint?.y}), distance: ${refEyes.eyeDistance?.toFixed(0)}`
-  );
-  console.log(
-    `    Render eyes at: (${renderEyes.midpoint?.x}, ${renderEyes.midpoint?.y}), distance: ${renderEyes.eyeDistance?.toFixed(0)}`
-  );
-  console.log(
-    `    Alignment: scale=${alignParams.scale.toFixed(2)}, translateX=${alignParams.translateX.toFixed(0)}, translateY=${alignParams.translateY.toFixed(0)}`
-  );
-
   // Use reference dimensions as target
-  const width = refPng.width;
-  const height = refPng.height;
+  const targetWidth = refPng.width;
+  const targetHeight = refPng.height;
 
-  // Transform render image to align with reference
-  const alignedRenderData = transformImage(
+  console.log(`  Reference: ${refPng.width}x${refPng.height}`);
+  console.log(`  Render: ${renderPng.width}x${renderPng.height}`);
+  console.log(`  Comparing at: ${targetWidth}x${targetHeight}`);
+
+  // Resize render to match reference dimensions (center crop/pad)
+  const resizedRender = resizeToMatch(
     renderPng,
-    width,
-    height,
-    alignParams,
-    bgColor
-  );
-
-  // Also get reference data in the same format (no transform, just copy)
-  const refData = transformImage(
-    refPng,
-    width,
-    height,
-    { scale: 1, translateX: 0, translateY: 0 },
+    targetWidth,
+    targetHeight,
     bgColor
   );
 
   // Create diff image
-  const diff = new PNG({ width, height });
+  const diff = new PNG({ width: targetWidth, height: targetHeight });
 
   const diffPixels = pixelmatch(
-    refData,
-    alignedRenderData,
+    refPng.data,
+    resizedRender.data,
     diff.data,
-    width,
-    height,
+    targetWidth,
+    targetHeight,
     { threshold: 0.1 }
   );
 
-  const totalPixels = width * height;
+  const totalPixels = targetWidth * targetHeight;
   const diffPercentage = diffPixels / totalPixels;
-
-  // Also create an aligned render PNG for saving
-  const alignedRenderPng = new PNG({ width, height });
-  alignedRenderData.copy(alignedRenderPng.data);
 
   return {
     diffPercentage,
     diffPixels,
     totalPixels,
     diffImage: PNG.sync.write(diff),
-    alignedRenderImage: PNG.sync.write(alignedRenderPng),
-    width,
-    height,
-    landmarks: {
-      reference: refLandmarks,
-      render: renderLandmarks,
-      alignment: alignParams,
-    },
+    resizedRenderImage: PNG.sync.write(resizedRender),
+    width: targetWidth,
+    height: targetHeight,
   };
 }
 
@@ -447,7 +257,7 @@ async function takeAvatarScreenshot(url, outputPath, bgColor = '#ffffff') {
   // Wait a bit for styles to apply
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Take full viewport screenshot (we'll align based on landmarks)
+  // Take full viewport screenshot
   const screenshotBuffer = await page.screenshot({
     type: 'png',
     fullPage: false,
@@ -483,15 +293,31 @@ Generated: ${timestamp}
   }
 
   report += `
-## Alignment Method
+## Comparison Method
 
-Images are compared using **landmark-based alignment**:
-1. Eye centers are detected in both reference and render images (using purple iris color)
-2. The render image is scaled so eye distances match
-3. The render image is translated so eye midpoints align
-4. Pixel comparison is performed on the aligned images
+Images are compared using **direct pixel comparison**:
+1. The render is taken at viewport size matching reference dimensions
+2. If dimensions differ, the render is center-cropped/padded to match
+3. Pixel comparison is performed using pixelmatch with 0.1 threshold
 
-This ensures differences reflect actual art style disparities, not framing issues.
+Render-level alignment is achieved through URL parameters:
+- \`cameraY\`, \`cameraZ\` for 3D camera positioning
+- \`viewportCenterY\` for 2D SVG viewport centering
+- \`scale\` for zoom level
+
+## Visual Comparison
+
+### Alice 2D (SVG)
+
+| Reference | Render | Diff |
+|-----------|--------|------|
+| ![Reference](../reference-images/alice/2d-reference.png) | ![Render](alice-2d-render.png) | ![Diff](alice-2d-diff.png) |
+
+### Alice 3D (WebGL)
+
+| Reference | Render | Diff |
+|-----------|--------|------|
+| ![Reference](../reference-images/alice/3d-reference.png) | ![Render](alice-3d-render.png) | ![Diff](alice-3d-diff.png) |
 
 ## Details
 
@@ -505,8 +331,7 @@ Current renders are procedural (SVG/WebGL) approximations of the detailed anime 
   for (const result of testResults) {
     const baseName = `${result.model.toLowerCase()}-${result.mode.toLowerCase()}`;
     report += `- \`${baseName}-render.png\` - Original render output
-- \`${baseName}-aligned.png\` - Render aligned to reference landmarks
-- \`${baseName}-diff.png\` - Pixel difference visualization (aligned)
+- \`${baseName}-diff.png\` - Pixel difference visualization
 `;
   }
 
@@ -518,10 +343,11 @@ Current renders are procedural (SVG/WebGL) approximations of the detailed anime 
 
 ## How to Improve
 
-1. Match eye proportions more closely to reference
-2. Improve hair silhouette and shading
-3. Add more detailed facial features
-4. Refine clothing details and shading
+1. Adjust render parameters (cameraY, cameraZ, scale) to better match framing
+2. Match eye proportions more closely to reference
+3. Improve hair silhouette and shading
+4. Add more detailed facial features
+5. Refine clothing details and shading
 `;
 
   fs.writeFileSync(reportPath, report);
@@ -582,7 +408,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
   });
 
   describe('Alice Model (2D SVG)', () => {
-    it('should render Alice 2D avatar and compare with reference using landmark alignment', async () => {
+    it('should render Alice 2D avatar and compare with reference', async () => {
       // Skip if reference image doesn't exist
       if (!fs.existsSync(REFERENCE_IMAGES.alice2d)) {
         console.warn(
@@ -607,19 +433,16 @@ describeE2E('Avatar Image Comparison Tests', () => {
       const referenceBuffer = fs.readFileSync(REFERENCE_IMAGES.alice2d);
       const actualBuffer = fs.readFileSync(renderPath);
 
-      // Compare images with landmark-based alignment
-      // White background for 2D
-      const result = compareImagesWithAlignment(
+      // Compare images directly (with dimension matching)
+      const result = compareImages(
         referenceBuffer,
         actualBuffer,
-        [255, 255, 255, 255]
+        [255, 255, 255, 255] // White background
       );
 
-      // Save diff image and aligned render
+      // Save diff image
       const diffPath = path.join(RENDERS_DIR, 'alice-2d-diff.png');
-      const alignedPath = path.join(RENDERS_DIR, 'alice-2d-aligned.png');
       fs.writeFileSync(diffPath, result.diffImage);
-      fs.writeFileSync(alignedPath, result.alignedRenderImage);
 
       // Store result for summary
       testResults.push({
@@ -630,7 +453,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
         totalPixels: result.totalPixels,
       });
 
-      console.log(`\nAlice 2D comparison result (landmark-aligned):`);
+      console.log(`\nAlice 2D comparison result:`);
       console.log(
         `  Diff percentage: ${(result.diffPercentage * 100).toFixed(2)}%`
       );
@@ -639,13 +462,11 @@ describeE2E('Avatar Image Comparison Tests', () => {
       );
       console.log(`  Target: ≤${MAX_DIFF_PERCENTAGE * 100}%`);
       console.log(`  Render saved to: ${renderPath}`);
-      console.log(`  Aligned render saved to: ${alignedPath}`);
       console.log(`  Diff saved to: ${diffPath}`);
 
       // Test passes if render was generated successfully
       expect(fs.existsSync(renderPath)).toBe(true);
       expect(fs.existsSync(diffPath)).toBe(true);
-      expect(fs.existsSync(alignedPath)).toBe(true);
 
       // Log whether we've achieved the target (informational, not blocking)
       if (result.diffPercentage <= MAX_DIFF_PERCENTAGE) {
@@ -659,7 +480,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
   });
 
   describe('Alice Model (3D WebGL)', () => {
-    it('should render Alice 3D avatar and compare with reference using landmark alignment', async () => {
+    it('should render Alice 3D avatar and compare with reference', async () => {
       // Skip if reference image doesn't exist
       if (!fs.existsSync(REFERENCE_IMAGES.alice3d)) {
         console.warn(
@@ -684,19 +505,16 @@ describeE2E('Avatar Image Comparison Tests', () => {
       const referenceBuffer = fs.readFileSync(REFERENCE_IMAGES.alice3d);
       const actualBuffer = fs.readFileSync(renderPath);
 
-      // Compare images with landmark-based alignment
-      // Gray background for 3D (128, 128, 128)
-      const result = compareImagesWithAlignment(
+      // Compare images directly (with dimension matching)
+      const result = compareImages(
         referenceBuffer,
         actualBuffer,
-        [128, 128, 128, 255]
+        [128, 128, 128, 255] // Gray background
       );
 
-      // Save diff image and aligned render
+      // Save diff image
       const diffPath = path.join(RENDERS_DIR, 'alice-3d-diff.png');
-      const alignedPath = path.join(RENDERS_DIR, 'alice-3d-aligned.png');
       fs.writeFileSync(diffPath, result.diffImage);
-      fs.writeFileSync(alignedPath, result.alignedRenderImage);
 
       // Store result for summary
       testResults.push({
@@ -707,7 +525,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
         totalPixels: result.totalPixels,
       });
 
-      console.log(`\nAlice 3D comparison result (landmark-aligned):`);
+      console.log(`\nAlice 3D comparison result:`);
       console.log(
         `  Diff percentage: ${(result.diffPercentage * 100).toFixed(2)}%`
       );
@@ -716,13 +534,11 @@ describeE2E('Avatar Image Comparison Tests', () => {
       );
       console.log(`  Target: ≤${MAX_DIFF_PERCENTAGE * 100}%`);
       console.log(`  Render saved to: ${renderPath}`);
-      console.log(`  Aligned render saved to: ${alignedPath}`);
       console.log(`  Diff saved to: ${diffPath}`);
 
       // Test passes if render was generated successfully
       expect(fs.existsSync(renderPath)).toBe(true);
       expect(fs.existsSync(diffPath)).toBe(true);
-      expect(fs.existsSync(alignedPath)).toBe(true);
 
       // Log whether we've achieved the target (informational, not blocking)
       if (result.diffPercentage <= MAX_DIFF_PERCENTAGE) {

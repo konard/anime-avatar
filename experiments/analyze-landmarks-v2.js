@@ -1,6 +1,11 @@
 /**
+ * DEPRECATED: This approach was replaced by render-level alignment.
+ *
  * Analyze facial landmarks in reference and render images - Version 2
  * Uses more specific color detection for the anime reference style
+ *
+ * NOTE: Alignment is now achieved through render parameters (cameraY, cameraZ, scale)
+ * rather than post-processing image transformations.
  *
  * Usage: node experiments/analyze-landmarks-v2.js
  */

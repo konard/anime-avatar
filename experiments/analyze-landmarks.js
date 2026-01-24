@@ -1,9 +1,14 @@
 /**
+ * DEPRECATED: This approach was replaced by render-level alignment.
+ *
  * Analyze facial landmarks in reference and render images.
  * This script helps identify the approximate positions of:
  * - Eyes (purple/violet colored regions)
  * - Nose (center of face, between eyes and mouth)
  * - Mouth (red/pink region below nose)
+ *
+ * NOTE: Alignment is now achieved through render parameters (cameraY, cameraZ, scale)
+ * rather than post-processing image transformations.
  *
  * Usage: node experiments/analyze-landmarks.js
  */

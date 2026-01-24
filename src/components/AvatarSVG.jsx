@@ -984,13 +984,24 @@ export function AvatarSVG({
   // The viewBox should start from y=0 to ensure the head is always visible
   // The preserveAspectRatio will handle centering horizontally
   const viewBoxX = (baseViewBoxWidth - viewBoxWidth) / 2;
+  // Render-level alignment: viewportCenterY allows explicit control of vertical framing
+  // This is useful for aligning renders with reference images
+  const configuredCenterY = mergedConfig.viewportCenterY;
+  const faceCenterY = configuredCenterY ?? 250; // Face is centered around y=250
   // Start from top (y=0) by default to ensure face/head is visible
   // When zoomed in (scale > 1), center on face area
-  const faceCenterY = 250; // Face is centered around y=250
-  const viewBoxY =
-    characterScale > 1
-      ? Math.max(0, faceCenterY - viewBoxHeight / 2) // Zoom in: center on face
-      : 0; // Normal/zoom out: start from top
+  // When viewportCenterY is explicitly set, use it to center the viewport
+  let viewBoxY;
+  if (configuredCenterY !== null && configuredCenterY !== undefined) {
+    // Explicit center Y: center the viewport on this coordinate
+    viewBoxY = Math.max(0, configuredCenterY - viewBoxHeight / 2);
+  } else if (characterScale > 1) {
+    // Zoom in: center on face
+    viewBoxY = Math.max(0, faceCenterY - viewBoxHeight / 2);
+  } else {
+    // Normal/zoom out: start from top
+    viewBoxY = 0;
+  }
 
   const faceDetails = getDetailLevel(detailLevel, 'face');
   const hairDetails = getDetailLevel(detailLevel, 'hair');
