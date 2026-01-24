@@ -5,6 +5,12 @@
  *
  * These tests ensure the 2D (SVG) and 3D procedural models match reference images
  * with no more than 10% difference.
+ *
+ * NOTE: These tests require Playwright browsers to be installed.
+ * Run `npx playwright install chromium` before running these tests.
+ * Skip these tests in CI by setting E2E_SKIP=true environment variable.
+ *
+ * To run these tests: npm run test:e2e
  */
 
 import { describe, it, beforeAll, afterAll, expect } from 'vitest';
@@ -165,7 +171,16 @@ async function takeAvatarScreenshot(url, outputPath) {
   return screenshotBuffer;
 }
 
-describe('Avatar Image Comparison Tests', () => {
+// Check if e2e tests should be skipped
+const SKIP_E2E =
+  process.env.E2E_SKIP === 'true' ||
+  process.env.CI === 'true' ||
+  process.env.GITHUB_ACTIONS === 'true';
+
+// Use describe.skip if e2e tests should be skipped
+const describeE2E = SKIP_E2E ? describe.skip : describe;
+
+describeE2E('Avatar Image Comparison Tests', () => {
   beforeAll(async () => {
     // Ensure screenshots directory exists
     if (!fs.existsSync(SCREENSHOTS_DIR)) {
