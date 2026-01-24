@@ -297,7 +297,9 @@ export const DEFAULT_CONFIG = {
   enableShadows: true,
   showBackground: true,
   showLegs: true, // Legs enabled by default
-  cameraPosition: [0, 0.5, 2.5], // Camera centered on head/face area
+  // Camera position: zoomed in on head/upper body
+  // y=0.6 centers on face, z=1.8 brings camera closer for better detail
+  cameraPosition: [0, 0.6, 1.8],
   modelScale: 1,
   characterScale: 1,
   characterModel: 'school-girl',

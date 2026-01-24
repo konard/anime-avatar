@@ -28,7 +28,7 @@ const CHARACTER_PRESETS = {
 
 /**
  * Parse URL parameters for e2e testing support
- * Supports: ?model=isabella|alice&bg=cherry-blossom-road|plain-white|plain-gray&mode=2d|3d
+ * Supports: ?model=isabella|alice&bg=cherry-blossom-road|plain-white|plain-gray&mode=2d|3d&showLegs=true|false&scale=number
  */
 function parseUrlParams() {
   if (typeof window === 'undefined') {
@@ -60,6 +60,24 @@ function parseUrlParams() {
     result.enable3D = true;
   } else if (mode === '2d') {
     result.enable3D = false;
+  }
+
+  // Support showLegs parameter (default: true)
+  const showLegs = params.get('showLegs');
+  if (showLegs === 'false' || showLegs === '0') {
+    result.showLegs = false;
+  } else if (showLegs === 'true' || showLegs === '1') {
+    result.showLegs = true;
+  }
+
+  // Support scale parameter for character zoom
+  const scale = params.get('scale');
+  if (scale) {
+    const scaleValue = parseFloat(scale);
+    if (!isNaN(scaleValue) && scaleValue > 0) {
+      result.characterScale = scaleValue;
+      result.modelScale = scaleValue;
+    }
   }
 
   return result;

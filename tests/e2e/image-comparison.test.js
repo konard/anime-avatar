@@ -60,16 +60,17 @@ function compareImages(img1Buffer, img2Buffer) {
   const img1 = PNG.sync.read(img1Buffer);
   const img2 = PNG.sync.read(img2Buffer);
 
-  // Use the smaller dimensions for comparison
+  // Use the reference image dimensions as the target
+  // Images should be the same size when taken with matching viewport
   const width = Math.min(img1.width, img2.width);
   const height = Math.min(img1.height, img2.height);
 
-  // Resize images if needed (crop to compare)
+  // Center-crop both images to the same dimensions for fair comparison
   const diff = new PNG({ width, height });
 
   const diffPixels = pixelmatch(
-    cropImage(img1, width, height),
-    cropImage(img2, width, height),
+    cropImageCentered(img1, width, height),
+    cropImageCentered(img2, width, height),
     diff.data,
     width,
     height,
@@ -90,15 +91,25 @@ function compareImages(img1Buffer, img2Buffer) {
 }
 
 /**
- * Crop image data to specified dimensions
+ * Crop image data to specified dimensions from center
+ * @param {PNG} png - PNG image object
+ * @param {number} targetWidth - Target width
+ * @param {number} targetHeight - Target height
+ * @returns {Buffer} Cropped image data
  */
-function cropImage(png, targetWidth, targetHeight) {
-  const { width: srcWidth, data: srcData } = png;
+function cropImageCentered(png, targetWidth, targetHeight) {
+  const { width: srcWidth, height: srcHeight, data: srcData } = png;
   const result = Buffer.alloc(targetWidth * targetHeight * 4);
+
+  // Calculate center crop offsets
+  const offsetX = Math.max(0, Math.floor((srcWidth - targetWidth) / 2));
+  const offsetY = Math.max(0, Math.floor((srcHeight - targetHeight) / 2));
 
   for (let y = 0; y < targetHeight; y++) {
     for (let x = 0; x < targetWidth; x++) {
-      const srcIdx = (y * srcWidth + x) * 4;
+      const srcX = Math.min(offsetX + x, srcWidth - 1);
+      const srcY = Math.min(offsetY + y, srcHeight - 1);
+      const srcIdx = (srcY * srcWidth + srcX) * 4;
       const dstIdx = (y * targetWidth + x) * 4;
       result[dstIdx] = srcData[srcIdx];
       result[dstIdx + 1] = srcData[srcIdx + 1];
@@ -152,15 +163,18 @@ async function startDevServer() {
 /**
  * Take a screenshot of the avatar at given URL
  * Captures just the avatar SVG element for clean comparison
+ * @param {string} url - The URL to navigate to
+ * @param {string} outputPath - Path to save the screenshot
+ * @param {string} bgColor - Background color for the page (for e2e comparison)
  */
-async function takeAvatarScreenshot(url, outputPath) {
+async function takeAvatarScreenshot(url, outputPath, bgColor = '#ffffff') {
   await commander.goto({ url, waitUntil: 'networkidle' });
 
   // Wait for avatar to render and animations to settle
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  // Hide the settings panel and any overlays for clean avatar capture
-  await page.evaluate(() => {
+  // Hide the settings panel and any overlays, and set page background for e2e testing
+  await page.evaluate((backgroundColor) => {
     const settingsPanel = document.querySelector('.settings-panel');
     const menuToggle = document.querySelector('.menu-toggle');
     if (settingsPanel) {
@@ -169,7 +183,18 @@ async function takeAvatarScreenshot(url, outputPath) {
     if (menuToggle) {
       menuToggle.style.display = 'none';
     }
-  });
+
+    // Set body and app background to match reference for clean comparison
+    document.body.style.background = backgroundColor;
+    const appContainer = document.querySelector('.app-fullscreen');
+    if (appContainer) {
+      appContainer.style.background = backgroundColor;
+    }
+    const avatarFullscreen = document.querySelector('.avatar-fullscreen');
+    if (avatarFullscreen) {
+      avatarFullscreen.style.background = backgroundColor;
+    }
+  }, bgColor);
 
   // Wait a bit for styles to apply
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -282,7 +307,7 @@ describeE2E('Avatar Image Comparison Tests', () => {
     devServerProcess = await startDevServer();
     console.log('Development server started');
 
-    // Launch browser with larger viewport
+    // Launch browser with viewport matching reference image dimensions (portrait orientation)
     console.log('Launching browser...');
     const result = await launchBrowser({
       engine: 'playwright',
@@ -292,8 +317,9 @@ describeE2E('Avatar Image Comparison Tests', () => {
     browser = result.browser;
     page = result.page;
 
-    // Set viewport to match reference image dimensions
-    await page.setViewportSize({ width: 1536, height: 1024 });
+    // Set viewport to match reference image dimensions (768x1024 portrait)
+    // This ensures the render output has the same aspect ratio as the reference
+    await page.setViewportSize({ width: 768, height: 1024 });
 
     commander = makeBrowserCommander({ page, verbose: false });
     console.log('Browser launched');
@@ -331,10 +357,13 @@ describeE2E('Avatar Image Comparison Tests', () => {
       const renderPath = path.join(RENDERS_DIR, 'alice-2d-render.png');
 
       // Take screenshot with Alice model selected (2D mode)
-      // URL params: model=alice, background=plain-white, mode=2d
+      // URL params: model=alice, background=plain-white, mode=2d, showLegs=false
+      // showLegs=false to match reference image framing (head + upper body only)
+      // Use white background to match reference
       await takeAvatarScreenshot(
-        'http://localhost:5173/?model=alice&bg=plain-white&mode=2d',
-        renderPath
+        'http://localhost:5173/?model=alice&bg=plain-white&mode=2d&showLegs=false',
+        renderPath,
+        '#ffffff' // White background to match reference
       );
 
       // Load reference image
@@ -398,9 +427,12 @@ describeE2E('Avatar Image Comparison Tests', () => {
       const renderPath = path.join(RENDERS_DIR, 'alice-3d-render.png');
 
       // Take screenshot with Alice model selected (3D mode)
+      // showLegs=false to match reference image framing (head + upper body only)
+      // Use gray background to match reference
       await takeAvatarScreenshot(
-        'http://localhost:5173/?model=alice&bg=plain-gray&mode=3d',
-        renderPath
+        'http://localhost:5173/?model=alice&bg=plain-gray&mode=3d&showLegs=false',
+        renderPath,
+        '#808080' // Gray background to match reference
       );
 
       // Load reference image
