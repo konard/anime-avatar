@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#050309" />
+<title>Avatar Studio</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; background:#050309; overflow:hidden; -webkit-text-size-adjust:100%; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; }
+  #root { width:100vw; height:100vh; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
+  .acs-svg-fit > svg { width:100%; height:100%; display:block; }
+  @media (max-width:720px) {
+    input[type="range"] { height:32px; }
+    button { min-height:34px; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.1/lib/three-vrm.module.js",
+    "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.7.4/esm/browser.js"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE_NS from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+  import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
+  import { FBXLoader }     from 'three/addons/loaders/FBXLoader.js';
+  import * as VRM from '@pixiv/three-vrm';
+  const THREE = Object.assign({}, THREE_NS);
+  THREE.OrbitControls = OrbitControls;
+  THREE.GLTFLoader = GLTFLoader;
+  THREE.GLTFExporter = GLTFExporter;
+  THREE.FBXLoader = FBXLoader;
+  window.THREE = THREE;
+  window.GLTFLoader = GLTFLoader;
+  window.GLTFExporter = GLTFExporter;
+  window.FBXLoader = FBXLoader;
+  window.THREE_VRM = VRM;
+  window.dispatchEvent(new Event('three-ready'));
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Plain JS helpers: load first so Babel-transpiled files can reference them synchronously -->
+<script src="src/constants.js"></script>
+<script src="src/defaults.js"></script>
+<script src="src/randomizers.js"></script>
+<script src="src/color.js"></script>
+<script src="src/gestures.js"></script>
+<script src="src/apply.js"></script>
+<script src="src/animations.js"></script>
+<script src="src/svg.js"></script>
+<script src="src/tests-registry.js"></script>
+
+<!-- React components: Babel-transpiled in the browser -->
+<script type="text/babel" src="src/ui.jsx"></script>
+<script type="text/babel" src="src/Editor.jsx"></script>
+<script type="text/babel" src="src/Tests.jsx"></script>
+<script type="text/babel" src="src/App.jsx"></script>
+
+<script type="text/babel">
+ReactDOM.createRoot(document.getElementById('root')).render(<window.App />);
+</script>
+</body>
+</html>

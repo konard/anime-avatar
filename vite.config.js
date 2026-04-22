@@ -2,8 +2,25 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+const serveNewIndex = {
+  name: 'serve-new-index',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (
+        req.url === '/new' ||
+        req.url === '/new/' ||
+        req.url === '/anime-avatar/new' ||
+        req.url === '/anime-avatar/new/'
+      ) {
+        req.url = '/anime-avatar/new/index.html';
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), serveNewIndex],
   base: '/anime-avatar/',
   build: {
     outDir: 'dist',

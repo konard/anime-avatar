@@ -5,3 +5,4 @@ dist
 package-lock.json
 .eslintcache
 CLAUDE.md
+public
