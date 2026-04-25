@@ -40,33 +40,53 @@
     const env = sustained(t, easing);
 
     if (name === 'wave') {
-      // VRM1 rest IS T-pose (arms horizontal), so NEGATIVE z on rightUpperArm
-      // raises it up above the shoulder (same as pose-preset A vs Cheer).
+      // VRM1 rest IS T-pose (right arm extends horizontally along +X). On the
+      // RIGHT side, NEGATIVE z rotates the arm UP toward vertical; going past
+      // -90° swings the arm ACROSS the body and the hand collides with the
+      // head/neck. Anatomical "hi" wave keeps the upper arm at-or-just-under
+      // vertical, with the forearm bent ~90° forward, hand BESIDE the head
+      // — NOT crossing the centerline (issue #28: "hand goes through neck
+      // and head").
       //
-      // Wave matches the issue-28 reference: the upper arm is raised
-      // VERTICALLY (z≈-130°), the elbow is bent ~90° (lowerArm.x≈-90°), the
-      // upper arm has a slight forward swing (x≈-15°), and the WAVE itself
-      // is the WRIST oscillating side-to-side (rightHand.z) — exactly what a
-      // human does when greeting. Previously the oscillation was on the
-      // forearm Y axis (forearm twist), which read as a windscreen-wiper
-      // rather than a wave.
+      // Geometry verified empirically (see
+      // experiments/issue-28-wave-trajectory.mjs and the in-browser probe):
+      //
+      //   rightUpperArm.z = -1.30 rad (~-74°)  → arm raised outward beyond
+      //                                            horizontal, NOT all the way
+      //                                            to vertical, so the elbow
+      //                                            stays on the right of the
+      //                                            head, not above it.
+      //   rightUpperArm.x = -0.30 rad (~-17°)  → slight forward lean — gesture
+      //                                            faces the viewer.
+      //   rightUpperArm.y = -0.20 rad (~-11°)  → mild external rotation
+      //                                            (turning forearm forward).
+      //   rightLowerArm.x = -1.40 rad (~-80°)  → elbow flexion just under 90°,
+      //                                            forearm points UP from the
+      //                                            elbow, hand ends ~head
+      //                                            height beside the face.
+      //   rightLowerArm.y = -0.20 rad (~-11°)  → small forearm rotation so the
+      //                                            palm faces FORWARD (classic
+      //                                            open-palm greeting).
+      //   rightHand.z oscillation ±0.45 rad (~±26°) — wrist waves left/right.
+      //
+      // The hand world-space target sits at roughly (-0.45, 1.55, +0.15) for
+      // the default pixiv VRM1 sample — beside the right ear, palm forward,
+      // ~0.45m from the head centerline (no collision).
       const up = env;
-      // Upper arm: raise nearly straight up, slight forward bias.
       out.rot.rightUpperArm = {
-        x: -0.25 * up * amp,
-        y:  0,
-        z: -2.27 * up * amp,            // ~-130° — raised over the shoulder
+        x: -0.30 * up * amp,
+        y: -0.20 * up * amp,
+        z: -1.30 * up * amp,            // ~-74° — abducted past horizontal
       };
-      // Elbow: bent ~90° forward, no oscillation (the forearm stays put).
       out.rot.rightLowerArm = {
-        x: -1.55 * up * amp,            // ~-89° elbow flex
-        y:  0,
+        x: -1.40 * up * amp,            // elbow flexion ~80°
+        y: -0.20 * up * amp,            // palm-forward (supination)
         z:  0,
       };
       // Hand: the actual "wave" — three full side-to-side cycles over the
-      // gesture window, ramped by the envelope. ~±35° at the wrist matches
-      // the reference frame.
-      const wave = Math.sin(t * Math.PI * 6) * 0.6 * up * amp;
+      // gesture window, ramped by the envelope. ±~26° at the wrist matches
+      // a natural greeting wave (oscillates around radial/ulnar deviation).
+      const wave = Math.sin(t * Math.PI * 6) * 0.45 * up * amp;
       out.rot.rightHand = {
         x:  0,
         y:  0,

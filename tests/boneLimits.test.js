@@ -14,8 +14,8 @@ const BONE_LIMITS = {
   head: { x: [-50, 50], y: [-70, 70], z: [-40, 40] },
   leftEye: { x: [-25, 25], y: [-35, 35], z: null },
   rightEye: { x: [-25, 25], y: [-35, 35], z: null },
-  leftUpperArm: { x: [-90, 90], y: [-90, 90], z: [-130, 130] },
-  rightUpperArm: { x: [-90, 90], y: [-90, 90], z: [-130, 130] },
+  leftUpperArm: { x: [-90, 90], y: [-90, 90], z: [-100, 100] },
+  rightUpperArm: { x: [-90, 90], y: [-90, 90], z: [-100, 100] },
   leftLowerArm: { x: [-150, 0], y: [-90, 90], z: [-10, 10] },
   rightLowerArm: { x: [-150, 0], y: [-90, 90], z: [-10, 10] },
   leftLowerLeg: { x: [0, 150], y: [-10, 10], z: [-10, 10] },
@@ -74,7 +74,7 @@ describe('radToDeg / degToRad round-trip', () => {
 describe('boneLimitDeg', () => {
   it('returns the per-axis range for known bones', () => {
     expect(boneLimitDeg('head', 'y')).toEqual([-70, 70]);
-    expect(boneLimitDeg('leftUpperArm', 'z')).toEqual([-130, 130]);
+    expect(boneLimitDeg('leftUpperArm', 'z')).toEqual([-100, 100]);
   });
   it('returns null for axes that are anatomically meaningless', () => {
     expect(boneLimitDeg('leftEye', 'z')).toBeNull();

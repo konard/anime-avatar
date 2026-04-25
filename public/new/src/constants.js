@@ -54,14 +54,30 @@ const _LIM_ARMS_LEFT = {
   // Shoulder is small but meaningful — gives a 30° shrug envelope.
   leftShoulder:  { x: [ -20,  20], y: [ -30,  30], z: [ -30,  30] },
   // Left upper arm: rest = horizontal (T-pose). For the LEFT side, NEGATIVE
-  // z drops the arm to the body's side (apose / relaxed presets) and
-  // POSITIVE z raises it overhead (cheer pose). Healthy shoulder
-  // abduction is ~180°; we widen to ±130° so cheer/wave + small over-the-
-  // top reach is allowed but the arm cannot wrap behind the back.
-  leftUpperArm:  { x: [ -90,  90], y: [ -90,  90], z: [-130, 130] },
-  // Elbow only flexes (rotation bends inward toward shoulder). Tiny X/Z
-  // tolerance for natural slack.
+  // z drops the arm to the body's side (apose / relaxed presets, max ~-95°
+  // straight-down or slightly across the front) and POSITIVE z raises it
+  // overhead. Healthy shoulder abduction reaches ~180° from the
+  // hanging-down position, which is z=+85° measured from T-pose horizontal
+  // (T-pose is already 90° abducted). Pushing past +95° starts swinging
+  // the arm ACROSS the head/neck — anatomically possible only with active
+  // adduction effort and self-collides with the mesh of any standard
+  // humanoid avatar (issue #28: "hand goes through neck and head"). We
+  // therefore cap z at ±100° on each side: enough for a vertical-arm
+  // cheer/wave with a small overshoot, not enough to clip into the head.
+  // For the X axis (shoulder flexion/extension), normal active range is
+  // ~-50° (extension behind body) to +180° (forward + up). We allow a
+  // generous ±90° so forward-reach poses still work.
+  leftUpperArm:  { x: [ -90,  90], y: [ -90,  90], z: [-100, 100] },
+  // Elbow only flexes (rotation bends inward toward shoulder, NEGATIVE x
+  // on the LEFT side). Healthy ROM is ~0° straight to ~145-150° fully
+  // flexed; we round to 150°. The Y axis is forearm pronation/supination
+  // (~85°/75° for an adult); ±90° is generous. Z is essentially zero —
+  // ±10° tolerance keeps slider behaviour natural without allowing the
+  // elbow to hyperextend sideways.
   leftLowerArm:  { x: [-150,   0], y: [ -90,  90], z: [ -10,  10] },
+  // Wrist: flexion/extension ±80°, radial/ulnar deviation ±25° on the Y
+  // axis (we widen to ±60° so wrist-wave gestures read clearly), small Z
+  // twist tolerance.
   leftHand:      { x: [ -80,  80], y: [ -60,  60], z: [ -30,  30] },
 };
 const _LIM_LEGS_LEFT = {

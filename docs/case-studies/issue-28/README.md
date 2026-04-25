@@ -117,20 +117,37 @@ mode switch in the UI for an "edit on model" flow.
 
 ### RC1 — `wave` gesture animates the wrong joint
 
-`gestures.js` puts the **oscillation** on `rightLowerArm.y` (forearm twist),
-not on `rightHand.y` (wrist). The hand only gets `0.4 *` the same signal,
-which is too small to read as a wave. To match the reference image we want:
+The original `gestures.js` put the **oscillation** on `rightLowerArm.y`
+(forearm twist), not on `rightHand.y` (wrist). The hand only got `0.4 *`
+the same signal, which was too small to read as a wave.
 
-- `rightUpperArm`: held at `z ≈ −1.2` rad (arm raised vertically, ~−69°
-  from rest along Z) and a small `x ≈ −0.3` rad (slight forward swing) —
-  these are quasi-static during the wave.
-- `rightLowerArm`: held at `x ≈ −1.5` rad (forearm bent ~−86°, almost a
-  right angle), with **no** continuous oscillation.
-- `rightHand`: oscillating `z` (or `y`) component over ~3 cycles —
-  amplitude ~0.6 rad, frequency tied to the gesture envelope so it ramps in
-  and out.
+The PR's first attempt at a fix overshot in the other direction:
+`rightUpperArm.z = −2.27 rad (≈ −130°)` swung the arm **past vertical and
+across the body**, putting the hand right next to the head/neck — exactly
+the regression the PR feedback called out: _"the hand goes through neck
+and head"_. Headless trajectory verification
+(`experiments/issue-28-wave-trajectory-old-buggy.mjs`) confirms the hand
+crosses to world-X ≈ +0.27 m (the head sits at X ≈ 0).
+
+The final values are calibrated against an explicit anatomical envelope
+and validated by both the in-browser probe and the headless FK script:
+
+- `rightUpperArm`: `z ≈ −1.30 rad` (~−74°), `x ≈ −0.30` rad (slight forward
+  lean), `y ≈ −0.20` rad (mild external rotation). The arm raises outward
+  from the shoulder, **not** all the way to vertical, so the elbow stays
+  on the right side of the head and the forearm/hand never cross past the
+  body centerline.
+- `rightLowerArm`: `x ≈ −1.40 rad` (~−80° elbow flexion), `y ≈ −0.20 rad`
+  for palm-forward. No continuous oscillation.
+- `rightHand`: oscillating `z` component over three cycles, ±0.45 rad
+  (~±26°), frequency tied to the gesture envelope so it ramps in/out.
 - Slight head tilt + happy expression layered on top (kept from the
   current implementation).
+
+The bone-limit table also tightened `*UpperArm.z` from `±130°` to `±100°`
+so the gesture clamp is the **soft** safety net (the biological maximum is
+~180° abduction, but past 100° on either side starts colliding with the
+mesh of any standard humanoid avatar).
 
 ### RC2 — No per-bone, per-axis rotation limits
 
@@ -249,11 +266,20 @@ Mirror entries on the left/right sides automatically. Provide a
 
 ### S2 — Wave gesture rewrite (`gestures.js`)
 
-Hold the upper arm raised (`z=-1.2`, slight forward `x=-0.3`) and the
-forearm bent (`x=-1.5`) for the gesture's plateau. Oscillate the **hand**
-on the Z axis (the wrist's natural roll into-and-out-of-the-palm) — three
-cycles, amplitude scaled to the envelope, multiplied by mood `ampScale`.
-The current happy-expression overlay stays as-is.
+Hold the upper arm raised but **outward** — `z=-1.30 rad (~-74°)` (raised
+past horizontal but not all the way to vertical), `x=-0.30` (slight
+forward lean), `y=-0.20` (mild external rotation). The forearm bends
+~80° at the elbow (`rightLowerArm.x=-1.40`) with a small palm-forward
+supination (`rightLowerArm.y=-0.20`). Oscillate the **hand** on the Z axis
+(the wrist's natural radial/ulnar deviation) — three cycles, ±0.45 rad
+(~±26°), scaled by the envelope and mood `ampScale`. The current
+happy-expression overlay stays as-is.
+
+The trajectory is verified end-to-end by
+`experiments/issue-28-wave-trajectory.mjs` and
+`tests/waveGesture.test.js`: the hand stays ≥ 0.20 m from the head/neck
+centres throughout the entire t∈[0,1] window and never crosses past the
+body centerline (was the bug in the first PR draft — see RC1).
 
 ### S3 — Rotation sliders show degrees (`Editor.jsx`)
 
@@ -322,6 +348,16 @@ We add three layers of automated coverage:
    prints, for a synthetic config, the clamped vs. raw Euler values per
    bone so future maintainers can verify the limit table without booting
    the editor.
+4. **Wave-trajectory FK assertions in
+   `experiments/issue-28-wave-trajectory.mjs` and
+   `tests/waveGesture.test.js`** — walk the wave gesture across its entire
+   `t∈[0,1]` window, sample the right hand's world-space position at each
+   step, and assert: hand stays ≥ 0.20 m from head/neck centre, never
+   crosses the body centerline, reaches above shoulder height at peak.
+   The companion script `experiments/issue-28-wave-trajectory-old-buggy.mjs`
+   uses the original `rightUpperArm.z = -2.27 rad` value and confirms it
+   would have FAILED these assertions (max hand X = +0.27 m, well past the
+   centerline).
 
 ## Open questions / out-of-scope for this PR
 
@@ -345,6 +381,11 @@ We add three layers of automated coverage:
   optional gizmo wiring + experimental flag.
 - `public/new/src/defaults.js` — flag defaults.
 - `public/new/src/randomizers.js` — randomizers respect bone limits.
+- `tests/waveGesture.test.js` — wave-trajectory unit tests.
+- `experiments/issue-28-wave-trajectory.mjs` — headless trajectory FK.
+- `experiments/issue-28-wave-trajectory-old-buggy.mjs` — regression
+  proof-of-concept showing the original `z = -2.27` value crosses the
+  centerline.
 - `public/new/src/tests-registry.js` — new in-browser tests.
 - `tests/boneLimits.test.js` — new unit tests.
 - `experiments/issue-28-bone-limits.mjs` — new headless verification
