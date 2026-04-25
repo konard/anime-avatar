@@ -178,16 +178,31 @@ window.ACS_MIXAMO_RIG_MAP = {
 // .fbx file works via the URL box / drag-drop. Source: three.js examples,
 // upstream by Mixamo (free for use with your own avatar).
 window.ACS_ANIMATION_PRESETS = [
-  { id:'none',   label:'— none —',          url:'', credit:'' },
-  { id:'samba',  label:'Samba Dancing',     url:'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/fbx/Samba%20Dancing.fbx',
-                 credit:'Mixamo · three.js examples', license:'Mixamo terms (free use with your avatar)' },
-  { id:'mixamo', label:'Mixamo Idle',       url:'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/fbx/mixamo.fbx',
-                 credit:'Mixamo · three.js examples', license:'Mixamo terms (free use with your avatar)' },
+  { id:'none',    label:'— none —',          url:'', credit:'' },
+  { id:'samba',   label:'Samba Dancing',     url:'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/fbx/Samba%20Dancing.fbx',
+                  credit:'Mixamo · three.js examples', license:'Mixamo terms (free use with your avatar)' },
+  { id:'mixamo',  label:'Mixamo Idle',       url:'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/fbx/mixamo.fbx',
+                  credit:'Mixamo · three.js examples', license:'Mixamo terms (free use with your avatar)' },
+  // Verified raw URL for the V-Sekai / three-vrm-1-sandbox-mixamo asset called
+  // out in issue #19. The repo only hosts the file on its master branch, so we
+  // pin to refs/heads/master via the canonical raw.githubusercontent.com host.
+  { id:'gangnam', label:'Gangnam Style (V-Sekai / Mixamo)',
+                  url:'https://raw.githubusercontent.com/V-Sekai/three-vrm-1-sandbox-mixamo/master/Gangnam%20Style.fbx',
+                  credit:'Mixamo · V-Sekai', license:'Mixamo terms (free use with your avatar)' },
 ];
 
 // Publicly-hosted VRM models with permissive licenses for testing. All of
 // them are reachable via CORS-enabled CDNs. Each entry carries its credit
 // string; the actual license lives in the VRM meta (we still render it).
+//
+// Per-preset flags:
+//   flipped              — load with a 180° Y-axis bake (model exported back-
+//                          facing). The Editor stores this in s.baseYaw so the
+//                          per-frame autoRotate-off branch doesn't clobber it.
+//   attributionRequired  — surface the on-stage © overlay even if the VRM meta
+//                          is silent. Used when the licence (e.g. Niconi
+//                          Commons) demands attribution but the file's own
+//                          creditNotation isn't 'required'.
 window.ACS_VRM_PRESETS = [
   { id:'pixiv',   label:'pixiv VRM1 sample (CC-ish / VRM license)',
                   url:window.ACS_DEFAULT_VRM_URL,
@@ -198,8 +213,35 @@ window.ACS_VRM_PRESETS = [
   { id:'alicia',  label:'Alicia Solid (Dwango / Nikoni Commons)',
                   url:'https://cdn.jsdelivr.net/gh/vrm-c/UniVRM@master/Tests/Models/Alicia_vrm-0.51/AliciaSolid_vrm-0.51.vrm',
                   credit:'© DWANGO Co., Ltd. / Nikoni Commons',
-                  license:'Niconi Commons Attribution (requires credit)' },
+                  license:'Niconi Commons Attribution (requires credit)',
+                  flipped:true, attributionRequired:true },
+  // Verified raw URL for the V-Sekai sample VRM called out in issue #19. Same
+  // repo as the Gangnam Style FBX so they pair naturally.
+  { id:'vsekai',  label:'three-vrm girl 1.0β (V-Sekai)',
+                  url:'https://raw.githubusercontent.com/V-Sekai/three-vrm-1-sandbox-mixamo/master/three-vrm-girl-1.0-beta.vrm',
+                  credit:'V-Sekai community', license:'See repository' },
 ];
+
+// Rewrite a `github.com/<o>/<r>/blob/<rev>/<path>` (or `…/raw/<rev>/<path>` /
+// `…/raw/refs/heads/<rev>/<path>`) URL into the equivalent
+// `raw.githubusercontent.com/<o>/<r>/<rev>/<path>` URL. Other URLs pass
+// through unchanged. Used by the VRM and animation loaders so users can
+// paste any GitHub link they happen to have.
+window.ACS_normalizeModelURL = function normalizeModelURL(url) {
+  if (typeof url !== 'string') return url;
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  // /blob/ → raw.githubusercontent.com
+  let m = trimmed.match(/^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i);
+  if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}`;
+  // /raw/refs/heads/<branch>/... and /raw/refs/tags/<tag>/...
+  m = trimmed.match(/^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/raw\/refs\/(?:heads|tags)\/(.+)$/i);
+  if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}`;
+  // /raw/<rev>/...
+  m = trimmed.match(/^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/raw\/(.+)$/i);
+  if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}`;
+  return trimmed;
+};
 
 // MToon debug modes (see three-vrm materials-debug example).
 window.ACS_MTOON_DEBUG_MODES = ['none', 'normal', 'litShadeRate', 'uv'];
