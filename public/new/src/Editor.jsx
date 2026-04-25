@@ -252,14 +252,18 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       s.scene.add(vrm.scene);
       try { window.THREE_VRM.VRMUtils.rotateVRM0?.(vrm); } catch {}
       // Resolve baseYaw from the matched preset (flipped: true ⇒ π) or from an
-      // explicit baseYaw on the preset. Falls back to 0. Stored on the live
-      // state so the per-frame loop preserves it across frames.
+      // explicit baseYaw on the preset. Falls back to a metaVersion-aware
+      // default so VRM 0.x models loaded outside the preset list (URL / drag
+      // drop) still face the camera. Stored on the live state so the
+      // per-frame autoRotate-off branch preserves it across frames.
       const matchedPreset = (window.ACS_VRM_PRESETS || [])
         .find(p => p.url === cfgRef.current.vrmUrl) || null;
-      let baseYaw = 0;
+      const isVRM0 = vrm.meta?.metaVersion === '0';
+      let baseYaw = isVRM0 ? Math.PI : 0;
       if (matchedPreset) {
         if (typeof matchedPreset.baseYaw === 'number') baseYaw = matchedPreset.baseYaw;
         else if (matchedPreset.flipped) baseYaw = Math.PI;
+        else if (matchedPreset.flipped === false) baseYaw = 0;
       }
       s.baseYaw = baseYaw;
       vrm.scene.rotation.y = baseYaw;
@@ -1069,6 +1073,17 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
                 onChange={v => setCfg({...cfg, debugMToonMode: v})}
                 options={MTOON_DEBUG_MODES.map(m => ({value:m, label:m}))} />
             </S.Row>
+            <S.Row label="LookAt verbose">
+              <S.Toggle testid="dbg-lookat" value={cfg.debugLookAt}
+                onChange={v => setCfg({...cfg, debugLookAt: v})} />
+            </S.Row>
+            {cfg.debugLookAt && (
+              <S.Row label="LookAt period (s)">
+                <S.Slider testid="dbg-lookat-period" value={cfg.debugLookAtPeriod}
+                  min={0.1} max={2} step={0.1}
+                  onChange={v => setCfg({...cfg, debugLookAtPeriod: v})} />
+              </S.Row>
+            )}
           </S.Section>
 
           <S.Section title="Metadata" testid="meta">

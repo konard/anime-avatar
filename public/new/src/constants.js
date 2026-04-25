@@ -199,6 +199,10 @@ window.ACS_ANIMATION_PRESETS = [
 //   flipped              — load with a 180° Y-axis bake (model exported back-
 //                          facing). The Editor stores this in s.baseYaw so the
 //                          per-frame autoRotate-off branch doesn't clobber it.
+//                          NOTE: VRM 0.x models auto-bake π via metaVersion in
+//                          loadVRMBuffer, so this flag is only needed to OVERRIDE
+//                          a VRM 1 file that ships back-facing or to force a
+//                          VRM 0 file to load un-rotated (set `flipped:false`).
 //   attributionRequired  — surface the on-stage © overlay even if the VRM meta
 //                          is silent. Used when the licence (e.g. Niconi
 //                          Commons) demands attribution but the file's own

@@ -127,6 +127,12 @@ window.ACS_DEFAULTS = {
   debugWireframe: false,
   debugMeshOnly: false,
   debugMToonMode: 'none',
+  // Verbose look-at log: every ~debugLookAtPeriod seconds the engine
+  // prints faceFront sign, head-local camera position, smoothed eyes/head
+  // angles, and the world-space look target. Used to diagnose VRM 0 vs
+  // VRM 1 forward-axis bugs (issue #26 — Alicia head-follow flipped).
+  debugLookAt: false,
+  debugLookAtPeriod: 0.5,
 
   // Humanoid animation (Mixamo FBX / VRM-A). Mixer runs independently of pose/rot.
   animationUrl: '',
@@ -187,7 +193,7 @@ window.ACS_GROUP_CFG_KEYS = {
          'lookHeadFollowAngle','lookHeadFollowAmount',
          'lookRandomMinInterval','lookRandomMaxInterval'],
   character: ['charPos','charInertia','charSpringK','charDamping'],
-  debug: ['debugBoneHelpers','debugAxes','debugGrid','debugSpringBones','debugWireframe','debugMeshOnly','debugMToonMode'],
+  debug: ['debugBoneHelpers','debugAxes','debugGrid','debugSpringBones','debugWireframe','debugMeshOnly','debugMToonMode','debugLookAt','debugLookAtPeriod'],
   animation: ['animationUrl','animationPresetId','animationTimeScale'],
   gestures: ['gesture','gestureNonce','gestureEasing','mood','exprTransitionMs','exprTransitionEasing'],
   svg: ['svgLivePreview','svgYaw','svgPitch','svgBg','svgStroke','svgStrokeWidth','svgQuality'],

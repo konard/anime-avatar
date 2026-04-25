@@ -265,10 +265,32 @@
     }
   }
 
+  // VRM 0.x and VRM 1.0 use opposite head-local "forward" axes:
+  //   VRM 1.0  → head-local +Z is forward (face points along +Z).
+  //   VRM 0.x  → head-local -Z is forward (face points along -Z).
+  // three-vrm captures this in `vrm.lookAt.faceFront` (set to (0,0,-1) for
+  // VRM 0 by VRMLookAtLoaderPlugin._v0Import). We mirror that sign in our
+  // own world↔head-local math so camera/mouse/random gaze targets land in
+  // front of the model regardless of which VRM version it shipped as.
+  // Without this, every VRM 0 model (e.g. Alicia Solid 0.51) ends up with
+  // yaw=±180° for a target in front and the head/eyes turn the wrong way.
+  function getFaceFrontSign(vrm) {
+    // Prefer the loader-populated faceFront (most accurate — picks up custom
+    // "First-Person -> meshAnnotations / faceFront" too if upstream sets it).
+    const ff = vrm?.lookAt?.faceFront;
+    if (ff && typeof ff.z === 'number' && ff.z !== 0) return Math.sign(ff.z);
+    // Fallback: VRM meta version when faceFront is missing for any reason.
+    if (vrm?.meta?.metaVersion === '0') return -1;
+    return 1;
+  }
+
   // Take a world-space point and compute yaw/pitch (degrees) relative to
-  // the character facing direction (the head's local +Z). Used by both the
-  // camera-follow and mouse-follow modes to feed into the shared smoother
-  // + cone clamp + head follow-through.
+  // the character facing direction. Used by both the camera-follow and
+  // mouse-follow modes to feed into the shared smoother + cone clamp +
+  // head follow-through.
+  //
+  // The faceFront sign (`fz`) flips the yaw axis for VRM 0.x models so
+  // "target in front of the face" reads as yaw≈0 in BOTH VRM versions.
   function worldPointToHeadAngles(s, THREE, worldPoint) {
     const head = s.vrm?.humanoid?.getNormalizedBoneNode('head');
     if (!head) return { yaw: 0, pitch: 0 };
@@ -279,7 +301,8 @@
     // rotated by Ctrl+drag or idle).
     const inv = new THREE.Matrix4().copy(head.matrixWorld).invert();
     const local = worldPoint.clone().applyMatrix4(inv);
-    const yaw = Math.atan2(local.x, local.z) * 180 / Math.PI;
+    const fz = getFaceFrontSign(s.vrm);
+    const yaw = Math.atan2(local.x * fz, local.z * fz) * 180 / Math.PI;
     const pitch = Math.atan2(local.y, Math.sqrt(local.x*local.x + local.z*local.z)) * 180 / Math.PI;
     return { yaw, pitch };
   }
@@ -431,15 +454,22 @@
     // eye bones back to neutral — a visible jump. Instead, we drive the target
     // to the smoothed angles every frame; when they are zero, the target sits
     // directly in front of the head and the eyes look straight without snap.
+    //
+    // The head-local "forward" axis is +Z for VRM 1.0 and -Z for VRM 0.x —
+    // multiplying the local x/z components by the face-front sign keeps the
+    // target in front of the model in BOTH versions. Otherwise VRM 0 models
+    // (e.g. Alicia) get a target placed BEHIND the head and the lookAt
+    // applier rotates the eyes the wrong way (issue #26).
     const head0 = vrm.humanoid?.getNormalizedBoneNode('head');
     if (head0) {
       const dist = 5;
       const yawR = idle.lookYawCur * Math.PI / 180;
       const pitchR = idle.lookPitchCur * Math.PI / 180;
+      const fz = getFaceFrontSign(vrm);
       const local = new THREE.Vector3(
-        Math.sin(yawR) * Math.cos(pitchR) * dist,
+        fz * Math.sin(yawR) * Math.cos(pitchR) * dist,
         Math.sin(pitchR) * dist,
-        Math.cos(yawR) * Math.cos(pitchR) * dist,
+        fz * Math.cos(yawR) * Math.cos(pitchR) * dist,
       );
       const world = local.applyMatrix4(head0.matrixWorld);
       if (!s.lookTarget) { s.lookTarget = new THREE.Object3D(); s.scene.add(s.lookTarget); }
@@ -463,7 +493,64 @@
       }
     }
 
+    // Verbose look-at debug. Off by default so production users get no
+    // console spam; flip cfg.debugLookAt (Debug → "LookAt verbose" toggle)
+    // or call window.ACS_setLookAtDebug(true) from the console to surface
+    // the per-frame face-front sign, the head-local camera position, the
+    // smoothed eyes/head angles, and the final world-space look target.
+    // Throttled to ~2 Hz so it's readable.
+    if (c.debugLookAt || window.__acsLookAtDebug) {
+      idle._dbgT = (idle._dbgT || 0) + dt;
+      const period = window.__acsLookAtDebugPeriod || c.debugLookAtPeriod || 0.5;
+      if (idle._dbgT >= period) {
+        idle._dbgT = 0;
+        const head = vrm.humanoid?.getNormalizedBoneNode('head');
+        const ff = vrm.lookAt?.faceFront;
+        const cam = s.camera ? s.camera.position : null;
+        const headW = head ? head.getWorldPosition(new THREE.Vector3()) : null;
+        let camLocal = null;
+        if (head && cam) {
+          const inv = new THREE.Matrix4().copy(head.matrixWorld).invert();
+          camLocal = cam.clone().applyMatrix4(inv);
+        }
+        const target = vrm.lookAt?.target?.position;
+        // eslint-disable-next-line no-console
+        console.log('[ACS lookAt]', {
+          metaVersion: vrm.meta?.metaVersion,
+          faceFrontSign: getFaceFrontSign(vrm),
+          faceFront: ff ? { x: ff.x, y: ff.y, z: ff.z } : null,
+          baseYaw: s.baseYaw,
+          sceneRotY: vrm.scene?.rotation?.y,
+          headWorld: headW ? { x: round3(headW.x), y: round3(headW.y), z: round3(headW.z) } : null,
+          cameraWorld: cam ? { x: round3(cam.x), y: round3(cam.y), z: round3(cam.z) } : null,
+          cameraHeadLocal: camLocal ? { x: round3(camLocal.x), y: round3(camLocal.y), z: round3(camLocal.z) } : null,
+          eyesYawDeg: round3(idle.lookYawCur),
+          eyesPitchDeg: round3(idle.lookPitchCur),
+          headYawDeg: round3(idle.headYawCur),
+          headPitchDeg: round3(idle.headPitchCur),
+          lookTargetWorld: target ? { x: round3(target.x), y: round3(target.y), z: round3(target.z) } : null,
+        });
+      }
+    }
   }
+
+  function round3(v) { return Math.round((v ?? 0) * 1000) / 1000; }
+
+  // Programmatic toggle for the per-frame look-at debug log. Pass `true`
+  // to enable at the default ~2 Hz, a positive number to set a custom
+  // period (seconds), or `false` to turn it off. Independent of cfg so it
+  // works from a console without React state mutation; cfg.debugLookAt
+  // covers the in-UI path.
+  window.ACS_setLookAtDebug = function setLookAtDebug(on) {
+    if (typeof on === 'number' && on > 0) {
+      window.__acsLookAtDebug = true;
+      window.__acsLookAtDebugPeriod = on;
+    } else {
+      window.__acsLookAtDebug = !!on;
+      if (!on) window.__acsLookAtDebugPeriod = 0;
+    }
+    return window.__acsLookAtDebug;
+  };
 
   // Drive the head bone to follow big gaze swings, but always route the
   // rotation through an exponential smoother so the head itself never snaps.
