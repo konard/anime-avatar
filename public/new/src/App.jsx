@@ -41,7 +41,9 @@ function App() {
   }, [view]);
 
   const isMobile = window.useIsMobile();
-  const eff = view; // no degrade — split works even on narrow, as a tall sheet
+  // Per issue #19: split view must not show on mobile. Degrade to whichever
+  // pane the user was last viewing (tests by default).
+  const eff = (isMobile && view === 'split') ? 'tests' : view;
 
   // Editor is ALWAYS mounted so its state machine and drawer buttons exist
   // for the tests. Its stage is full-width in every view.
@@ -63,7 +65,7 @@ function App() {
 
   return (
     <>
-      <TopSwitcher view={view} setView={setView} />
+      <TopSwitcher view={view} setView={setView} isMobile={isMobile} />
       <div style={editorWrapStyle} data-testid={`editor-wrap-${eff}`}>
         <window.Editor
           cfg={cfg}
@@ -73,6 +75,9 @@ function App() {
           drawerWidth={drawerWidth}
           testsOnRight={showTests}
           testsWidth={testsWidth}
+          // On mobile the top buttons already label the active pane, so we
+          // suppress the in-pane "Editor" header (issue #19).
+          hideDrawerTitle={isMobile}
         />
       </div>
       {showTests && (
@@ -81,15 +86,21 @@ function App() {
           drawerWidth={drawerWidth}
           testsWidth={testsWidth}
           splitWithDrawer={eff === 'split'}
+          isMobile={isMobile}
         />
       )}
     </>
   );
 }
 
-function TopSwitcher({ view, setView }) {
+function TopSwitcher({ view, setView, isMobile }) {
   const { btnBase, btnActive } = window.ACS_BTN;
-  const views = [
+  // Split view is desktop-only per issue #19 — hide the toggle on mobile so
+  // the user can't even pick it.
+  const views = isMobile ? [
+    { id: 'editor', label: 'Editor' },
+    { id: 'tests',  label: 'Tests' },
+  ] : [
     { id: 'editor', label: 'Editor' },
     { id: 'tests',  label: 'Tests' },
     { id: 'split',  label: 'Split' },
@@ -131,29 +142,33 @@ function TopSwitcher({ view, setView }) {
 }
 
 // Tests panel wrapped in a glass chrome so it visually matches the drawer.
-// When in split view (desktop), it sits right of the drawer; on mobile split,
-// it takes the top half while the drawer takes the bottom.
-function TestsPanelFrame({ splitWithDrawer, stackMobile, drawerWidth, testsWidth }) {
-  const G = window.ACS_GLASS;
+// When in split view (desktop), it sits right of the drawer; on mobile the
+// split view is suppressed entirely, so this sheet always represents 'tests'.
+function TestsPanelFrame({ splitWithDrawer, stackMobile, drawerWidth, testsWidth, isMobile }) {
   // Default 'tests' mode: full right-side column.
+  // Mobile 'tests': full-screen sheet (issue #19 — no internal title).
   // Split mode desktop: tests panel on far right, drawer to its left.
-  // Split mode mobile: tests on top half.
   let style;
-  if (splitWithDrawer && stackMobile) {
+  if (isMobile) {
+    // Full-screen on mobile, no padding around the edges, sits below the top
+    // switcher and over the stage.
+    style = {
+      position: 'fixed', left: 0, right: 0, top: 48, bottom: 0,
+      zIndex: 48,
+    };
+  } else if (splitWithDrawer && stackMobile) {
     style = {
       position: 'fixed', left: 8, right: 8, top: 56,
       height: 'calc(50vh - 32px)',
       zIndex: 48,
     };
   } else if (splitWithDrawer) {
-    // Right column, fixed width.
     style = {
       position: 'fixed', top: 64, right: 16, bottom: 16,
       width: testsWidth,
       zIndex: 48,
     };
   } else {
-    // 'tests' only — occupy the whole right column (desktop) or the sheet (mobile).
     style = {
       position: 'fixed', top: 64, right: 16, bottom: 16,
       width: Math.min(testsWidth, window.innerWidth - 32),
@@ -162,8 +177,8 @@ function TestsPanelFrame({ splitWithDrawer, stackMobile, drawerWidth, testsWidth
   }
   return (
     <div data-testid="tests-wrap" style={{ ...style, overflow: 'hidden' }}>
-      <window.GlassPanel style={{ height: '100%', display:'flex', flexDirection:'column' }}>
-        <window.TestsPanel />
+      <window.GlassPanel style={{ height: '100%', display:'flex', flexDirection:'column', borderRadius: isMobile ? 0 : undefined }}>
+        <window.TestsPanel hideHeader={isMobile} />
       </window.GlassPanel>
     </div>
   );

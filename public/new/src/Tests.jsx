@@ -1,13 +1,25 @@
 // Tests.jsx — React panel that runs the in-process test suite against __acs.
 const { useState, useEffect, useRef } = React;
 
-function TestsPanel({ autoRun = true }) {
+// Per issue #19: opening the Tests view (or refreshing the page with it set)
+// must NOT auto-run the suite. The user must click ▶ Run all explicitly.
+function TestsPanel({ autoRun = false, hideHeader = false }) {
   const [tests, setTests] = useState([]);
   const [statuses, setStatuses] = useState({}); // id -> {status, detail, err}
   const [summary, setSummary] = useState({ pass: 0, fail: 0, skip: 0 });
   const [running, setRunning] = useState(false);
   const stopRef = useRef(false);
   const logRef = useRef(null);
+  // "Sticky-bottom" scroll: only auto-scroll if the user is already pinned at
+  // (or near) the bottom. The moment they scroll up to inspect anything we
+  // stop fighting them. issue #19.
+  const stickyRef = useRef(true);
+  const onScroll = () => {
+    const el = logRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickyRef.current = distFromBottom < 24;
+  };
 
   const load = async () => {
     const staticT = window.ACS_buildStaticTests();
@@ -29,7 +41,14 @@ function TestsPanel({ autoRun = true }) {
     window.__testResults = [];
     window.__testsDone = null;
     for (const t of list) {
-      if (stopRef.current) { skip++; setStatuses(s => ({ ...s, [t.id]: { status: 'skip', detail: 'stopped' } })); continue; }
+      // Stop check first — ensures the user's click takes effect immediately
+      // and the remainder of the list is reported as 'skip · stopped'.
+      if (stopRef.current) {
+        skip++;
+        setStatuses(s => ({ ...s, [t.id]: { status: 'skip', detail: 'stopped' } }));
+        setSummary({ pass, fail, skip });
+        continue;
+      }
       setStatuses(s => ({ ...s, [t.id]: { status: 'running' } }));
       window.__testResults = window.__testResults || [];
       const t0 = performance.now();
@@ -45,7 +64,12 @@ function TestsPanel({ autoRun = true }) {
         window.__testResults.push({ id: t.id, group: t.group, name: t.name, status: 'fail', err: msg, ms: Math.round(performance.now()-t0) });
       }
       setSummary({ pass, fail, skip });
-      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+      // Auto-scroll only if the user is currently pinned to the bottom (issue
+      // #19). Otherwise leave their scroll position alone so they can read the
+      // failures they're inspecting.
+      if (logRef.current && stickyRef.current) {
+        logRef.current.scrollTop = logRef.current.scrollHeight;
+      }
     }
     setRunning(false);
     window.__testsDone = { pass, fail, skip, total: list.length };
@@ -74,11 +98,18 @@ function TestsPanel({ autoRun = true }) {
   };
 
   useEffect(() => {
-    if (!autoRun) return;
-    (async () => {
-      const list = await load();
-      await runAll(list);
-    })();
+    if (autoRun) {
+      // Legacy / programmatic-trigger path. Real users no longer hit this —
+      // App.jsx passes autoRun={false} per issue #19.
+      (async () => {
+        const list = await load();
+        await runAll(list);
+      })();
+      return;
+    }
+    // Even when we don't auto-run we still load the test list so the user can
+    // see what's about to run before clicking ▶.
+    load();
   }, []);
 
   const byGroup = new Map();
@@ -92,16 +123,18 @@ function TestsPanel({ autoRun = true }) {
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', color:'#e8e8f0', fontFamily:'-apple-system,BlinkMacSystemFont,system-ui,sans-serif' }}>
-      <div style={{ padding: '14px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ padding: hideHeader ? '8px 14px' : '14px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-          <div>
-            <div style={{ fontSize:14, fontWeight:600 }}>🧪 Test Harness</div>
-            <div style={{ fontSize:11, opacity:0.55, marginTop:2 }}>In-process, no iframe. {total} tests.</div>
-          </div>
-          <div style={{ display:'flex', gap:6 }}>
-            <button onClick={() => runAll()} disabled={running} style={btn}>{running ? 'Running…' : '▶ Run all'}</button>
-            <button onClick={() => { stopRef.current = true; }} disabled={!running} style={btnGhost}>Stop</button>
-            <button onClick={rerunFail} disabled={running} style={btnGhost}>↻ Failures</button>
+          {!hideHeader && (
+            <div>
+              <div style={{ fontSize:14, fontWeight:600 }}>🧪 Test Harness</div>
+              <div style={{ fontSize:11, opacity:0.55, marginTop:2 }}>In-process, no iframe. {total} tests.</div>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:6, marginLeft: hideHeader ? 0 : 'auto' }}>
+            <button data-testid="tests-run" onClick={() => runAll()} disabled={running} style={btn}>{running ? 'Running…' : '▶ Run all'}</button>
+            <button data-testid="tests-stop" onClick={() => { stopRef.current = true; }} disabled={!running} style={btnGhost}>Stop</button>
+            <button data-testid="tests-rerun-failures" onClick={rerunFail} disabled={running} style={btnGhost}>↻ Failures</button>
           </div>
         </div>
         <div style={{ display:'flex', gap:18, fontSize:12, marginTop:8 }}>
@@ -114,7 +147,7 @@ function TestsPanel({ autoRun = true }) {
           <div style={{ height:'100%', width: `${total ? done/total*100 : 0}%`, background:'linear-gradient(90deg,#8a9cff,#7be098)', transition:'width 0.3s ease' }} />
         </div>
       </div>
-      <div ref={logRef} style={{ flex:1, overflow:'auto' }}>
+      <div ref={logRef} onScroll={onScroll} data-testid="tests-log" style={{ flex:1, overflow:'auto', overscrollBehavior:'contain' }}>
         {[...byGroup.entries()].map(([group, arr]) => (
           <div key={group}>
             <div style={{ padding:'10px 14px', fontSize:10, letterSpacing:2, textTransform:'uppercase', opacity:0.55, background:'rgba(255,255,255,0.02)' }}>
