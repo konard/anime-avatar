@@ -57,19 +57,60 @@
     return new THREE.AnimationClip('vrmAnimation', clip.duration, tracks);
   }
 
+  // FBX `userData` carries the parsed FBX tree under .fbxTree on three.js
+  // r147+. We pull a few human-readable fields out so the UI can show
+  // "creator", "tool", "frame rate", etc. — same idea as the VRM meta view.
+  function extractFBXMeta(asset) {
+    if (!asset) return null;
+    const tree = asset.userData?.fbxTree;
+    const out = {};
+    try {
+      const docs = tree?.Documents?.Document;
+      // Documents is keyed by ID; flatten the first one we find.
+      if (docs && typeof docs === 'object') {
+        const first = docs[Object.keys(docs)[0]];
+        const props = first?.Properties70 || first?.properties70;
+        if (props && typeof props === 'object') {
+          for (const k of Object.keys(props)) {
+            const v = props[k];
+            const val = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
+            if (val == null || val === '') continue;
+            const stringy = typeof val === 'object' ? JSON.stringify(val) : String(val);
+            out[k] = stringy.length > 160 ? stringy.slice(0, 157) + '…' : stringy;
+          }
+        }
+      }
+      const gs = tree?.GlobalSettings;
+      const gsProps = gs?.Properties70 || gs?.properties70;
+      if (gsProps?.UpAxis?.value != null) out.UpAxis = String(gsProps.UpAxis.value);
+      if (gsProps?.FrontAxis?.value != null) out.FrontAxis = String(gsProps.FrontAxis.value);
+      if (gsProps?.UnitScaleFactor?.value != null) out.UnitScaleFactor = String(gsProps.UnitScaleFactor.value);
+      if (gsProps?.TimeMode?.value != null) out.TimeMode = String(gsProps.TimeMode.value);
+      // Loader-attached convenience fields (asset header).
+      if (asset.userData?.creator) out.Creator = String(asset.userData.creator);
+      if (asset.userData?.originalApplication) out.OriginalApplication = String(asset.userData.originalApplication);
+      if (asset.userData?.fbxVersion) out.FBXVersion = String(asset.userData.fbxVersion);
+    } catch {}
+    return Object.keys(out).length ? out : null;
+  }
+
   // Load an FBX from URL or ArrayBuffer (drag-drop) and retarget in one go.
+  // Returns { clip, fbxMeta } so the caller can render FBX metadata too.
   async function loadMixamoAnimationFromURL(url, vrm) {
     if (!window.FBXLoader) throw new Error('FBXLoader not loaded');
     const loader = new window.FBXLoader();
-    const asset = await loader.loadAsync(url);
-    return retargetMixamoToVRM(asset, vrm);
+    const resolved = window.ACS_normalizeModelURL ? window.ACS_normalizeModelURL(url) : url;
+    const asset = await loader.loadAsync(resolved);
+    const clip = retargetMixamoToVRM(asset, vrm);
+    return { clip, fbxMeta: extractFBXMeta(asset) };
   }
 
   async function loadMixamoAnimationFromBuffer(buffer, vrm) {
     if (!window.FBXLoader) throw new Error('FBXLoader not loaded');
     const loader = new window.FBXLoader();
     const asset = loader.parse(buffer, ''); // FBXLoader.parse is synchronous
-    return retargetMixamoToVRM(asset, vrm);
+    const clip = retargetMixamoToVRM(asset, vrm);
+    return { clip, fbxMeta: extractFBXMeta(asset) };
   }
 
   window.ACS_retargetMixamo = retargetMixamoToVRM;

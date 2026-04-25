@@ -69,7 +69,7 @@ window.ACS_BTN = { btnBase, btnActive };
 // the top switcher (editor / tests / split / none).
 function ConfigDrawer({ title = 'Editor', children, anchor = 'right',
                          rightOffset = 16, widthOverride = 420,
-                         mobileBottomHalf = false }) {
+                         mobileBottomHalf = false, hideTitle = false }) {
   const isMobile = useIsMobile();
   const asSheet = isMobile || anchor === 'bottom';
   let width = widthOverride;
@@ -77,15 +77,19 @@ function ConfigDrawer({ title = 'Editor', children, anchor = 'right',
     const maxAvail = window.innerWidth - rightOffset - 16;
     width = Math.min(widthOverride, Math.max(280, maxAvail));
   }
+  // Mobile, single-pane (no split): full-screen flush against the top
+  // switcher (issue #19). Mobile + split-with-tests-on-top still uses the
+  // bottom-half sheet so the user can see both panes.
   const style = asSheet ? (mobileBottomHalf ? {
     position: 'fixed', left: 8, right: 8, bottom: 8,
     top: 'calc(50vh + 4px)',
     zIndex: 50, overflow: 'hidden',
     display: 'flex', flexDirection: 'column',
   } : {
-    position: 'fixed', left: 8, right: 8, top: 56, bottom: 8,
+    position: 'fixed', left: 0, right: 0, top: 48, bottom: 0,
     zIndex: 50, overflow: 'hidden',
     display: 'flex', flexDirection: 'column',
+    borderRadius: 0,
   }) : {
     position: 'fixed', top: 64, right: rightOffset, bottom: 16,
     width,
@@ -95,12 +99,14 @@ function ConfigDrawer({ title = 'Editor', children, anchor = 'right',
 
   return (
     <GlassPanel testid="drawer" style={style}>
-      <div style={{
-        height: 40, display: 'flex', alignItems: 'center', padding: '0 14px',
-        borderBottom: GLASS_BORDER_INNER,
-        fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase',
-        opacity: 0.85,
-      }}>{title}</div>
+      {!hideTitle && (
+        <div style={{
+          height: 40, display: 'flex', alignItems: 'center', padding: '0 14px',
+          borderBottom: GLASS_BORDER_INNER,
+          fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase',
+          opacity: 0.85,
+        }}>{title}</div>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, fontSize: 13, minWidth: 0 }}>
         {children}
       </div>

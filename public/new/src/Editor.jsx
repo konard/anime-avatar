@@ -25,7 +25,8 @@ const MOODS = window.ACS_MOOD_PRESETS;
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
 function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
-                   drawerWidth = 420, testsOnRight = false, testsWidth = 420 }) {
+                   drawerWidth = 420, testsOnRight = false, testsWidth = 420,
+                   hideDrawerTitle = false }) {
   const mountRef = useRef(null);
   const stateRef = useRef({});
   const cfgRef = useRef(cfg);   cfgRef.current = cfg;
@@ -48,6 +49,20 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     const id = setInterval(() => setFps(stateRef.current.fps || 0), 250);
     return () => clearInterval(id);
   }, [cfg.showFPS]);
+
+  // Auto-hide the loading-error overlay so the stage doesn't get stuck behind
+  // it after a one-off failure (issue #19). 8 s is long enough to read the
+  // message and short enough not to block the user from trying another model.
+  useEffect(() => {
+    if (status !== 'error') return;
+    const id = setTimeout(() => {
+      setError(null);
+      // If a previous VRM is still on the scene, return to 'loaded' so the
+      // overlay disappears entirely; otherwise show the bare stage.
+      setStatus(stateRef.current.vrm ? 'loaded' : 'idle');
+    }, 8000);
+    return () => clearTimeout(id);
+  }, [status, error]);
 
   const available = useMemo(() => ({
     bones: new Set(bones), expressions: exprs, meshes,
@@ -158,8 +173,13 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         }
         try { window.ACS_applyAll(s, c, dt); } catch (e) { window.__applyErr = e.message; }
         if (s.vrm) {
+          // baseYaw carries whatever Y-rotation the loader baked in for this
+          // model (e.g. Alicia ships back-facing, so flipped presets set
+          // baseYaw=π). Without persisting it here the autoRotate-off branch
+          // would clobber the bake every frame.
+          const baseYaw = s.baseYaw || 0;
           if (c.autoRotate) s.vrm.scene.rotation.y += dt * 0.5;
-          else s.vrm.scene.rotation.y = 0;
+          else s.vrm.scene.rotation.y = baseYaw;
           s.vrm.update?.(dt);
         }
         controls.update();
@@ -231,7 +251,18 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       s.vrm = vrm;
       s.scene.add(vrm.scene);
       try { window.THREE_VRM.VRMUtils.rotateVRM0?.(vrm); } catch {}
-      vrm.scene.rotation.y = 0;
+      // Resolve baseYaw from the matched preset (flipped: true ⇒ π) or from an
+      // explicit baseYaw on the preset. Falls back to 0. Stored on the live
+      // state so the per-frame loop preserves it across frames.
+      const matchedPreset = (window.ACS_VRM_PRESETS || [])
+        .find(p => p.url === cfgRef.current.vrmUrl) || null;
+      let baseYaw = 0;
+      if (matchedPreset) {
+        if (typeof matchedPreset.baseYaw === 'number') baseYaw = matchedPreset.baseYaw;
+        else if (matchedPreset.flipped) baseYaw = Math.PI;
+      }
+      s.baseYaw = baseYaw;
+      vrm.scene.rotation.y = baseYaw;
       vrm.scene.traverse(n => { if (n.isMesh || n.isSkinnedMesh) n.frustumCulled = false; });
 
       // Fresh AnimationMixer bound to the new scene.
@@ -319,8 +350,11 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   const loadVRMFromURL = useCallback(async (url) => {
     setStatus('loading'); setError(null);
     try {
-      const buf = await window.ACS_fetchVRMCached(url);
-      const name = url.split('/').pop() || 'remote.vrm';
+      // Auto-rewrite GitHub blob/raw URLs into raw.githubusercontent.com so
+      // pasted links from GitHub UI work end-to-end (issue #19).
+      const resolved = window.ACS_normalizeModelURL ? window.ACS_normalizeModelURL(url) : url;
+      const buf = await window.ACS_fetchVRMCached(resolved);
+      const name = resolved.split('/').pop() || 'remote.vrm';
       await loadVRMBuffer(buf, name);
     } catch (e) {
       setError(String(e.message || e)); setStatus('error');
@@ -340,17 +374,27 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       return;
     }
     try {
-      const clip = await window.ACS_loadAnimationFromURL(url, s.vrm);
+      // Auto-rewrite GitHub blob/raw URLs the same way we do for VRMs.
+      const resolved = window.ACS_normalizeModelURL ? window.ACS_normalizeModelURL(url) : url;
+      const result = await window.ACS_loadAnimationFromURL(resolved, s.vrm);
+      // Backwards-compat: animations.js returned a bare clip pre-#19. Now it
+      // returns { clip, fbxMeta }; tolerate either shape so older builds still
+      // load.
+      const clip = result?.clip || result;
+      const fbxMeta = result?.fbxMeta || null;
       if (s.animation?.action) s.animation.action.stop();
       const action = s.mixer.clipAction(clip);
       action.reset().play();
-      const preset = (window.ACS_ANIMATION_PRESETS || []).find(p => p.url === url);
-      s.animation = { clip, action, url };
+      const preset = (window.ACS_ANIMATION_PRESETS || [])
+        .find(p => p.url === url || p.url === resolved);
+      s.animation = { clip, action, url: resolved };
       s.animationMeta = {
-        name: preset?.label || url.split('/').pop() || 'animation',
-        url, duration: clip.duration, trackCount: clip.tracks.length,
+        name: preset?.label || resolved.split('/').pop() || 'animation',
+        url: resolved, duration: clip.duration, trackCount: clip.tracks.length,
         credit: preset?.credit || '', license: preset?.license || '',
+        attributionRequired: !!preset?.attributionRequired,
         source: preset ? 'preset' : 'url',
+        fbxMeta,
       };
       setAnimationBump(n => n + 1);
     } catch (e) {
@@ -363,7 +407,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     const s = stateRef.current;
     if (!s.vrm || !s.mixer) return;
     try {
-      const clip = await window.ACS_loadAnimationFromBuffer(buf, s.vrm);
+      const result = await window.ACS_loadAnimationFromBuffer(buf, s.vrm);
+      const clip = result?.clip || result;
+      const fbxMeta = result?.fbxMeta || null;
       if (s.animation?.action) s.animation.action.stop();
       const action = s.mixer.clipAction(clip);
       action.reset().play();
@@ -372,7 +418,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         name: name || 'dropped.fbx',
         url: '', duration: clip.duration, trackCount: clip.tracks.length,
         credit: '', license: 'user-supplied',
+        attributionRequired: false,
         source: 'local',
+        fbxMeta,
       };
       setAnimationBump(n => n + 1);
     } catch (e) {
@@ -617,7 +665,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           </window.GlassPanel>
         )}
 
-        {status !== 'loaded' && (
+        {status !== 'loaded' && status !== 'idle' && (
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
             <window.GlassPanel style={{ padding:'20px 30px', fontSize:14 }}>
               {status === 'booting' && 'Initializing…'}
@@ -661,6 +709,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             meta={vrmMeta}
             animation={stateRef.current.animation}
             animPreset={stateRef.current.animationMeta}
+            vrmPreset={(window.ACS_VRM_PRESETS || []).find(p => p.url === cfg.vrmUrl) || null}
           />
         )}
       </S.Stage>
@@ -669,7 +718,8 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         <S.ConfigDrawer title="Editor"
           rightOffset={inlineDrawer ? testsWidth + 32 : 16}
           widthOverride={drawerWidth}
-          mobileBottomHalf={testsOnRight}>
+          mobileBottomHalf={testsOnRight}
+          hideTitle={hideDrawerTitle}>
           <div style={{ display:'flex', gap:6, marginBottom:8, flexWrap:'wrap' }}>
             <button data-testid="global-random" onClick={globalRandomize} style={btn}>🎲 Randomize all</button>
             <button data-testid="global-reset" onClick={globalReset} style={btn}>Reset all</button>
@@ -1084,11 +1134,38 @@ function buildAttribution(vrmMeta, vrmPreset) {
   return { credit, license, title, authors };
 }
 
-// Always-on overlay painted into the stage itself, so screenshots and SVG
-// exports carry the attribution string with them. There is intentionally no
-// UI toggle to hide it — that's how the user asked for it.
-function AttributionOverlay({ meta, animation, animPreset }) {
-  const vrm = buildAttribution(meta, null);
+// Issue #19: only show the on-stage attribution overlay when the loaded
+// asset's metadata (or the preset that loaded it) actually requires
+// attribution. Rules, in order:
+//   1. VRM 1.0 vrm.meta.creditNotation === 'required'      → required.
+//   2. VRM 1.0 vrm.meta.creditNotation === 'unnecessary'   → not required.
+//   3. preset.attributionRequired === true                 → required.
+//   4. animationMeta.attributionRequired === true          → required.
+//   5. Licence string starts with CC-BY (any variant), or is the Niconi
+//      Commons / Creative Commons attribution licence       → required.
+//   6. Otherwise                                            → not required.
+function attributionRequired(vrmMeta, vrmPreset, animMeta) {
+  if (vrmMeta?.creditNotation === 'required') return true;
+  if (vrmMeta?.creditNotation === 'unnecessary') return false;
+  if (vrmPreset?.attributionRequired) return true;
+  if (animMeta?.attributionRequired) return true;
+  // Licence-text heuristic for older VRM 0.x and FBX where there is no
+  // structured credit-notation field.
+  const lic = (vrmMeta?.licenseName || vrmMeta?.licenseUrl || vrmPreset?.license || '')
+    .toString().toUpperCase();
+  if (!lic) return false;
+  if (lic.startsWith('CC-BY') || lic.startsWith('CC BY')) return true;
+  if (lic.includes('NICONI') || lic.includes('NICOLI')) return true;
+  if (lic.includes('REQUIRES CREDIT') || lic.includes('ATTRIBUTION')) return true;
+  return false;
+}
+
+// Issue #19: the on-stage overlay is now policy-gated. We render it only when
+// the loaded asset (VRM or animation) actually requires attribution. Free /
+// CC0 / VRM "creditNotation: unnecessary" assets get a clean canvas.
+function AttributionOverlay({ meta, animation, animPreset, vrmPreset }) {
+  if (!attributionRequired(meta, vrmPreset, animPreset)) return null;
+  const vrm = buildAttribution(meta, vrmPreset);
   const animLines = [];
   if (animPreset?.credit) animLines.push(animPreset.credit);
   else if (animation?.name) animLines.push(`Animation: ${animation.name}`);
@@ -1131,6 +1208,11 @@ function AnimationMetaView({ preset, animState, animMeta }) {
   if (credit) pairs.push(['credit', credit]);
   if (license) pairs.push(['license', license]);
   if (url) pairs.push(['url', url]);
+  // FBX file-level metadata extracted by animations.js (issue #19). Shown
+  // after the runtime/preset info so it reads "what we ran" → "what was in
+  // the file", matching the VRM meta view's order.
+  const fbxMeta = animMeta?.fbxMeta;
+  const fbxPairs = fbxMeta ? Object.entries(fbxMeta) : [];
   return (
     <div data-testid="anim-meta" style={{ marginTop:8, fontFamily:'ui-monospace,Menlo,monospace', fontSize:10 }}>
       {pairs.map(([k, v]) => (
@@ -1139,6 +1221,23 @@ function AnimationMetaView({ preset, animState, animMeta }) {
           <span style={{ opacity:0.85, wordBreak:'break-all' }}>{typeof v === 'string' && v.length > 80 ? v.slice(0, 77) + '…' : v}</span>
         </div>
       ))}
+      {fbxPairs.length > 0 && (
+        <>
+          <div style={{ marginTop:8, fontSize:9, letterSpacing:1.5, textTransform:'uppercase', opacity:0.55 }}>
+            FBX file metadata
+          </div>
+          <div data-testid="anim-fbx-meta" style={{ maxHeight:160, overflowY:'auto' }}>
+            {fbxPairs.map(([k, v]) => (
+              <div key={k} style={{ display:'flex', gap:8, padding:'2px 0' }}>
+                <span style={{ opacity:0.5, minWidth:90 }}>{k}</span>
+                <span style={{ opacity:0.85, wordBreak:'break-word' }}>
+                  {typeof v === 'string' && v.length > 120 ? v.slice(0, 117) + '…' : v}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
