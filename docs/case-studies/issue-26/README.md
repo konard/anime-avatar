@@ -147,3 +147,94 @@ No upstream issue is needed.
 - `docs/screenshots/issue-26/02-alicia-default-front.png` — Alicia loads facing camera (issue #19 still good).
 - `docs/screenshots/issue-26/03-alicia-camera-right-AFTER-fix.png` — Alicia's head turned toward the camera after orbit to the model's right (issue #26 fixed).
 - `docs/screenshots/issue-26/04-alicia-camera-right-AFTER-fix-detail.png` — close detail of Alicia following the camera correctly.
+
+---
+
+## Follow-up: pitch is _also_ flipped on Alicia (2026-04-25)
+
+After PR #27 shipped, the issue author reopened #26 with a comment:
+
+> "After checking latest version I see that up/down on following animation for Alicia model is flipped. Double check in all other places all orientations are correct."
+
+Yaw was now correct, but **pitch** (looking up/down) tracked _the opposite_ direction of the camera for Alicia only. The eye `lookAt` was visually fine (PR #27 fixed the target builder), but the head bone itself tipped DOWN when the camera moved above and UP when the camera moved below.
+
+### RC4 — Scene rotation π mirrors the head bone's local X axis in world space
+
+Visual evidence (`alicia-camera-above.png` before fix): camera at `(0, 4, 2)`, smoothed `headPitchCur ≈ +21°`, `head.rotation.x = -0.378`. Result: top of Alicia's head visible (face tilted DOWN, away from camera). Same setup on the pixiv VRM 1 sample tilts the face UP toward the camera as expected.
+
+`VRMUtils.rotateVRM0(vrm)` (and our matching per-preset `baseYaw`) implement the front-facing flip by setting `vrm.scene.rotation.y = π` once at load time. That rotation propagates to every descendant — including the head bone, whose normalized world matrix axes for Alicia were measured at:
+
+| axis       | VRM 1 (pixiv)    | VRM 0 (Alicia)   |
+| ---------- | ---------------- | ---------------- |
+| local +X → | world ≈ (+1,0,0) | world ≈ (-1,0,0) |
+| local +Y → | world ≈ (0,+1,0) | world ≈ (0,+1,0) |
+| local +Z → | world ≈ (0,0,+1) | world ≈ (0,0,-1) |
+
+Y is preserved (rotation around the world up-axis is invariant under a Y-axis scene rotation). X and Z are mirrored — which is exactly what `faceFront.z` flipping captures for the look-at math. But the head-bone rotation update was still doing
+
+```js
+head.rotation.x += -idle.headPitchCur * (Math.PI / 180);
+```
+
+without any sign correction. For VRM 1 that rotates around world `(+1, 0, 0)` (looks UP, correct). For Alicia that rotates around world `(-1, 0, 0)` — the same numeric `α` produces the OPPOSITE world rotation (looks DOWN).
+
+The same mirror affected:
+
+- **All cfg/pose/gesture rotations applied to humanoid bones** (`pose.thinker = { head: { x: 0.2 }, leftUpperArm: { z: -1.3 }, ... }`). On Alicia "thinker" raised both arms straight up instead of dropping them to the sides — z was firing in reverse.
+- **Idle breath** (`spine.rotation.x += ...`) and **idle micro-head jitter** (`head.rotation.x += ...`) — symmetric noise so the bug was invisible, but inconsistent in direction.
+- **Legacy `applyHeadFollowFromAngles`** — same line as the new pitch-apply.
+
+### Solution — `getBoneAxisFlip(vrm)` helper, X/Z multiplied for VRM 0
+
+`public/new/src/apply.js` now derives a separate sign just for bone-axis mirroring:
+
+```js
+function getBoneAxisFlip(vrm) {
+  return getFaceFrontSign(vrm) === -1 ? -1 : 1;
+}
+```
+
+It coincides with `getFaceFrontSign` for our presets but is logically distinct (face-front axis vs scene-rotation-induced bone mirroring) — splitting the helpers makes the intent at each call-site readable.
+
+The flip is applied at four call-sites:
+
+1. **Main bone loop** (after the anatomical clamp). Every cfg/pose/gesture-derived `rx, rz` gets multiplied by `axisFlip` before the `Euler → quaternion → multiply` step. Y is left alone.
+2. **Idle breath** — `spine.rotation.x` and `chest.rotation.x` deltas multiply by `axisFlip`.
+3. **Idle micro-head** — `head.rotation.x` jitter multiplies by `axisFlip` (Y unchanged).
+4. **Follow-camera head pitch** (both the new `applyLookAt` integrator and the legacy `applyHeadFollowFromAngles` that's still on the path for non-camera sources):
+
+```js
+head.rotation.x += -axisFlip * idle.headPitchCur * (Math.PI / 180);
+```
+
+Yaw is unchanged — it already worked because `worldPointToHeadAngles` produces a yaw that's already in the world's "right means yaw>0" convention via `fz`, and rotating around the head bone's local Y is the same world-space rotation either way (Y axis is preserved).
+
+### Verification
+
+- **Headless math** — `node experiments/follow-camera-pitch-bone-axis.mjs` rotates a unit face vector through both versions' head.rotation.x with and without the flip. Without the flip the VRM 0 face.y has the OPPOSITE sign from VRM 1 (the bug). With the flip the signs match.
+- **Unit tests** — 11 new cases in `tests/lookAt.test.js` cover `getBoneAxisFlip` (VRM 0 vs VRM 1 vs missing meta), the bone-rotation flip's X/Z-only behaviour, its idempotency under double-application, and a Rodrigues rotation test that confirms both versions' final face direction matches after the head pitch is applied. Total `npm test` is now 87 passing.
+- **Browser** — `npm run dev` + `/anime-avatar/new/?view=editor`:
+  1. Pick Alicia preset.
+  2. Programmatically position camera at `(0, 4, 2)` (above + slightly in front).
+     Before fix: top of head visible (face tilted DOWN). After fix: face tilted UP, eyes visible from the high angle.
+  3. Camera at `(0, 0, 2)` (below). Before fix: face tilted UP (away from camera). After fix: face tilted DOWN, chin tucked, looking down at the low camera.
+  4. Camera at `(2.5, 1.35, 0)` (model's right). Yaw still correct (PR #27 regression check).
+  5. Same checks against the pixiv VRM 1 sample — head still pitches correctly (no regression).
+
+### Reviewed for completeness
+
+These call-sites in the studio use a humanoid bone's `rotation.x` or `.z` directly and now handle the VRM 0 mirror correctly:
+
+- `apply.js` main bone loop (cfg + pose + gesture)
+- `apply.js` idle breath (spine, chest)
+- `apply.js` idle micro-head
+- `apply.js` `applyLookAt` head bone update
+- `apply.js` `applyHeadFollowFromAngles` (legacy code path)
+
+Animations driven by an FBX `AnimationMixer` are exempt — the mixer owns those bones' rotations and our pose/gesture/follow code skips them when `animActive`. Mixamo retargeting (`animations.js`) writes raw rotations from FBX clips, which were already authored in the model's own coordinate frame — they don't need our flip and won't get one (the mixer path bypasses both the bone loop and the head-follow update).
+
+### Screenshots (after the pitch fix)
+
+- `docs/screenshots/issue-26/05-alicia-pitch-camera-above-AFTER-fix.png` — face tilts UP toward a camera at `(0, 4, 2)`.
+- `docs/screenshots/issue-26/06-alicia-pitch-camera-below-AFTER-fix.png` — face tilts DOWN toward a camera at `(0, 0, 2)`.
+- `docs/screenshots/issue-26/07-pixiv-pitch-camera-above-AFTER-fix.png` — VRM 1 regression check; pixiv still tilts UP correctly.

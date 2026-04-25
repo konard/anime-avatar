@@ -118,6 +118,12 @@
     if (vrm.humanoid) {
       const pose = POSE_PRESETS[c.pose] || {};
       const merged = window.ACS_mergePose(c.rot, pose);
+      // For VRM 0 models the scene is pre-rotated π around Y so the model
+      // faces the camera. That mirrors every bone's local X and Z axes in
+      // world space, so cfg/pose/gesture rotations specified in VRM 1
+      // conventions visually fire the OPPOSITE direction unless we flip
+      // their X/Z signs here. Y unchanged (rotation around world up-axis).
+      const axisFlip = getBoneAxisFlip(vrm);
 
       for (const b of HUMANOID_BONES) {
         const node = vrm.humanoid.getNormalizedBoneNode(b);
@@ -149,6 +155,11 @@
             ry = window.ACS_clampBoneRad(b, 'y', ry);
             rz = window.ACS_clampBoneRad(b, 'z', rz);
           }
+          // Flip X/Z for VRM 0 (see axisFlip note above). Clamp first so the
+          // limit table — written in VRM 1 conventions — still bounds the
+          // intended motion before we mirror it.
+          rx *= axisFlip;
+          rz *= axisFlip;
           if (rx || ry || rz) {
             const e = new THREE.Euler(rx, ry, rz, 'XYZ');
             node.quaternion.multiply(new THREE.Quaternion().setFromEuler(e));
@@ -170,20 +181,24 @@
     const idle = ensureIdle(s);
     idle.t += dt;
     if (!animActive && !gestureActive && vrm.humanoid) {
+      // Same X/Z mirroring as the main bone loop above — applies to every
+      // bone X-axis rotation we add below (idle breath spine/chest, idle
+      // micro head). Y is preserved.
+      const axisFlip = getBoneAxisFlip(vrm);
       if (c.idleBreath) {
         const phase = easeSin((idle.t * 0.3) % 1);
         const amt = c.idleBreathAmt ?? 0.008;
         const spine = vrm.humanoid.getNormalizedBoneNode('spine');
-        if (spine) spine.rotation.x += (phase - 0.5) * 2 * amt;
+        if (spine) spine.rotation.x += (phase - 0.5) * 2 * amt * axisFlip;
         const chest = vrm.humanoid.getNormalizedBoneNode('chest');
-        if (chest) chest.rotation.x += (phase - 0.5) * amt;
+        if (chest) chest.rotation.x += (phase - 0.5) * amt * axisFlip;
       }
       if (c.idleMicroHead) {
         const head = vrm.humanoid.getNormalizedBoneNode('head');
         if (head) {
           const phaseX = easeSin((idle.t * 0.17 + 0.3) % 1);
           const phaseY = easeSin((idle.t * 0.11 + 0.6) % 1);
-          head.rotation.x += (phaseX - 0.5) * 2 * 0.015;
+          head.rotation.x += (phaseX - 0.5) * 2 * 0.015 * axisFlip;
           head.rotation.y += (phaseY - 0.5) * 2 * 0.02;
         }
       }
@@ -292,6 +307,27 @@
     // Fallback: VRM meta version when faceFront is missing for any reason.
     if (vrm?.meta?.metaVersion === '0') return -1;
     return 1;
+  }
+
+  // Sign to apply to the X and Z components of any rotation pushed into a
+  // VRM humanoid bone. `VRMUtils.rotateVRM0(vrm)` (and our own per-preset
+  // baseYaw) make a VRM 0 model face the same world direction as a VRM 1
+  // model by rotating `vrm.scene` by π around Y. That scene rotation
+  // mirrors every descendant bone's local X and Z axes in world space —
+  // so a user-specified `head.rotation.x = +0.2` (intended as "tilt down"
+  // in VRM 1 conventions) tilts the head UP on Alicia. Same flip applies
+  // to z (lateral head tilt) and to the spine/chest breath wobble.
+  // Y rotation is preserved (rotation around the world up-axis behaves
+  // the same regardless of which way the body faces).
+  //
+  // Returns -1 when the X/Z axes are mirrored (VRM 0 + scene π), +1 when
+  // they line up (VRM 1, default scene yaw 0). This is the same sign as
+  // getFaceFrontSign for our presets, but logically distinct: it tracks
+  // the bone-axis mirroring caused by the scene root rotation, not the
+  // head-local face-front axis. The two coincide because VRM 0 needs the
+  // π scene rotation precisely because its faceFront is -Z.
+  function getBoneAxisFlip(vrm) {
+    return getFaceFrontSign(vrm) === -1 ? -1 : 1;
   }
 
   // Take a world-space point and compute yaw/pitch (degrees) relative to
@@ -496,14 +532,22 @@
     // when `animActive`.
     //
     // Pitch sign: worldPointToHeadAngles returns positive pitch when the
-    // target is above the head. In this VRM's humanoid convention, a
-    // positive `rotation.x` on the head bone tips the head DOWN (looks
-    // down). So to actually look UP at a point above, we negate pitch.
+    // target is above the head. In a VRM 1 model the head bone's local
+    // X axis aligns with world +X, so positive `rotation.x` tips the head
+    // DOWN — we negate pitch to actually look UP at a point above.
+    //
+    // Issue #26 (pitch follow-up): VRM 0 models have `vrm.scene.rotation.y`
+    // pre-set to π so the model faces the camera, which mirrors every
+    // bone's local X (and Z) axis in world space. Without `axisFlip`
+    // here, Alicia's head pitches the wrong way (looks DOWN when the
+    // camera is above and vice versa). Yaw uses the world up-axis (Y),
+    // which the scene rotation does NOT mirror, so it's unaffected.
     if (!animActive) {
       const head = vrm.humanoid?.getNormalizedBoneNode('head');
       if (head) {
+        const axisFlip = getBoneAxisFlip(vrm);
         head.rotation.y += idle.headYawCur * (Math.PI / 180);
-        head.rotation.x += -idle.headPitchCur * (Math.PI / 180);
+        head.rotation.x += -axisFlip * idle.headPitchCur * (Math.PI / 180);
       }
     }
 
@@ -590,8 +634,9 @@
     if (animActive || gestureActive) return;
     const head = s.vrm.humanoid?.getNormalizedBoneNode('head');
     if (!head) return;
+    const axisFlip = getBoneAxisFlip(s.vrm);
     head.rotation.y += idle.headYawCur * (Math.PI / 180);
-    head.rotation.x += -idle.headPitchCur * (Math.PI / 180); // see sign note above
+    head.rotation.x += -axisFlip * idle.headPitchCur * (Math.PI / 180); // see sign note above
   }
 
   // worldPointToHeadAngles superseded applyHeadFollow (world→head-local).
