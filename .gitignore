@@ -140,3 +140,7 @@ vite.config.ts.timestamp-*
 
 # jscpd reports
 reports/
+
+# Playwright MCP scratch dir
+.playwright-mcp/
+

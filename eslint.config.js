@@ -117,6 +117,7 @@ export default [
       'coverage/**',
       'dist/**',
       'public/**',
+      'experiments/**',
       '*.min.js',
       '.eslintcache',
     ],
