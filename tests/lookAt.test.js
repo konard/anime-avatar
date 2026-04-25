@@ -17,6 +17,14 @@ function getFaceFrontSign(vrm) {
   return 1;
 }
 
+// Sign applied to X/Z components of any user/preset/gesture/follow rotation
+// pushed into a humanoid bone. Mirrors public/new/src/apply.js — matches
+// faceFrontSign for our VRM 0/1 presets but is logically distinct (it
+// tracks scene-rotation-induced bone-axis mirroring, not face-front axis).
+function getBoneAxisFlip(vrm) {
+  return getFaceFrontSign(vrm) === -1 ? -1 : 1;
+}
+
 // World→head-local angles (yaw, pitch). headWorldYaw is in radians; we model
 // the head as a node at (0, 1.5, 0) rotated by headWorldYaw around Y so the
 // matrix-invert math reduces to a Y rotation.
@@ -258,4 +266,162 @@ describe('round-trip: angle → target → angle is identity', () => {
       });
     }
   }
+});
+
+// --- Issue #26 follow-up: pitch sign on the head bone ----------------------
+// The follow-camera path stores headPitch in `idle.headPitchCur` and applies
+// `head.rotation.x += -axisFlip * headPitch * (π/180)`. The mathematical
+// claim we test here: for the same world target above the head, the FINAL
+// rotation applied to the head bone produces the same world-space "look up"
+// effect for both VRM 0 and VRM 1.
+//
+// We model the head bone as a node attached to a parent that is rotated by
+// `headWorldYaw` around Y. `head.rotation.x = α` rotates the head bone
+// around its local X axis. In world coordinates, that local X axis is
+// (cos(headWorldYaw), 0, sin(headWorldYaw)) — i.e. world +X for VRM 1
+// (headWorldYaw=0) and world -X for VRM 0 (headWorldYaw=π). Applying the
+// same world-equivalent rotation through these two axes requires opposite
+// signs on α — exactly what `axisFlip` provides.
+describe('head pitch follow-camera sign for VRM 0 vs VRM 1', () => {
+  // The smoothed angle the studio computes for "camera 26.57° above head".
+  const headPitchDeg = 26.57;
+
+  it('VRM 1 applies head.rotation.x = -headPitch (looks UP toward camera)', () => {
+    const axisFlip = getBoneAxisFlip(vrm1);
+    expect(axisFlip).toBe(1);
+    const rotX = -axisFlip * headPitchDeg * (Math.PI / 180);
+    expect(rotX).toBeCloseTo(-(headPitchDeg * Math.PI) / 180, 8);
+    expect(rotX).toBeLessThan(0);
+  });
+
+  it('VRM 0 applies head.rotation.x = +headPitch (also looks UP toward camera)', () => {
+    const axisFlip = getBoneAxisFlip(vrm0);
+    expect(axisFlip).toBe(-1);
+    const rotX = -axisFlip * headPitchDeg * (Math.PI / 180);
+    // Sign flipped relative to VRM 1: the head's local X axis is mirrored
+    // in world space, so the same world-effect requires the opposite local α.
+    expect(rotX).toBeCloseTo((headPitchDeg * Math.PI) / 180, 8);
+    expect(rotX).toBeGreaterThan(0);
+  });
+
+  // Independent verification: roll the head's face direction through both
+  // versions' head.rotation.x and check it ends up tilted UP (positive world Y)
+  // in both cases, by the same amount.
+  function rotateAroundAxis(v, axis, ang) {
+    // Rodrigues formula.
+    const c = Math.cos(ang),
+      s = Math.sin(ang);
+    const k = axis;
+    const dot = k.x * v.x + k.y * v.y + k.z * v.z;
+    const cross = {
+      x: k.y * v.z - k.z * v.y,
+      y: k.z * v.x - k.x * v.z,
+      z: k.x * v.y - k.y * v.x,
+    };
+    return {
+      x: v.x * c + cross.x * s + k.x * dot * (1 - c),
+      y: v.y * c + cross.y * s + k.y * dot * (1 - c),
+      z: v.z * c + cross.z * s + k.z * dot * (1 - c),
+    };
+  }
+
+  it('the rotation produces the same world-space face tilt-up for both VRM versions', () => {
+    const expected = (headPitchDeg * Math.PI) / 180;
+
+    for (const [vrm, headWorldYaw] of [
+      [vrm1, 0],
+      [vrm0, Math.PI],
+    ]) {
+      const axisFlip = getBoneAxisFlip(vrm);
+      const localXAxis = {
+        x: Math.cos(headWorldYaw),
+        y: 0,
+        z: -Math.sin(headWorldYaw),
+      };
+      // Initial face direction in world space: VRM 1 face = (0,0,+1) (head
+      // local +Z = world +Z), VRM 0 face = (0,0,+1) too (head local -Z
+      // mirrored by parent π = world +Z).
+      const face0 = { x: 0, y: 0, z: 1 };
+      const rotX = -axisFlip * headPitchDeg * (Math.PI / 180);
+      const face1 = rotateAroundAxis(face0, localXAxis, rotX);
+      // Face should now have y > 0 (looking up) and roughly equal magnitude
+      // for both versions.
+      expect(face1.y).toBeCloseTo(Math.sin(expected), 8);
+      expect(face1.z).toBeCloseTo(Math.cos(expected), 8);
+    }
+  });
+});
+
+// --- Bone-axis flip: pose / gesture rotations applied to humanoid bones ---
+// The same scene-π rotation that mirrors head.rotation.x also mirrors every
+// other humanoid bone's local X and Z axes. Pose presets (e.g. thinker
+// `head: {x: 0.2}` = head down) and gesture deltas (e.g. nod
+// `head.x = sin(t)`) are written in VRM 1 conventions — they need their
+// X/Z components flipped before being applied to a VRM 0 bone, otherwise
+// they produce the OPPOSITE visual motion. This is the symptom Alicia hit
+// on the "thinker" pose (both arms went UP instead of arms-down + chin-up).
+describe('getBoneAxisFlip', () => {
+  it('returns +1 for VRM 1.0 models (no scene rotation)', () => {
+    expect(getBoneAxisFlip(vrm1)).toBe(1);
+  });
+
+  it('returns -1 for VRM 0.x models (scene rotated π by VRMUtils.rotateVRM0)', () => {
+    expect(getBoneAxisFlip(vrm0)).toBe(-1);
+  });
+
+  it('falls back to -1 when faceFront is missing but metaVersion === "0"', () => {
+    expect(getBoneAxisFlip(vrm0NoFaceFront)).toBe(-1);
+  });
+
+  it('returns +1 when nothing is known (safe default for unknown models)', () => {
+    expect(getBoneAxisFlip({ meta: {} })).toBe(1);
+    expect(getBoneAxisFlip(undefined)).toBe(1);
+  });
+});
+
+describe('bone rotation flip — preset/cfg X/Z mirror across VRM versions', () => {
+  // Thinker preset: { head: { x: 0.2 }, ... }. The VRM 1 author intent:
+  // tip head down by 0.2 rad. After the flip we should pass -0.2 rad to
+  // Alicia's head bone — which, applied around her mirrored local X axis,
+  // produces the same world-space "tip down" rotation.
+  function applyFlip(vrm, rot) {
+    const f = getBoneAxisFlip(vrm);
+    return { x: (rot.x || 0) * f, y: rot.y || 0, z: (rot.z || 0) * f };
+  }
+
+  it('passes user rotations unchanged for VRM 1.0', () => {
+    const r = applyFlip(vrm1, { x: 0.2, y: -0.1, z: 0.05 });
+    expect(r).toEqual({ x: 0.2, y: -0.1, z: 0.05 });
+  });
+
+  it('flips X and Z (but not Y) for VRM 0.x', () => {
+    const r = applyFlip(vrm0, { x: 0.2, y: -0.1, z: 0.05 });
+    expect(r.x).toBeCloseTo(-0.2);
+    expect(r.y).toBeCloseTo(-0.1); // Y rotation around world up — unaffected.
+    expect(r.z).toBeCloseTo(-0.05);
+  });
+
+  it('handles missing components as zero', () => {
+    const r1 = applyFlip(vrm0, {});
+    // -0 vs +0 don't matter visually; compare magnitudes.
+    expect(Math.abs(r1.x)).toBe(0);
+    expect(Math.abs(r1.y)).toBe(0);
+    expect(Math.abs(r1.z)).toBe(0);
+    const r2 = applyFlip(vrm0, { y: 0.3 });
+    expect(Math.abs(r2.x)).toBe(0);
+    expect(r2.y).toBeCloseTo(0.3);
+    expect(Math.abs(r2.z)).toBe(0);
+  });
+
+  // Roundtrip: applying the flip twice cancels out — invariant for any vrm.
+  it('flip is its own inverse (involution) for both VRM versions', () => {
+    for (const vrm of [vrm1, vrm0]) {
+      const original = { x: 0.7, y: -0.4, z: 0.15 };
+      const once = applyFlip(vrm, original);
+      const twice = applyFlip(vrm, once);
+      expect(twice.x).toBeCloseTo(original.x);
+      expect(twice.y).toBeCloseTo(original.y);
+      expect(twice.z).toBeCloseTo(original.z);
+    }
+  });
 });
