@@ -139,6 +139,16 @@
             ry += gestureDelta.rot[b].y || 0;
             rz += gestureDelta.rot[b].z || 0;
           }
+          // Clamp the combined Euler to the bone's anatomical limit. Because
+          // the limit table covers VRM humanoid bones we recognize and
+          // returns the full ±360° for unknown bones, this is a no-op for
+          // any non-humanoid driver and a soft cap everywhere else. Issue
+          // #28 R2: stop overstretches before they reach the mesh.
+          if (window.ACS_clampBoneRad) {
+            rx = window.ACS_clampBoneRad(b, 'x', rx);
+            ry = window.ACS_clampBoneRad(b, 'y', ry);
+            rz = window.ACS_clampBoneRad(b, 'z', rz);
+          }
           if (rx || ry || rz) {
             const e = new THREE.Euler(rx, ry, rz, 'XYZ');
             node.quaternion.multiply(new THREE.Quaternion().setFromEuler(e));
@@ -478,14 +488,18 @@
     }
 
     // Apply the smoothed HEAD angles directly to the head bone. This is
-    // additive on top of pose/idle micro-head, but decays to zero when no
-    // source is configured to drive the head.
+    // additive on top of pose/idle micro-head AND on top of any gesture
+    // delta — the head bone receives the SUM of gesture rotation and
+    // look-at rotation, so toggling a "yes" / "no" gesture on top of
+    // camera tracking blends smoothly instead of snapping (issue #28 R7).
+    // FBX animations still own the head bone exclusively; we only skip
+    // when `animActive`.
     //
     // Pitch sign: worldPointToHeadAngles returns positive pitch when the
     // target is above the head. In this VRM's humanoid convention, a
     // positive `rotation.x` on the head bone tips the head DOWN (looks
     // down). So to actually look UP at a point above, we negate pitch.
-    if (!animActive && !gestureActive) {
+    if (!animActive) {
       const head = vrm.humanoid?.getNormalizedBoneNode('head');
       if (head) {
         head.rotation.y += idle.headYawCur * (Math.PI / 180);

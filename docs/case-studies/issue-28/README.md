@@ -26,7 +26,7 @@ Issue #28 covers four mostly-independent improvements to the avatar studio
      entire duration (head bone is locked to gesture rotation while
      `gestureActive`, then suddenly handed back to the smoother).
    - The look-at smoother is reset across the discontinuity.
-   The result is a visible snap at gesture start and gesture end.
+     The result is a visible snap at gesture start and gesture end.
 4. **There is no on-model rotation gizmo.** All rotation control lives in the
    side drawer; users have asked for the editor-style ring gizmos shown in
    most 3D editors (Blender / Unity / VRoid), one ring per axis around the
@@ -39,16 +39,16 @@ remaining open questions.
 
 ## Requirements (from the issue)
 
-| #   | Requirement                                                                                                                                                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| R1  | Improve the `wave` gesture so the hand oscillates at the wrist, with a raised forearm, matching the reference image.                                         |
-| R2  | Default to **anatomically possible** rotations only — every joint slider must clamp to its biological range (per axis).                                      |
-| R3  | Display rotations as **degrees** in `−360..0..360` range (clamped to anatomical limits where relevant).                                                      |
+| #   | Requirement                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Improve the `wave` gesture so the hand oscillates at the wrist, with a raised forearm, matching the reference image.                                                                        |
+| R2  | Default to **anatomically possible** rotations only — every joint slider must clamp to its biological range (per axis).                                                                     |
+| R3  | Display rotations as **degrees** in `−360..0..360` range (clamped to anatomical limits where relevant).                                                                                     |
 | R4  | Add an optional in-viewport joint gizmo (rings around each axis, similar to Blender / Unity). One joint visible at a time; hover (desktop) / tap (mobile) to switch joints. Off by default. |
-| R5  | Confirm full mobile + desktop support (touch & pointer interaction). Experimental — off by default.                                                          |
-| R6  | All animations should additively combine (relative deltas, summed each frame); transitions between gestures / look-at / idle must be smooth (no snaps).      |
-| R7  | Specifically: `yes` (nod) and `no` (shake) gestures should overlay on top of camera tracking instead of replacing it, and start/end without jumps.           |
-| R8  | Compile this case study at `docs/case-studies/issue-28/` with timeline, requirements, root causes, libraries researched, and proposed solutions.             |
+| R5  | Confirm full mobile + desktop support (touch & pointer interaction). Experimental — off by default.                                                                                         |
+| R6  | All animations should additively combine (relative deltas, summed each frame); transitions between gestures / look-at / idle must be smooth (no snaps).                                     |
+| R7  | Specifically: `yes` (nod) and `no` (shake) gestures should overlay on top of camera tracking instead of replacing it, and start/end without jumps.                                          |
+| R8  | Compile this case study at `docs/case-studies/issue-28/` with timeline, requirements, root causes, libraries researched, and proposed solutions.                                            |
 
 ## Reference image
 
@@ -201,34 +201,34 @@ generously so animation poses don't feel stiff. All numbers in degrees,
 positive sign matches the VRM normalized humanoid frame (rest = T-pose for
 VRM 1.0; left/right are the **character's** sides):
 
-| Bone group       | Axis | Min   | Max  | Notes                                                                                  |
-| ---------------- | ---- | ----- | ---- | -------------------------------------------------------------------------------------- |
-| Head/neck        | x    | −60°  | 60°  | flexion / extension                                                                    |
-| Head/neck        | y    | −80°  | 80°  | yaw left/right                                                                         |
-| Head/neck        | z    | −45°  | 45°  | lateral tilt                                                                           |
-| Spine / chest    | x    | −30°  | 60°  | forward bend / backward arch                                                           |
-| Spine / chest    | y    | −45°  | 45°  | torso twist                                                                            |
-| Spine / chest    | z    | −30°  | 30°  | side-bend                                                                              |
-| Hips             | y    | −30°  | 30°  | hip rotation                                                                           |
-| Shoulder (Upper Arm Z) | z    | −180° | 30°  | left side: −180 raises straight up; positive = arm down / across — biological max ~30° behind body |
-| Shoulder (Upper Arm Z, right) | z    | −30°  | 180° | mirror of the left side                                                                |
-| Shoulder (Upper Arm X) | x    | −90°  | 90°  | flexion / extension                                                                    |
-| Shoulder (Upper Arm Y) | y    | −90°  | 90°  | internal/external rotation                                                             |
-| Lower Arm (Elbow X)   | x    | −150° | 0°   | elbow only flexes (negative X) from straight to fully bent                             |
-| Lower Arm (Elbow Y)   | y    | −90°  | 90°  | forearm pronation / supination                                                         |
-| Lower Arm (Elbow Z)   | z    | −10°  | 10°  | elbow has no Z axis, allow tiny tolerance                                              |
-| Hand (Wrist X)        | x    | −80°  | 80°  | flexion / extension                                                                    |
-| Hand (Wrist Y)        | y    | −60°  | 60°  | radial / ulnar deviation                                                               |
-| Hand (Wrist Z)        | z    | −30°  | 30°  | tiny twist tolerance                                                                   |
-| Upper Leg X      | x    | −30°  | 120° | hip flexion / extension                                                                |
-| Upper Leg Y      | y    | −45°  | 45°  | hip rotation                                                                           |
-| Upper Leg Z      | z    | −45°  | 45°  | abduction / adduction                                                                  |
-| Lower Leg (Knee X) | x    | 0°  | 150° | knee only flexes                                                                       |
-| Lower Leg Y/Z      | -    | small | small | knee has no twist                                                                      |
-| Foot X        | x    | −50°  | 50°  | dorsiflexion / plantarflexion                                                          |
-| Foot Y        | y    | −30°  | 30°  | inversion / eversion                                                                   |
-| Eyes          | x/y  | −20°  | 20°  | eye saccade limit                                                                      |
-| Fingers       | z    | −10°  | 100° | finger flexion only                                                                    |
+| Bone group                    | Axis | Min   | Max   | Notes                                                                                              |
+| ----------------------------- | ---- | ----- | ----- | -------------------------------------------------------------------------------------------------- |
+| Head/neck                     | x    | −60°  | 60°   | flexion / extension                                                                                |
+| Head/neck                     | y    | −80°  | 80°   | yaw left/right                                                                                     |
+| Head/neck                     | z    | −45°  | 45°   | lateral tilt                                                                                       |
+| Spine / chest                 | x    | −30°  | 60°   | forward bend / backward arch                                                                       |
+| Spine / chest                 | y    | −45°  | 45°   | torso twist                                                                                        |
+| Spine / chest                 | z    | −30°  | 30°   | side-bend                                                                                          |
+| Hips                          | y    | −30°  | 30°   | hip rotation                                                                                       |
+| Shoulder (Upper Arm Z)        | z    | −180° | 30°   | left side: −180 raises straight up; positive = arm down / across — biological max ~30° behind body |
+| Shoulder (Upper Arm Z, right) | z    | −30°  | 180°  | mirror of the left side                                                                            |
+| Shoulder (Upper Arm X)        | x    | −90°  | 90°   | flexion / extension                                                                                |
+| Shoulder (Upper Arm Y)        | y    | −90°  | 90°   | internal/external rotation                                                                         |
+| Lower Arm (Elbow X)           | x    | −150° | 0°    | elbow only flexes (negative X) from straight to fully bent                                         |
+| Lower Arm (Elbow Y)           | y    | −90°  | 90°   | forearm pronation / supination                                                                     |
+| Lower Arm (Elbow Z)           | z    | −10°  | 10°   | elbow has no Z axis, allow tiny tolerance                                                          |
+| Hand (Wrist X)                | x    | −80°  | 80°   | flexion / extension                                                                                |
+| Hand (Wrist Y)                | y    | −60°  | 60°   | radial / ulnar deviation                                                                           |
+| Hand (Wrist Z)                | z    | −30°  | 30°   | tiny twist tolerance                                                                               |
+| Upper Leg X                   | x    | −30°  | 120°  | hip flexion / extension                                                                            |
+| Upper Leg Y                   | y    | −45°  | 45°   | hip rotation                                                                                       |
+| Upper Leg Z                   | z    | −45°  | 45°   | abduction / adduction                                                                              |
+| Lower Leg (Knee X)            | x    | 0°    | 150°  | knee only flexes                                                                                   |
+| Lower Leg Y/Z                 | -    | small | small | knee has no twist                                                                                  |
+| Foot X                        | x    | −50°  | 50°   | dorsiflexion / plantarflexion                                                                      |
+| Foot Y                        | y    | −30°  | 30°   | inversion / eversion                                                                               |
+| Eyes                          | x/y  | −20°  | 20°   | eye saccade limit                                                                                  |
+| Fingers                       | z    | −10°  | 100°  | finger flexion only                                                                                |
 
 We expose these limits as a `window.ACS_BONE_LIMITS` table keyed by the
 VRM humanoid bone name, and use it both to (a) bound the slider range and

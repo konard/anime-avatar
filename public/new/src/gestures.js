@@ -41,16 +41,39 @@
 
     if (name === 'wave') {
       // VRM1 rest IS T-pose (arms horizontal), so NEGATIVE z on rightUpperArm
-      // raises it up above the shoulder (same as pose-preset A vs Cheer). The
-      // A-pose z=+0.8 drops the right arm, so wave uses z=-0.9 to lift it.
+      // raises it up above the shoulder (same as pose-preset A vs Cheer).
+      //
+      // Wave matches the issue-28 reference: the upper arm is raised
+      // VERTICALLY (z≈-130°), the elbow is bent ~90° (lowerArm.x≈-90°), the
+      // upper arm has a slight forward swing (x≈-15°), and the WAVE itself
+      // is the WRIST oscillating side-to-side (rightHand.z) — exactly what a
+      // human does when greeting. Previously the oscillation was on the
+      // forearm Y axis (forearm twist), which read as a windscreen-wiper
+      // rather than a wave.
       const up = env;
-      out.rot.rightUpperArm = { x: 0, y: 0, z: -0.95 * up * amp };
-      // Forearm bends forward + oscillates ~3 cycles over the gesture.
-      const w = Math.sin(t * Math.PI * 6) * 0.7 * up * amp;
-      out.rot.rightLowerArm = { x: -1.0 * up * amp, y: w, z: 0 };
-      out.rot.rightHand = { x: 0, y: w * 0.4, z: 0 };
-      // Slight head tilt toward the waving arm (character's right).
-      out.rot.head = { x: 0, y: -0.08 * up, z: -0.06 * up };
+      // Upper arm: raise nearly straight up, slight forward bias.
+      out.rot.rightUpperArm = {
+        x: -0.25 * up * amp,
+        y:  0,
+        z: -2.27 * up * amp,            // ~-130° — raised over the shoulder
+      };
+      // Elbow: bent ~90° forward, no oscillation (the forearm stays put).
+      out.rot.rightLowerArm = {
+        x: -1.55 * up * amp,            // ~-89° elbow flex
+        y:  0,
+        z:  0,
+      };
+      // Hand: the actual "wave" — three full side-to-side cycles over the
+      // gesture window, ramped by the envelope. ~±35° at the wrist matches
+      // the reference frame.
+      const wave = Math.sin(t * Math.PI * 6) * 0.6 * up * amp;
+      out.rot.rightHand = {
+        x:  0,
+        y:  0,
+        z:  wave,
+      };
+      // Slight head tilt + look toward the waving arm.
+      out.rot.head = { x: 0, y: -0.10 * up, z: -0.08 * up };
       const g = GESTURES.wave;
       if (g.expr) out.exprs[g.expr] = bell(t, easing) * g.exprPeak * (mood.ampScale * 0.9);
       return out;

@@ -34,16 +34,19 @@
 <script type="module">
   import * as THREE_NS from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { TransformControls } from 'three/addons/controls/TransformControls.js';
   import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
   import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
   import { FBXLoader }     from 'three/addons/loaders/FBXLoader.js';
   import * as VRM from '@pixiv/three-vrm';
   const THREE = Object.assign({}, THREE_NS);
   THREE.OrbitControls = OrbitControls;
+  THREE.TransformControls = TransformControls;
   THREE.GLTFLoader = GLTFLoader;
   THREE.GLTFExporter = GLTFExporter;
   THREE.FBXLoader = FBXLoader;
   window.THREE = THREE;
+  window.TransformControls = TransformControls;
   window.GLTFLoader = GLTFLoader;
   window.GLTFExporter = GLTFExporter;
   window.FBXLoader = FBXLoader;

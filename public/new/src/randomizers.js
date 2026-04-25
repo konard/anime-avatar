@@ -7,6 +7,18 @@
 
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
   const randHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  // Pick a random rotation value (in radians) inside the anatomical limit
+  // for `bone`+`axis`. Falls back to a small range when the bone has no
+  // entry in ACS_BONE_LIMITS so unknown rigs still get reasonable values.
+  // Issue #28 R2: randomizers must not produce overstretched poses.
+  const randBoneRad = (bone, axis, fallbackLo, fallbackHi) => {
+    const limFn = window.ACS_boneLimitDeg;
+    if (!limFn) return rand(fallbackLo ?? -1, fallbackHi ?? 1);
+    const lim = limFn(bone, axis);
+    if (lim === null) return 0;
+    const [lo, hi] = lim;
+    return rand(lo, hi) * Math.PI / 180;
+  };
 
   window.ACS_buildRandomizers = function buildRandomizers(cfg, available) {
     const R = {};
@@ -16,34 +28,54 @@
       c.pose = keys[Math.floor(Math.random() * keys.length)];
     };
 
+    // Each randomizer picks per-axis rotations inside the bone's
+    // anatomical limit (issue #28 R2). The legacy fallback ranges in
+    // `randBoneRad`'s arguments are kept for non-VRM rigs that lack a
+    // limit entry so the behaviour degrades gracefully.
     R.core = (c) => {
       c.rot = { ...(c.rot || {}) };
       for (const b of BONE_GROUPS.core) if (available.bones.has(b)) {
-        c.rot[b] = { x: rand(-0.25, 0.25), y: rand(-0.35, 0.35), z: rand(-0.15, 0.15) };
+        c.rot[b] = {
+          x: randBoneRad(b, 'x', -0.25, 0.25),
+          y: randBoneRad(b, 'y', -0.35, 0.35),
+          z: randBoneRad(b, 'z', -0.15, 0.15),
+        };
       }
     };
     R.eyes = (c) => {
       c.rot = { ...(c.rot || {}) };
       for (const b of BONE_GROUPS.eyes) if (available.bones.has(b)) {
-        c.rot[b] = { x: rand(-0.2, 0.2), y: rand(-0.25, 0.25), z: 0 };
+        c.rot[b] = {
+          x: randBoneRad(b, 'x', -0.2, 0.2),
+          y: randBoneRad(b, 'y', -0.25, 0.25),
+          z: 0,
+        };
       }
     };
     R.arms = (c) => {
       c.rot = { ...(c.rot || {}) };
       for (const b of [...BONE_GROUPS.armL, ...BONE_GROUPS.armR]) if (available.bones.has(b)) {
-        c.rot[b] = { x: rand(-0.8, 0.8), y: rand(-0.8, 0.8), z: rand(-1.4, 1.4) };
+        c.rot[b] = {
+          x: randBoneRad(b, 'x', -0.8, 0.8),
+          y: randBoneRad(b, 'y', -0.8, 0.8),
+          z: randBoneRad(b, 'z', -1.4, 1.4),
+        };
       }
     };
     R.legs = (c) => {
       c.rot = { ...(c.rot || {}) };
       for (const b of [...BONE_GROUPS.legL, ...BONE_GROUPS.legR]) if (available.bones.has(b)) {
-        c.rot[b] = { x: rand(-0.4, 0.4), y: rand(-0.3, 0.3), z: rand(-0.3, 0.3) };
+        c.rot[b] = {
+          x: randBoneRad(b, 'x', -0.4, 0.4),
+          y: randBoneRad(b, 'y', -0.3, 0.3),
+          z: randBoneRad(b, 'z', -0.3, 0.3),
+        };
       }
     };
     R.fingers = (c) => {
       c.rot = { ...(c.rot || {}) };
       for (const b of [...BONE_GROUPS.fingersL, ...BONE_GROUPS.fingersR]) if (available.bones.has(b)) {
-        c.rot[b] = { x: 0, y: 0, z: rand(-1.3, 1.3) };
+        c.rot[b] = { x: 0, y: 0, z: randBoneRad(b, 'z', -1.3, 1.3) };
       }
     };
     R.proportions = (c) => {
@@ -97,6 +129,9 @@
     R.behaviour = (c) => {
       c.autoRotate = Math.random() < 0.5;
       c.showFPS = Math.random() < 0.5;
+      // experimentalJointControls intentionally NOT randomized — it's a UX
+      // toggle the user opts into; flipping it during a Randomize-all
+      // sweep would surprise users.
     };
     R.idle = (c) => {
       c.idleBreath = Math.random() < 0.7;
@@ -209,7 +244,13 @@
       scene:       (c) => { c.bg = defaults.bg; c.groundOpacity = defaults.groundOpacity; },
       camera:      (c) => { c.cameraFov = defaults.cameraFov; c.cameraDist = defaults.cameraDist; c.cameraHeight = defaults.cameraHeight; c.cameraInertia = defaults.cameraInertia; },
       svgCamera:   (c) => { c.svgCamFov = defaults.svgCamFov; c.svgCamDist = defaults.svgCamDist; c.svgCamHeight = defaults.svgCamHeight; },
-      behaviour:   (c) => { c.autoRotate = defaults.autoRotate; c.showFPS = defaults.showFPS; },
+      behaviour:   (c) => {
+        c.autoRotate = defaults.autoRotate;
+        c.showFPS = defaults.showFPS;
+        c.experimentalJointControls = defaults.experimentalJointControls;
+        c.jointControlSize = defaults.jointControlSize;
+        c.jointControlSelected = defaults.jointControlSelected;
+      },
       idle:        (c) => {
         c.idleBreath = defaults.idleBreath; c.idleBreathAmt = defaults.idleBreathAmt;
         c.idleBlink = defaults.idleBlink; c.idleBlinkFreq = defaults.idleBlinkFreq;
