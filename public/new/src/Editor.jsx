@@ -158,6 +158,56 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       // Drag-and-drop on the mount: .vrm/.glb → model; .fbx → animation.
       attachDropHandlers(mount, stateRef, cfgRef, loadVRMBufferRef, loadAnimationBufferRef);
 
+      // EXPERIMENTAL: in-viewport joint rotation gizmo (issue #28). The
+      // gizmo is attached to a small invisible proxy Object3D whose world
+      // position is synced to the currently-selected bone every frame; the
+      // user-applied rotation is read from the proxy on `change` and
+      // written back into cfg.rot so apply.js renders it next frame.
+      // Disabled until the user opts in via cfg.experimentalJointControls.
+      if (window.TransformControls) {
+        const proxy = new THREE.Object3D();
+        scene.add(proxy);
+        const tc = new window.TransformControls(camera, renderer.domElement);
+        tc.setMode('rotate');
+        tc.setSpace('local');
+        tc.setSize(0.6);
+        tc.attach(proxy);
+        tc.enabled = false;
+        tc.visible = false;
+        const tcHelper = tc.getHelper ? tc.getHelper() : tc;
+        tcHelper.visible = false;
+        scene.add(tcHelper);
+        tc.addEventListener('dragging-changed', (e) => {
+          // Camera orbit must yield while the gizmo is being dragged.
+          controls.enabled = !e.value;
+        });
+        tc.addEventListener('change', () => {
+          const s = stateRef.current;
+          if (!s.jointCtl?.bone) return;
+          if (!tc.dragging) return; // ignore programmatic snap-to-bone updates
+          const r = proxy.rotation;
+          // Clamp to anatomical limits and write back to cfg. The clamp
+          // helper is defined in constants.js and honours both `null` (no
+          // motion on that axis) and the per-axis ranges.
+          const clamp = window.ACS_clampBoneRad || ((b, a, v) => v);
+          const bone = s.jointCtl.bone;
+          const next = {
+            x: clamp(bone, 'x', r.x),
+            y: clamp(bone, 'y', r.y),
+            z: clamp(bone, 'z', r.z),
+          };
+          const cur = cfgRef.current;
+          setCfgRef.current({
+            ...cur,
+            rot: { ...(cur.rot || {}), [bone]: next },
+            jointControlSelected: bone,
+          });
+        });
+        stateRef.current.jointCtl = {
+          tc, proxy, helper: tcHelper, bone: '',
+        };
+      }
+
       let raf;
       const clock = new THREE.Clock();
       let fpsFrames = [];
@@ -181,6 +231,34 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           if (c.autoRotate) s.vrm.scene.rotation.y += dt * 0.5;
           else s.vrm.scene.rotation.y = baseYaw;
           s.vrm.update?.(dt);
+        }
+
+        // Joint-control gizmo: keep the proxy snapped to the selected bone
+        // and reflect cfg.rot in the proxy's local rotation so the rings
+        // render at the right angle. While dragging we leave the proxy
+        // alone — TransformControls owns it.
+        if (s.jointCtl) {
+          const enabled = !!c.experimentalJointControls && !!s.vrm?.humanoid;
+          const bone = enabled ? (c.jointControlSelected || s.jointCtl.bone || 'rightUpperArm') : '';
+          s.jointCtl.bone = bone;
+          s.jointCtl.tc.enabled = enabled && !!bone;
+          s.jointCtl.tc.visible = enabled && !!bone;
+          if (s.jointCtl.helper) s.jointCtl.helper.visible = enabled && !!bone;
+          if (enabled && bone && !s.jointCtl.tc.dragging) {
+            const node = s.vrm.humanoid.getNormalizedBoneNode(bone);
+            if (node) {
+              // Sync proxy WORLD position to the bone, but rotation comes
+              // from cfg.rot so the gizmo shows the user's current angle
+              // (not whatever apply.js has overlaid this frame).
+              const wp = new THREE.Vector3();
+              node.getWorldPosition(wp);
+              s.jointCtl.proxy.position.copy(wp);
+              const r = c.rot?.[bone] || {};
+              s.jointCtl.proxy.rotation.set(r.x || 0, r.y || 0, r.z || 0, 'XYZ');
+              s.jointCtl.proxy.updateMatrixWorld(true);
+              s.jointCtl.tc.size = c.jointControlSize ?? 0.4;
+            }
+          }
         }
         controls.update();
         renderer.render(scene, camera);
@@ -210,6 +288,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       if (s.stopLoop) s.stopLoop();
       if (s.onResize) window.removeEventListener('resize', s.onResize);
       if (s.ro) s.ro.disconnect();
+      if (s.jointCtl?.tc) {
+        try { s.jointCtl.tc.detach(); s.jointCtl.tc.dispose?.(); } catch {}
+      }
       if (s.renderer) {
         s.renderer.dispose();
         if (mountRef.current && s.renderer.domElement.parentNode === mountRef.current)
@@ -616,6 +697,13 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   };
 
   // --- Bone group renderer -------------------------------------------------
+  // Each rotation slider is keyed on the per-bone, per-axis ANATOMICAL
+  // limit table (window.ACS_BONE_LIMITS, in degrees). Issue #28 asked
+  // sliders to (1) only allow biologically-possible motion by default and
+  // (2) display in degrees ±360 instead of raw radians. The cfg shape is
+  // unchanged (still radians) so existing config JSON files keep working.
+  // Axes whose limit is `null` (e.g. eye Z, knee Y/Z) are hidden — there
+  // is no anatomical motion on that axis.
   function renderBoneGroup(group) {
     const bs = {
       core: BONE_GROUPS.core,
@@ -624,31 +712,34 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       legs: [...BONE_GROUPS.legL, ...BONE_GROUPS.legR],
       fingers: [...BONE_GROUPS.fingersL, ...BONE_GROUPS.fingersR],
     }[group] || [];
-    const axes = group === 'eyes' ? ['x','y'] : (group === 'fingers' ? ['z'] : ['x','y','z']);
-    const ranges = {
-      core: { min:-1.0, max:1.0 },
-      eyes: { min:-0.4, max:0.4 },
-      arms: { min:-2.2, max:2.2 },
-      legs: { min:-1.5, max:1.5 },
-      fingers: { min:-1.5, max:1.5 },
-    }[group];
-    return bs.filter(b => available.bones.has(b)).map(b => (
-      <div key={b} style={{ marginBottom: 6 }}>
-        <div style={subhead}>{b}</div>
-        {axes.map(a => (
-          <div key={a} style={rowStyle}>
-            <span style={{ fontSize: 10, opacity: 0.6, minWidth: 20 }}>{a}</span>
-            <input data-testid={`rot-${b}-${a}`} type="range" min={ranges.min} max={ranges.max} step={0.01}
-              value={cfg.rot?.[b]?.[a] ?? 0}
-              onChange={e => updRot(b, a, parseFloat(e.target.value))}
-              style={{ flex: 1, accentColor: '#8c6eff' }} />
-            <span style={{ fontSize: 10, opacity: 0.55, fontVariantNumeric: 'tabular-nums', minWidth: 36, textAlign: 'right' }}>
-              {(cfg.rot?.[b]?.[a] ?? 0).toFixed(2)}
-            </span>
-          </div>
-        ))}
-      </div>
-    ));
+    const allAxes = ['x','y','z'];
+    const radToDeg = window.ACS_radToDeg || (r => (r || 0) * 180 / Math.PI);
+    const degToRad = window.ACS_degToRad || (d => (d || 0) * Math.PI / 180);
+    const limit = window.ACS_boneLimitDeg || (() => [-360, 360]);
+    return bs.filter(b => available.bones.has(b)).map(b => {
+      const validAxes = allAxes.filter(a => limit(b, a) !== null);
+      return (
+        <div key={b} style={{ marginBottom: 6 }}>
+          <div style={subhead}>{b}</div>
+          {validAxes.map(a => {
+            const [lo, hi] = limit(b, a);
+            const valDeg = radToDeg(cfg.rot?.[b]?.[a] ?? 0);
+            return (
+              <div key={a} style={rowStyle}>
+                <span style={{ fontSize: 10, opacity: 0.6, minWidth: 20 }}>{a}</span>
+                <input data-testid={`rot-${b}-${a}`} type="range" min={lo} max={hi} step={0.5}
+                  value={Math.max(lo, Math.min(hi, valDeg))}
+                  onChange={e => updRot(b, a, degToRad(parseFloat(e.target.value)))}
+                  style={{ flex: 1, accentColor: '#8c6eff' }} />
+                <span style={{ fontSize: 10, opacity: 0.55, fontVariantNumeric: 'tabular-nums', minWidth: 40, textAlign: 'right' }}>
+                  {valDeg.toFixed(0)}°
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    });
   }
 
   // --- Render --------------------------------------------------------------
@@ -855,6 +946,29 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <S.Row label="Auto-rotate"><S.Toggle testid="auto-rotate" value={cfg.autoRotate} onChange={v=>setCfg({...cfg, autoRotate: v})} /></S.Row>
             <S.Row label="Mirror arms"><S.Toggle testid="mirror-arms" value={cfg.mirrorArms} onChange={v=>setCfg({...cfg, mirrorArms: v})} /></S.Row>
             <S.Row label="Show FPS"><S.Toggle testid="show-fps" value={cfg.showFPS} onChange={v=>setCfg({...cfg, showFPS: v})} /></S.Row>
+            <div style={subhead}>Experimental</div>
+            <S.Row label="On-model joints">
+              <S.Toggle testid="exp-joint-ctl" value={cfg.experimentalJointControls}
+                onChange={v=>setCfg({...cfg, experimentalJointControls: v})} />
+            </S.Row>
+            {cfg.experimentalJointControls && (
+              <>
+                <S.Row label="Selected joint">
+                  <S.Select testid="exp-joint-bone"
+                    value={cfg.jointControlSelected || 'rightUpperArm'}
+                    onChange={v=>setCfg({...cfg, jointControlSelected: v})}
+                    options={(bones || []).filter(b => window.ACS_BONE_LIMITS?.[b]).map(b => ({value:b, label:b}))} />
+                </S.Row>
+                <S.Row label="Gizmo size">
+                  <S.Slider testid="exp-joint-size" value={cfg.jointControlSize ?? 0.4}
+                    min={0.1} max={1.5} step={0.05}
+                    onChange={v=>setCfg({...cfg, jointControlSize: v})} />
+                </S.Row>
+                <div style={{ fontSize:10, opacity:0.55, marginTop:4, lineHeight:1.5 }}>
+                  Hover over a joint (desktop) or tap it (mobile) to select. Drag a colored ring to rotate; rotations clamp to anatomical limits.
+                </div>
+              </>
+            )}
           </S.Section>
 
           <S.Section title="Idle Animation" testid="idle"
@@ -1298,11 +1412,55 @@ function attachPointerHandlers(dom, stateRef, cfgRef, setCfgRef, controls) {
       y: -((e.clientY - r.top) / r.height) * 2 + 1,
     };
   };
+  // Raycast helper used by the experimental joint-controls hover/tap-to-
+  // select logic. Returns the closest humanoid bone whose world-space
+  // origin projects within `tolerance` NDC units of the pointer, or '' if
+  // none.
+  const pickBoneAtNDC = (s, ndc, tolerance = 0.07) => {
+    if (!s.vrm?.humanoid || !s.camera) return '';
+    const THREE = s.THREE;
+    const candidates = (window.ACS_BONE_GROUPS && [
+      ...window.ACS_BONE_GROUPS.core,
+      ...window.ACS_BONE_GROUPS.armL,
+      ...window.ACS_BONE_GROUPS.armR,
+      ...window.ACS_BONE_GROUPS.legL,
+      ...window.ACS_BONE_GROUPS.legR,
+    ]) || [];
+    let best = '', bestDist = tolerance;
+    for (const b of candidates) {
+      const node = s.vrm.humanoid.getNormalizedBoneNode(b);
+      if (!node) continue;
+      const wp = new THREE.Vector3();
+      node.getWorldPosition(wp);
+      const proj = wp.clone().project(s.camera);
+      // Skip bones behind the camera.
+      if (proj.z < -1 || proj.z > 1) continue;
+      const dx = proj.x - ndc.x, dy = proj.y - ndc.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < bestDist) { best = b; bestDist = d; }
+    }
+    return best;
+  };
   const onMove = (e) => {
     const s = stateRef.current;
     if (!s) return;
     const ndc = getNDC(e);
     s.mouseNDC = ndc;
+    // Joint hover selection (desktop). When experimentalJointControls is
+    // on and the gizmo is NOT being dragged, hovering over a bone updates
+    // cfg.jointControlSelected so the gizmo snaps to whichever joint the
+    // pointer is closest to. Throttled to once per ~120 ms to avoid React
+    // re-render storms while moving the mouse.
+    if (cfgRef.current.experimentalJointControls && s.jointCtl && !s.jointCtl.tc.dragging) {
+      const now = performance.now();
+      if (!s._jointHoverAt || now - s._jointHoverAt > 120) {
+        s._jointHoverAt = now;
+        const picked = pickBoneAtNDC(s, ndc, 0.06);
+        if (picked && picked !== cfgRef.current.jointControlSelected) {
+          setCfgRef.current({ ...cfgRef.current, jointControlSelected: picked });
+        }
+      }
+    }
     if (s.charDyn?.dragging) {
       // Convert NDC delta to world-space by unprojecting through the camera.
       const cam = s.camera;
@@ -1329,6 +1487,18 @@ function attachPointerHandlers(dom, stateRef, cfgRef, setCfgRef, controls) {
   const onDown = (e) => {
     const s = stateRef.current;
     if (!s) return;
+    // Joint tap-to-select (mobile) when experimentalJointControls is on.
+    // We only switch the joint when the tap is far enough from the gizmo
+    // (the tc has its own pointer handling for ring drags).
+    if (cfgRef.current.experimentalJointControls && s.jointCtl && !s.jointCtl.tc.dragging) {
+      if (e.pointerType === 'touch') {
+        const ndc = getNDC(e);
+        const picked = pickBoneAtNDC(s, ndc, 0.10);
+        if (picked && picked !== cfgRef.current.jointControlSelected) {
+          setCfgRef.current({ ...cfgRef.current, jointControlSelected: picked });
+        }
+      }
+    }
     if (e.ctrlKey || e.metaKey) {
       // Suppress OrbitControls while dragging the character.
       controls.enabled = false;

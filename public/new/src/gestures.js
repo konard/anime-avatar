@@ -40,17 +40,60 @@
     const env = sustained(t, easing);
 
     if (name === 'wave') {
-      // VRM1 rest IS T-pose (arms horizontal), so NEGATIVE z on rightUpperArm
-      // raises it up above the shoulder (same as pose-preset A vs Cheer). The
-      // A-pose z=+0.8 drops the right arm, so wave uses z=-0.9 to lift it.
+      // VRM1 rest IS T-pose (right arm extends horizontally along +X). On the
+      // RIGHT side, NEGATIVE z rotates the arm UP toward vertical; going past
+      // -90° swings the arm ACROSS the body and the hand collides with the
+      // head/neck. Anatomical "hi" wave keeps the upper arm at-or-just-under
+      // vertical, with the forearm bent ~90° forward, hand BESIDE the head
+      // — NOT crossing the centerline (issue #28: "hand goes through neck
+      // and head").
+      //
+      // Geometry verified empirically (see
+      // experiments/issue-28-wave-trajectory.mjs and the in-browser probe):
+      //
+      //   rightUpperArm.z = -1.30 rad (~-74°)  → arm raised outward beyond
+      //                                            horizontal, NOT all the way
+      //                                            to vertical, so the elbow
+      //                                            stays on the right of the
+      //                                            head, not above it.
+      //   rightUpperArm.x = -0.30 rad (~-17°)  → slight forward lean — gesture
+      //                                            faces the viewer.
+      //   rightUpperArm.y = -0.20 rad (~-11°)  → mild external rotation
+      //                                            (turning forearm forward).
+      //   rightLowerArm.x = -1.40 rad (~-80°)  → elbow flexion just under 90°,
+      //                                            forearm points UP from the
+      //                                            elbow, hand ends ~head
+      //                                            height beside the face.
+      //   rightLowerArm.y = -0.20 rad (~-11°)  → small forearm rotation so the
+      //                                            palm faces FORWARD (classic
+      //                                            open-palm greeting).
+      //   rightHand.z oscillation ±0.45 rad (~±26°) — wrist waves left/right.
+      //
+      // The hand world-space target sits at roughly (-0.45, 1.55, +0.15) for
+      // the default pixiv VRM1 sample — beside the right ear, palm forward,
+      // ~0.45m from the head centerline (no collision).
       const up = env;
-      out.rot.rightUpperArm = { x: 0, y: 0, z: -0.95 * up * amp };
-      // Forearm bends forward + oscillates ~3 cycles over the gesture.
-      const w = Math.sin(t * Math.PI * 6) * 0.7 * up * amp;
-      out.rot.rightLowerArm = { x: -1.0 * up * amp, y: w, z: 0 };
-      out.rot.rightHand = { x: 0, y: w * 0.4, z: 0 };
-      // Slight head tilt toward the waving arm (character's right).
-      out.rot.head = { x: 0, y: -0.08 * up, z: -0.06 * up };
+      out.rot.rightUpperArm = {
+        x: -0.30 * up * amp,
+        y: -0.20 * up * amp,
+        z: -1.30 * up * amp,            // ~-74° — abducted past horizontal
+      };
+      out.rot.rightLowerArm = {
+        x: -1.40 * up * amp,            // elbow flexion ~80°
+        y: -0.20 * up * amp,            // palm-forward (supination)
+        z:  0,
+      };
+      // Hand: the actual "wave" — three full side-to-side cycles over the
+      // gesture window, ramped by the envelope. ±~26° at the wrist matches
+      // a natural greeting wave (oscillates around radial/ulnar deviation).
+      const wave = Math.sin(t * Math.PI * 6) * 0.45 * up * amp;
+      out.rot.rightHand = {
+        x:  0,
+        y:  0,
+        z:  wave,
+      };
+      // Slight head tilt + look toward the waving arm.
+      out.rot.head = { x: 0, y: -0.10 * up, z: -0.08 * up };
       const g = GESTURES.wave;
       if (g.expr) out.exprs[g.expr] = bell(t, easing) * g.exprPeak * (mood.ampScale * 0.9);
       return out;

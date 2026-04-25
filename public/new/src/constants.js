@@ -37,6 +37,145 @@ window.ACS_BONE_GROUPS = {
   fingersR: H.filter(b => b.startsWith('right') && /(Thumb|Index|Middle|Ring|Little)/.test(b)),
 };
 
+// Anatomical rotation limits, in DEGREES, per VRM humanoid bone, per axis.
+// Based on healthy-adult range-of-motion references (Healthline shoulder
+// ROM article, PMC PMC7549223 / PMC6555111 normative studies, DSHS WA
+// 13-585A range-of-motion chart). Numbers are rounded out generously so
+// expressive poses are not clipped.
+//
+// Sign conventions match the VRM normalized humanoid frame (rest = T-pose
+// for VRM 1.0). For arm bones the LEFT and RIGHT sides are mirrored on the
+// Z axis (z is the dominant raise/lower axis); we generate the right-side
+// entry from the left-side so the table stays compact and consistent.
+//
+// `null` for an axis means "not anatomically meaningful" — the slider is
+// hidden in the editor and the clamp helper returns 0 for that axis.
+const _LIM_ARMS_LEFT = {
+  // Shoulder is small but meaningful — gives a 30° shrug envelope.
+  leftShoulder:  { x: [ -20,  20], y: [ -30,  30], z: [ -30,  30] },
+  // Left upper arm: rest = horizontal (T-pose). For the LEFT side, NEGATIVE
+  // z drops the arm to the body's side (apose / relaxed presets, max ~-95°
+  // straight-down or slightly across the front) and POSITIVE z raises it
+  // overhead. Healthy shoulder abduction reaches ~180° from the
+  // hanging-down position, which is z=+85° measured from T-pose horizontal
+  // (T-pose is already 90° abducted). Pushing past +95° starts swinging
+  // the arm ACROSS the head/neck — anatomically possible only with active
+  // adduction effort and self-collides with the mesh of any standard
+  // humanoid avatar (issue #28: "hand goes through neck and head"). We
+  // therefore cap z at ±100° on each side: enough for a vertical-arm
+  // cheer/wave with a small overshoot, not enough to clip into the head.
+  // For the X axis (shoulder flexion/extension), normal active range is
+  // ~-50° (extension behind body) to +180° (forward + up). We allow a
+  // generous ±90° so forward-reach poses still work.
+  leftUpperArm:  { x: [ -90,  90], y: [ -90,  90], z: [-100, 100] },
+  // Elbow only flexes (rotation bends inward toward shoulder, NEGATIVE x
+  // on the LEFT side). Healthy ROM is ~0° straight to ~145-150° fully
+  // flexed; we round to 150°. The Y axis is forearm pronation/supination
+  // (~85°/75° for an adult); ±90° is generous. Z is essentially zero —
+  // ±10° tolerance keeps slider behaviour natural without allowing the
+  // elbow to hyperextend sideways.
+  leftLowerArm:  { x: [-150,   0], y: [ -90,  90], z: [ -10,  10] },
+  // Wrist: flexion/extension ±80°, radial/ulnar deviation ±25° on the Y
+  // axis (we widen to ±60° so wrist-wave gestures read clearly), small Z
+  // twist tolerance.
+  leftHand:      { x: [ -80,  80], y: [ -60,  60], z: [ -30,  30] },
+};
+const _LIM_LEGS_LEFT = {
+  leftUpperLeg:  { x: [ -30, 120], y: [ -45,  45], z: [ -45,  45] },
+  // Knee only flexes (positive X bends the calf toward the back of the
+  // thigh). Tiny tolerance on the other axes.
+  leftLowerLeg:  { x: [   0, 150], y: [ -10,  10], z: [ -10,  10] },
+  leftFoot:      { x: [ -50,  50], y: [ -30,  30], z: [ -20,  20] },
+  leftToes:      { x: [ -30,  60], y: [ -10,  10], z: [ -10,  10] },
+};
+// Mirror left → right by negating the LEFT-side Z-range and Y-range so the
+// limits read naturally in body-relative coordinates ("arm raises up" is
+// always negative-z on the LEFT, positive-z on the RIGHT, etc.).
+function _mirrorLR(lims) {
+  const out = {};
+  for (const [b, ax] of Object.entries(lims)) {
+    const r = b.replace(/^left/, 'right');
+    out[r] = {
+      x: ax.x ? [ax.x[0], ax.x[1]] : null,
+      y: ax.y ? [-ax.y[1], -ax.y[0]] : null,
+      z: ax.z ? [-ax.z[1], -ax.z[0]] : null,
+    };
+  }
+  return out;
+}
+window.ACS_BONE_LIMITS = {
+  // Core / spine
+  hips:        { x: [ -20,  20], y: [ -30,  30], z: [ -20,  20] },
+  spine:       { x: [ -30,  60], y: [ -45,  45], z: [ -30,  30] },
+  chest:       { x: [ -20,  45], y: [ -30,  30], z: [ -25,  25] },
+  upperChest:  { x: [ -15,  30], y: [ -25,  25], z: [ -20,  20] },
+  neck:        { x: [ -45,  45], y: [ -50,  50], z: [ -30,  30] },
+  head:        { x: [ -50,  50], y: [ -70,  70], z: [ -40,  40] },
+  jaw:         { x: [   0,  35], y: [ -10,  10], z: [ -10,  10] },
+  // Eyes (additional clamp on top of VRM lookAt cone).
+  leftEye:     { x: [ -25,  25], y: [ -35,  35], z: null },
+  rightEye:    { x: [ -25,  25], y: [ -35,  35], z: null },
+  // Arms (left + mirrored right).
+  ..._LIM_ARMS_LEFT,
+  ..._mirrorLR(_LIM_ARMS_LEFT),
+  // Legs (left + mirrored right).
+  ..._LIM_LEGS_LEFT,
+  ..._mirrorLR(_LIM_LEGS_LEFT),
+};
+// Fingers all share a flexion-only Z range; the metacarpal is the only one
+// with a bit of side-to-side spread. Built procedurally so we don't have to
+// list 30 bones by hand.
+(function _buildFingerLimits() {
+  const FINGERS = ['Thumb','Index','Middle','Ring','Little'];
+  const SEGS = ['Metacarpal','Proximal','Intermediate','Distal'];
+  const flex = { x: null, y: null, z: [ -10, 100] };
+  const meta = { x: [ -10,  20], y: [ -20,  20], z: [ -10,  90] };
+  for (const side of ['left','right']) {
+    for (const f of FINGERS) {
+      for (const s of SEGS) {
+        const b = side + f + s;
+        if (!window.ACS_HUMANOID_BONES.includes(b)) continue;
+        window.ACS_BONE_LIMITS[b] = (s === 'Metacarpal') ? meta : flex;
+      }
+    }
+  }
+})();
+
+// Convert radians ↔ degrees with a tiny epsilon so values that round-trip
+// through the slider don't drift.
+window.ACS_radToDeg = function radToDeg(r) {
+  return ((r || 0) * 180 / Math.PI);
+};
+window.ACS_degToRad = function degToRad(d) {
+  return ((d || 0) * Math.PI / 180);
+};
+window.ACS_clamp = function clamp(v, lo, hi) {
+  return v < lo ? lo : (v > hi ? hi : v);
+};
+// Look up the [min,max] DEGREE range for a single bone+axis. Returns
+// `null` when that axis is not anatomically meaningful (caller should hide
+// the slider). Returns the FULL [-360, 360] sweep when the bone has no
+// entry in ACS_BONE_LIMITS so unknown bones still work.
+window.ACS_boneLimitDeg = function boneLimitDeg(bone, axis) {
+  const ent = window.ACS_BONE_LIMITS[bone];
+  if (!ent) return [-360, 360];
+  const ax = ent[axis];
+  if (ax === null) return null;
+  if (!ax) return [-360, 360];
+  return [ax[0], ax[1]];
+};
+// Clamp a bone Euler component (radians in, radians out) to its
+// anatomical range. Used inside apply.js so any cfg.rot — preset, gesture,
+// randomizer, manual slider — stays inside biological bounds.
+window.ACS_clampBoneRad = function clampBoneRad(bone, axis, rad) {
+  const lim = window.ACS_boneLimitDeg(bone, axis);
+  if (lim === null) return 0;
+  if (!lim) return rad || 0;
+  const deg = (rad || 0) * 180 / Math.PI;
+  const c = deg < lim[0] ? lim[0] : (deg > lim[1] ? lim[1] : deg);
+  return c * Math.PI / 180;
+};
+
 window.ACS_SCALE_BONES = [
   { b:'head', label:'Head', min:0.6, max:1.6 },
   { b:'neck', label:'Neck', min:0.5, max:1.8 },

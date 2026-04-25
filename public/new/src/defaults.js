@@ -104,6 +104,17 @@ window.ACS_DEFAULTS = {
   mirrorArms: false,
   showFPS: true,
 
+  // EXPERIMENTAL: in-viewport joint rotation gizmo. Off by default — see
+  // issue #28. When `experimentalJointControls` is on, hovering over a
+  // humanoid bone (desktop) or tapping near it (mobile) selects it; a
+  // three.js TransformControls in 'rotate' mode is attached to the
+  // selected bone, showing colored rings (R/G/B = X/Y/Z). Drag a ring to
+  // rotate that joint. Rotations are clamped to the anatomical limits
+  // table just like every other rotation pathway.
+  experimentalJointControls: false,
+  jointControlSize: 0.4,        // gizmo screen-size multiplier
+  jointControlSelected: '',     // empty → pick automatically; otherwise bone name
+
   // Idle animation bundle. Curves are ease-in-out sine so nothing snaps.
   idleBreath: true,
   idleBreathAmt: 0.008,
@@ -182,7 +193,7 @@ window.ACS_GROUP_CFG_KEYS = {
   scene: ['bg','groundOpacity'],
   camera: ['cameraFov','cameraDist','cameraHeight','cameraInertia'],
   svgCamera: ['svgCamFov','svgCamDist','svgCamHeight'],
-  behaviour: ['autoRotate','showFPS'],
+  behaviour: ['autoRotate','showFPS','experimentalJointControls','jointControlSize','jointControlSelected'],
   idle: ['idleBreath','idleBreathAmt','idleBlink','idleBlinkFreq','idleGaze','idleGazeAmt','idleMicroHead',
          'lookFollowCamera','lookFollowMouse','lookRandom',
          'lookCameraEyes','lookCameraHead','lookCameraEyesAmount','lookCameraHeadAmount',
