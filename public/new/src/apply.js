@@ -69,6 +69,25 @@
     return s.textMotion;
   }
 
+  function ensureIpaSpeech(s) {
+    if (!s.ipaSpeech) {
+      s.ipaSpeech = {
+        text: '',
+        nonce: -1,
+        t: 0,
+        plan: null,
+        status: 'idle',
+        reason: '',
+        active: false,
+        phoneme: '',
+        viseme: '',
+        mouth: null,
+        resources: null,
+      };
+    }
+    return s.ipaSpeech;
+  }
+
   // Emotion transition state: cfg.expr + mood bleed through a cross-fade.
   function ensureEmo(s) {
     if (!s.emo) s.emo = { from: {}, to: {}, started: -Infinity, durationMs: 0, easing: 'easeInOut' };
@@ -105,6 +124,7 @@
 
     const animActive = !!s.animation?.action && s.animation.action.isRunning?.();
     const textMotionDelta = stepTextMotion(s, c, dt, animActive);
+    const ipaSpeechDelta = stepIpaSpeech(s, c, dt);
 
     updateCharPos(s, c);
     if (vrm.scene) {
@@ -170,6 +190,11 @@
             ry += textMotionDelta.rot[b].y || 0;
             rz += textMotionDelta.rot[b].z || 0;
           }
+          if (ipaSpeechDelta?.rot?.[b]) {
+            rx += ipaSpeechDelta.rot[b].x || 0;
+            ry += ipaSpeechDelta.rot[b].y || 0;
+            rz += ipaSpeechDelta.rot[b].z || 0;
+          }
           // Clamp the combined Euler to the bone's anatomical limit. Because
           // the limit table covers VRM humanoid bones we recognize and
           // returns the full ±360° for unknown bones, this is a no-op for
@@ -231,7 +256,7 @@
 
     // --- Expression blend + idle blink ---
     if (vrm.expressionManager) {
-      applyExpressions(s, c, vrm, dt, mergeExpressionDeltas(gestureDelta, textMotionDelta));
+      applyExpressions(s, c, vrm, dt, mergeExpressionDeltas(gestureDelta, textMotionDelta, ipaSpeechDelta));
       if (c.idleBlink) stepBlink(vrm, c, idle, dt);
     }
 
@@ -296,6 +321,50 @@
     tm.root = delta?.root || { x: 0, y: 0, yaw: 0 };
     tm.rootYaw = tm.root.yaw || 0;
     return tm.active ? delta : null;
+  }
+
+  function stepIpaSpeech(s, c, dt) {
+    const speech = ensureIpaSpeech(s);
+    if (!c.ipaSpeechEnabled) {
+      speech.status = 'idle';
+      speech.active = false;
+      speech.reason = '';
+      speech.phoneme = '';
+      speech.viseme = '';
+      speech.mouth = null;
+      return null;
+    }
+
+    const text = c.ipaSpeechText || '';
+    const nonce = c.ipaSpeechNonce || 0;
+    if (!speech.plan || speech.text !== text || speech.nonce !== nonce) {
+      speech.text = text;
+      speech.nonce = nonce;
+      speech.t = 0;
+      speech.plan = window.ACS_createIpaSpeechPlan
+        ? window.ACS_createIpaSpeechPlan(text)
+        : { ok: false, status: 'missing-model', reason: 'IPA speech module is not loaded.' };
+      speech.resources = speech.plan.resources || window.ACS_getIpaSpeechResourceReport?.() || null;
+      speech.status = speech.plan.ok ? 'running' : speech.plan.status;
+      speech.reason = speech.plan.reason || '';
+    }
+
+    if (!speech.plan?.ok) {
+      speech.active = false;
+      speech.phoneme = '';
+      speech.viseme = '';
+      speech.mouth = null;
+      return null;
+    }
+
+    speech.t += dt;
+    const delta = window.ACS_ipaSpeechDelta?.(speech.plan, speech.t, dt) || null;
+    speech.active = !!delta?.active;
+    speech.status = speech.active ? 'running' : 'complete';
+    speech.phoneme = delta?.phoneme || '';
+    speech.viseme = delta?.viseme || '';
+    speech.mouth = delta?.mouth || null;
+    return speech.active ? delta : null;
   }
 
   function mergeExpressionDeltas(...deltas) {
@@ -846,7 +915,7 @@
   }
 
   window.ACS_probe = function probe(s) {
-    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, textMotion: {}, shade: {} };
+    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, textMotion: {}, ipaSpeech: {}, shade: {} };
     if (!s) return out;
     const vrm = s.vrm;
     if (vrm && vrm.humanoid) {
@@ -905,6 +974,15 @@
     out.textMotion.prompt = s.textMotion?.prompt || '';
     out.textMotion.reason = s.textMotion?.reason || '';
     out.textMotion.plan = (s.textMotion?.plan?.commands || []).map(c => c.type).join(',');
+    out.ipaSpeech.status = s.ipaSpeech?.status || 'idle';
+    out.ipaSpeech.active = !!s.ipaSpeech?.active;
+    out.ipaSpeech.t = Math.round((s.ipaSpeech?.t || 0) * 100) / 100;
+    out.ipaSpeech.text = s.ipaSpeech?.text || '';
+    out.ipaSpeech.ipa = s.ipaSpeech?.plan?.ipa || '';
+    out.ipaSpeech.reason = s.ipaSpeech?.reason || '';
+    out.ipaSpeech.phoneme = s.ipaSpeech?.phoneme || '';
+    out.ipaSpeech.viseme = s.ipaSpeech?.viseme || '';
+    out.ipaSpeech.mouth = s.ipaSpeech?.mouth || null;
     return out;
   };
 
