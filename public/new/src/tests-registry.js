@@ -286,7 +286,7 @@
     });
 
     // ----- isolation -----
-    for (const g of ['lookAt','lights','scene','camera','behaviour','svg','idle','character','debug','animation','textMotion']) {
+    for (const g of ['lookAt','lights','scene','camera','behaviour','svg','idle','character','debug','animation','textMotion','ipaSpeech']) {
       add('isolation', `group randomize '${g}' only mutates its own keys`, async () => {
         H.globalReset();
         await wait(80);
@@ -321,7 +321,7 @@
     }
 
     // ----- per-group reset -----
-    for (const g of ['lookAt','lights','scene','camera','svg','behaviour','svgCamera','idle','character','debug','animation','textMotion']) {
+    for (const g of ['lookAt','lights','scene','camera','svg','behaviour','svgCamera','idle','character','debug','animation','textMotion','ipaSpeech']) {
       add('reset-group', `reset '${g}' restores defaults`, async () => {
         H.groupRandomize(g);
         await wait(80);
@@ -705,6 +705,38 @@
       if (a.bones.leftUpperLeg === b.bones.leftUpperLeg) throw new Error('left leg did not animate');
       if (Math.abs((b.scene.rootPY || 0) - (a.scene.rootPY || 0)) < 0.001) throw new Error('root bob did not change');
       H.setCfg({ ...H.cfg(), textMotionEnabled:false });
+    });
+
+    // ----- IPA speech -----------------------------------------------------
+    add('ipaSpeech', 'resource report exposes local dictionary budget', async () => {
+      const report = window.ACS_getIpaSpeechResourceReport?.();
+      if (!report?.available || !report?.required) throw new Error('missing resource report');
+      if (!('dictionaryEntries' in report.required)) throw new Error('missing dictionary size');
+      if (!report.available.localOnly) throw new Error('expected local-only runtime');
+    });
+    add('ipaSpeech', 'English text creates an IPA viseme plan', async () => {
+      const plan = window.ACS_createIpaSpeechPlan('Hello avatar physics');
+      if (!plan.ok) throw new Error(plan.reason || plan.status);
+      if (!plan.ipa.includes('ˈ')) throw new Error('stress marker missing from IPA');
+      if (!plan.visemes.some(v => v.viseme === 'labiodental')) throw new Error('labiodental viseme missing');
+      if (!plan.phonemes.some(p => p.expression === 'aa')) throw new Error('aa mouth expression missing');
+    });
+    add('ipaSpeech', 'enabled IPA speech prompt advances mouth state', async () => {
+      H.setCfg({ ...H.cfg(), pose:'rest', rot:{}, idleBreath:false,
+        idleMicroHead:false, idleBlink:false, mood:'neutral', exprTransitionMs:0,
+        ipaSpeechEnabled:true, ipaSpeechText:'my mouth moves',
+        ipaSpeechNonce:(H.cfg().ipaSpeechNonce || 0) + 1 });
+      await wait(140);
+      const a = H.probe();
+      await wait(160);
+      const b = H.probe();
+      if (b.ipaSpeech?.status === 'insufficient-resources') return;
+      if (!b.ipaSpeech?.ipa) throw new Error('IPA text missing');
+      if (b.ipaSpeech?.active !== true) throw new Error('IPA speech not active');
+      if (a.ipaSpeech?.phoneme === b.ipaSpeech?.phoneme && a.ipaSpeech?.viseme === b.ipaSpeech?.viseme) {
+        throw new Error('mouth phoneme did not advance');
+      }
+      H.setCfg({ ...H.cfg(), ipaSpeechEnabled:false });
     });
 
     // ----- emotion face-visibility ---------------------------------------

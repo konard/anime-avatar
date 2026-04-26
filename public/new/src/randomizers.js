@@ -217,6 +217,18 @@
       c.textMotionModel = window.ACS_TEXT_MOTION_MODEL_ID || 'gr00t-browser-adapter-v0';
       if (c.textMotionEnabled) c.textMotionNonce = (c.textMotionNonce || 0) + 1;
     };
+    R.ipaSpeech = (c) => {
+      const prompts = [
+        'Hello avatar',
+        'International phonetic alphabet',
+        'My mouth moves',
+        'Physics and airflow',
+        'Text to speech animation',
+      ];
+      c.ipaSpeechText = prompts[Math.floor(Math.random() * prompts.length)];
+      c.ipaSpeechModel = window.ACS_IPA_SPEECH_MODEL_ID || 'ipa-speech-browser-adapter-v0';
+      if (c.ipaSpeechEnabled) c.ipaSpeechNonce = (c.ipaSpeechNonce || 0) + 1;
+    };
     R.svg = (c) => {
       c.svgYaw = rand(-180, 180);
       c.svgPitch = rand(-40, 40);
@@ -326,6 +338,12 @@
         c.textMotionPrompt = defaults.textMotionPrompt;
         c.textMotionNonce = defaults.textMotionNonce;
         c.textMotionModel = defaults.textMotionModel;
+      },
+      ipaSpeech:  (c) => {
+        c.ipaSpeechEnabled = defaults.ipaSpeechEnabled;
+        c.ipaSpeechText = defaults.ipaSpeechText;
+        c.ipaSpeechNonce = defaults.ipaSpeechNonce;
+        c.ipaSpeechModel = defaults.ipaSpeechModel;
       },
       svg:         (c) => {
         c.svgYaw = defaults.svgYaw;
