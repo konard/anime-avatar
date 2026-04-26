@@ -167,6 +167,14 @@ window.ACS_DEFAULTS = {
   textMotionNonce: 0,
   textMotionModel: 'gr00t-browser-adapter-v0',
 
+  // EXPERIMENTAL: English text -> IPA -> mouth animation. The adapter is
+  // local and deterministic; it drives VRM mouth expressions and the jaw
+  // bone from IPA-derived visemes.
+  ipaSpeechEnabled: false,
+  ipaSpeechText: 'Hello avatar',
+  ipaSpeechNonce: 0,
+  ipaSpeechModel: 'ipa-speech-browser-adapter-v0',
+
   // Expression blend-transition duration (seconds) + easing. Changing any
   // slider or mood triggers a cross-fade over this duration.
   exprTransitionMs: 450,
@@ -216,5 +224,6 @@ window.ACS_GROUP_CFG_KEYS = {
   animation: ['animationUrl','animationPresetId','animationTimeScale'],
   gestures: ['gesture','gestureNonce','gestureEasing','mood','exprTransitionMs','exprTransitionEasing'],
   textMotion: ['textMotionEnabled','textMotionPrompt','textMotionNonce','textMotionModel'],
+  ipaSpeech: ['ipaSpeechEnabled','ipaSpeechText','ipaSpeechNonce','ipaSpeechModel'],
   svg: ['svgLivePreview','svgYaw','svgPitch','svgBg','svgStroke','svgStrokeWidth','svgQuality'],
 };

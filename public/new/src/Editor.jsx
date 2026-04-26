@@ -43,9 +43,14 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   const [urlInput, setUrlInput] = useState(cfg.vrmUrl || DEFAULT_VRM_URL);
   const [animUrlInput, setAnimUrlInput] = useState(cfg.animationUrl || '');
   const [textMotionInput, setTextMotionInput] = useState(cfg.textMotionPrompt || 'walk');
+  const [ipaSpeechInput, setIpaSpeechInput] = useState(cfg.ipaSpeechText || 'Hello avatar');
   const [textMotionInfo, setTextMotionInfo] = useState(() => ({
     runtime: null,
     resources: window.ACS_getTextMotionResourceReport?.() || null,
+  }));
+  const [ipaSpeechInfo, setIpaSpeechInfo] = useState(() => ({
+    runtime: null,
+    resources: window.ACS_getIpaSpeechResourceReport?.() || null,
   }));
   const [fps, setFps] = useState(0);
 
@@ -58,9 +63,21 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     setTextMotionInput(cfg.textMotionPrompt || 'walk');
   }, [cfg.textMotionPrompt]);
   useEffect(() => {
+    setIpaSpeechInput(cfg.ipaSpeechText || 'Hello avatar');
+  }, [cfg.ipaSpeechText]);
+  useEffect(() => {
     const update = () => setTextMotionInfo({
       runtime: stateRef.current.textMotion || null,
       resources: stateRef.current.textMotion?.resources || window.ACS_getTextMotionResourceReport?.() || null,
+    });
+    update();
+    const id = setInterval(update, 350);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const update = () => setIpaSpeechInfo({
+      runtime: stateRef.current.ipaSpeech || null,
+      resources: stateRef.current.ipaSpeech?.resources || window.ACS_getIpaSpeechResourceReport?.() || null,
     });
     update();
     const id = setInterval(update, 350);
@@ -647,6 +664,26 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       setCfg({ ...cfg, textMotionEnabled: false });
     }
   };
+  const runIpaSpeech = () => setCfg({
+    ...cfg,
+    ipaSpeechEnabled: true,
+    ipaSpeechText: ipaSpeechInput,
+    ipaSpeechNonce: (cfg.ipaSpeechNonce || 0) + 1,
+    ipaSpeechModel: window.ACS_IPA_SPEECH_MODEL_ID || cfg.ipaSpeechModel,
+  });
+  const toggleIpaSpeech = (enabled) => {
+    if (enabled) {
+      setCfg({
+        ...cfg,
+        ipaSpeechEnabled: true,
+        ipaSpeechText: ipaSpeechInput,
+        ipaSpeechNonce: (cfg.ipaSpeechNonce || 0) + 1,
+        ipaSpeechModel: window.ACS_IPA_SPEECH_MODEL_ID || cfg.ipaSpeechModel,
+      });
+    } else {
+      setCfg({ ...cfg, ipaSpeechEnabled: false });
+    }
+  };
 
   const updRot = (bone, axis, val) => {
     const rot = { ...(cfg.rot || {}) };
@@ -953,6 +990,27 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
               </div>
             </div>
             <TextMotionStatus info={textMotionInfo} />
+          </S.Section>
+
+          <S.Section title="IPA Speech" testid="ipa-speech"
+            onRandomize={() => applyGroupRandomize('ipaSpeech')}
+            onReset={() => applyGroupReset('ipaSpeech')}>
+            <S.Row label="Enabled">
+              <S.Toggle testid="ipa-speech-enabled" value={cfg.ipaSpeechEnabled}
+                onChange={toggleIpaSpeech} />
+            </S.Row>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <textarea data-testid="ipa-speech-text" value={ipaSpeechInput}
+                onChange={e=>setIpaSpeechInput(e.target.value)}
+                placeholder="Hello avatar"
+                rows={3}
+                style={textareaStyle} />
+              <div style={{ display:'flex', gap:6 }}>
+                <button data-testid="ipa-speech-run" onClick={runIpaSpeech} style={{...btn, flex:1}}>Run</button>
+                <button data-testid="ipa-speech-stop" onClick={() => setCfg({...cfg, ipaSpeechEnabled:false})} style={{...btn, flex:1}}>Stop</button>
+              </div>
+            </div>
+            <IpaSpeechStatus info={ipaSpeechInfo} />
           </S.Section>
 
           <S.Section title="Pose" testid="pose"
@@ -1297,12 +1355,51 @@ function TextMotionStatus({ info }) {
       lineHeight: 1.55,
       color: 'rgba(255,255,255,0.72)',
       fontFamily: 'ui-monospace, Menlo, monospace',
+      wordBreak: 'break-word',
+      overflowWrap: 'anywhere',
     }}>
       <div>Status: {status}</div>
       {commands && <div>Plan: {commands}</div>}
       {reason && <div style={{ color:'#ffb0b0' }}>{reason}</div>}
       <div>Available: {fmtResource(available.memoryMb, ' MiB')} RAM, {fmtResource(available.cpuCores)} cores, WebGL {fmtResource(available.webgl)}, WebGPU {fmtResource(available.webgpu)}</div>
       <div>Required: {fmtResource(required.memoryMb, ' MiB')} RAM, {fmtResource(required.cpuCores)} cores, WebGL {fmtResource(required.webgl)}, model {fmtResource(required.onnxModelMb, ' MiB')}</div>
+    </div>
+  );
+}
+
+function IpaSpeechStatus({ info }) {
+  const runtime = info?.runtime;
+  const resources = info?.resources || window.ACS_getIpaSpeechResourceReport?.();
+  const available = resources?.available || {};
+  const required = resources?.required || window.ACS_IPA_SPEECH_REQUIRED || {};
+  const status = runtime?.status || (resources?.ok ? 'ready' : 'blocked');
+  const reason = runtime?.reason || resources?.problems?.join('; ') || '';
+  const ipa = runtime?.plan?.ipa || '';
+  const coverage = runtime?.plan?.coverage || null;
+  const active = runtime?.active
+    ? `${runtime.phoneme || '-'} / ${runtime.viseme || '-'}`
+    : '';
+  return (
+    <div data-testid="ipa-speech-status" style={{
+      marginTop: 8,
+      padding: 8,
+      borderRadius: 8,
+      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(255,255,255,0.04)',
+      fontSize: 10,
+      lineHeight: 1.55,
+      color: 'rgba(255,255,255,0.72)',
+      fontFamily: 'ui-monospace, Menlo, monospace',
+      wordBreak: 'break-word',
+      overflowWrap: 'anywhere',
+    }}>
+      <div>Status: {status}</div>
+      {active && <div>Now: {active}</div>}
+      {ipa && <div>IPA: {ipa}</div>}
+      {coverage && <div>Coverage: {coverage.dictionaryWords}/{coverage.totalWords} dictionary</div>}
+      {reason && <div style={{ color:'#ffcf8f' }}>{reason}</div>}
+      <div>Available: {fmtResource(available.memoryMb, ' MiB')} RAM, {fmtResource(available.cpuCores)} cores, local {fmtResource(available.localOnly)}</div>
+      <div>Required: {fmtResource(required.memoryMb, ' MiB')} RAM, {fmtResource(required.cpuCores)} core, dictionary {fmtResource(required.dictionaryEntries)}</div>
     </div>
   );
 }
