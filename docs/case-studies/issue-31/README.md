@@ -152,6 +152,36 @@ table below; full details remain in
 | 360 Spin Walk 1 | `walking_quip_360_R_002__A428`        | 455    | 50  |
 | 360 Spin Walk 2 | `walking_quip_360_R_002__A428_M`      | 455    | 50  |
 
+## Verified in browser
+
+The PR was driven through a real session against
+`http://localhost:5173/anime-avatar/new/?view=editor`:
+
+- `ACS_fetchGearSonicReferenceMotion('squat_001__A359')` returned 424 frames @ 50 fps
+  from `https://nvlabs.github.io/GEAR-SONIC/assets/motions/squat_001__A359.json` —
+  no copy in this repo.
+- `ACS_loadGearSonicRobotModel(THREE)` fetched `assets/robot/scene.xml` plus the
+  36 STL meshes from `nvlabs.github.io/GEAR-SONIC` and assembled a 30-body
+  Three.js group.
+- The retargeted joint angles drove the VRM avatar's leftUpperLeg, leftLowerLeg,
+  spine, leftUpperArm, etc. through the recorded squat cycle (deepest knee bend
+  ≈ 102°, hip flexion ≈ 72°). Screenshot below was captured at the deepest
+  squat frame:
+
+![Deep squat from real GEAR-SONIC clip](https://github.com/konard/anime-avatar/blob/issue-31-dddf70820fd1/docs/case-studies/issue-31/screenshots/squat-deep.png?raw=true)
+
+- The `Reset all` button returned every new toggle (`gearSonicReferenceEnabled`,
+  `gearSonicBackendEnabled`, `gearSonicRobotEnabled`, `floorGridEnabled`,
+  `mouseForceEnabled`, `textMotionEnabled`) to `false`.
+- `ACS_generateGearSonicMotion('walk happily', { backendURL: '' })` returned
+  `{ ok: false, status: 'no-backend', reason: 'No GEAR-SONIC text-to-motion
+backend configured…' }`, surfacing the missing-backend state instead of
+  silently faking a result.
+
+| Floor grid (SONIC green)                                                                                                                                          | Avatar + G1 robot from GEAR-SONIC URL                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Floor grid SONIC green](https://github.com/konard/anime-avatar/blob/issue-31-dddf70820fd1/docs/case-studies/issue-31/screenshots/floor-grid-sonic.png?raw=true) | ![Avatar with G1 robot](https://github.com/konard/anime-avatar/blob/issue-31-dddf70820fd1/docs/case-studies/issue-31/screenshots/avatar-with-robot.png?raw=true) |
+
 ## Test plan
 
 Automated:
