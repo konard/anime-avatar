@@ -38,6 +38,7 @@
   import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
   import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
   import { FBXLoader }     from 'three/addons/loaders/FBXLoader.js';
+  import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
   import * as VRM from '@pixiv/three-vrm';
   const THREE = Object.assign({}, THREE_NS);
   THREE.OrbitControls = OrbitControls;
@@ -45,6 +46,8 @@
   THREE.GLTFLoader = GLTFLoader;
   THREE.GLTFExporter = GLTFExporter;
   THREE.FBXLoader = FBXLoader;
+  THREE.STLLoader = STLLoader;
+  window.STLLoader = STLLoader;
   window.THREE = THREE;
   window.TransformControls = TransformControls;
   window.GLTFLoader = GLTFLoader;
@@ -63,6 +66,7 @@
 <script src="src/randomizers.js"></script>
 <script src="src/color.js"></script>
 <script src="src/gestures.js"></script>
+<script src="src/gearSonic.js"></script>
 <script src="src/textMotion.js"></script>
 <script src="src/ipaSpeech.js"></script>
 <script src="src/apply.js"></script>

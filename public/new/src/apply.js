@@ -70,6 +70,15 @@
         rootYaw: 0,
         root: { x: 0, y: 0, yaw: 0 },
         resources: null,
+        // GEAR-SONIC reference / generated-motion playback. `motion` is a
+        // fetched JSON clip ({jointPos, rootPos, rootQuat, fps, ...}); when
+        // present it overrides the procedural delta path below.
+        motion: null,
+        motionId: '',
+        motionStatus: 'idle',
+        motionReason: '',
+        motionPending: false,
+        motionSource: '',  // 'reference' | 'generated' | ''
       };
     }
     return s.textMotion;
@@ -309,6 +318,11 @@
       tm.reason = '';
       tm.rootYaw = 0;
       tm.root = { x: 0, y: 0, yaw: 0 };
+      tm.motion = null;
+      tm.motionId = '';
+      tm.motionStatus = 'idle';
+      tm.motionReason = '';
+      tm.motionSource = '';
       return null;
     }
     if (animActive) {
@@ -332,6 +346,69 @@
       tm.resources = tm.plan.resources || window.ACS_getTextMotionResourceReport?.() || null;
       tm.status = tm.plan.ok ? 'running' : tm.plan.status;
       tm.reason = tm.plan.reason || '';
+      // A new prompt invalidates any cached real-motion playback so the
+      // background fetcher can pull the right clip again.
+      tm.motion = null;
+      tm.motionId = '';
+      tm.motionPending = false;
+      tm.motionStatus = 'idle';
+      tm.motionReason = '';
+      tm.motionSource = '';
+    }
+
+    // Real GEAR-SONIC reference fetch: kick off a single fetch for the
+    // selected reference id when the toggle is on. The fetch is async; we
+    // run procedural deltas in the meantime and swap in real data once it
+    // resolves. The previous frame's motion sticks around so the swap is
+    // seamless.
+    if (c.gearSonicReferenceEnabled && tm.plan?.ok && window.ACS_fetchGearSonicReferenceMotion) {
+      const explicitId = (c.gearSonicReferenceId || '').trim();
+      const planRef = (tm.plan.commands || []).find(cmd => cmd.referenceId)?.referenceId || '';
+      const targetId = explicitId || planRef;
+      if (targetId && tm.motionId !== targetId && !tm.motionPending) {
+        tm.motionPending = true;
+        tm.motionStatus = 'loading';
+        tm.motionReason = `Loading ${targetId} from ${c.gearSonicBaseURL || 'GEAR-SONIC'}…`;
+        const baseURL = c.gearSonicBaseURL || window.ACS_GEAR_SONIC_BASE_URL;
+        window.ACS_fetchGearSonicReferenceMotion(targetId, { baseURL })
+          .then(motion => {
+            tm.motion = motion;
+            tm.motionId = targetId;
+            tm.motionPending = false;
+            tm.motionStatus = 'ready';
+            tm.motionReason = `Playing ${motion.display || motion.id} (${motion.frames} frames @ ${motion.fps} fps)`;
+            tm.motionSource = 'reference';
+            tm.t = 0;
+          })
+          .catch(err => {
+            tm.motion = null;
+            tm.motionPending = false;
+            tm.motionStatus = 'failed';
+            tm.motionReason = `GEAR-SONIC fetch failed: ${err.message || err}`;
+            tm.motionSource = '';
+          });
+      } else if (!targetId) {
+        tm.motionStatus = 'no-reference';
+        tm.motionReason = 'Prompt did not match a known GEAR-SONIC reference clip.';
+      }
+    } else if (!c.gearSonicReferenceEnabled && tm.motion && tm.motionSource === 'reference') {
+      tm.motion = null;
+      tm.motionId = '';
+      tm.motionStatus = 'idle';
+      tm.motionReason = '';
+      tm.motionSource = '';
+    }
+
+    // Generated-motion override: the editor may stash a backend-generated
+    // clip on s.textMotion.generatedMotion (set by Editor.jsx after a
+    // successful POST to the text-to-motion backend). When present and the
+    // user hasn't picked a reference, prefer the generated clip.
+    if (tm.generatedMotion && !c.gearSonicReferenceEnabled) {
+      tm.motion = tm.generatedMotion;
+      tm.motionId = tm.generatedMotion.id;
+      tm.motionStatus = 'ready';
+      tm.motionReason = `Playing generated clip ${tm.generatedMotion.display || tm.generatedMotion.id}`;
+      tm.motionSource = 'generated';
     }
 
     if (!tm.plan?.ok) {
@@ -342,7 +419,12 @@
     }
 
     tm.t += dt;
-    const delta = window.ACS_textMotionDelta?.(tm.plan, tm.t, dt) || null;
+    let delta = null;
+    if (tm.motion && window.ACS_gearSonicReferenceDelta) {
+      delta = window.ACS_gearSonicReferenceDelta(tm.motion, tm.t);
+    } else {
+      delta = window.ACS_textMotionDelta?.(tm.plan, tm.t, dt) || null;
+    }
     tm.active = !!delta?.active;
     tm.status = tm.active ? 'running' : 'complete';
     tm.reason = '';

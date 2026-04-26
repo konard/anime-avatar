@@ -44,6 +44,8 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   const [animUrlInput, setAnimUrlInput] = useState(cfg.animationUrl || '');
   const [textMotionInput, setTextMotionInput] = useState(cfg.textMotionPrompt || 'walk');
   const [ipaSpeechInput, setIpaSpeechInput] = useState(cfg.ipaSpeechText || 'Hello avatar');
+  const [gearSonicGenStatus, setGearSonicGenStatus] = useState(null);
+  const [gearSonicRobotStatus, setGearSonicRobotStatus] = useState(null);
   const [textMotionInfo, setTextMotionInfo] = useState(() => ({
     runtime: null,
     resources: window.ACS_getTextMotionResourceReport?.() || null,
@@ -267,6 +269,11 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           if (c.autoRotate) s.vrm.scene.rotation.y += dt * 0.5;
           else s.vrm.scene.rotation.y = baseYaw + textMotionYaw;
           s.vrm.update?.(dt);
+        }
+        // Drive the GEAR-SONIC robot, when loaded, with the same motion the
+        // VRM avatar is playing. Same time index so they stay in sync.
+        if (s.gearSonicRobot && s.textMotion?.motion && window.ACS_driveGearSonicRobot) {
+          window.ACS_driveGearSonicRobot(s.gearSonicRobot.bodyMap, s.textMotion.motion, s.textMotion.t || 0);
         }
 
         // Joint-control gizmo: keep the proxy snapped to the selected bone
@@ -665,6 +672,105 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       setCfg({ ...cfg, textMotionEnabled: false });
     }
   };
+  const generateGearSonicMotion = useCallback(async () => {
+    setGearSonicGenStatus({ ok: true, message: 'Calling backend…' });
+    if (!cfg.gearSonicBackendEnabled || !cfg.gearSonicBackendURL) {
+      setGearSonicGenStatus({
+        ok: false,
+        message: 'Backend disabled or URL empty. Set both to call /api/generate.',
+      });
+      return;
+    }
+    if (!window.ACS_generateGearSonicMotion) {
+      setGearSonicGenStatus({ ok: false, message: 'gearSonic.js failed to load.' });
+      return;
+    }
+    try {
+      const result = await window.ACS_generateGearSonicMotion(textMotionInput, {
+        backendURL: cfg.gearSonicBackendURL,
+        duration: cfg.gearSonicBackendDuration,
+        diffusionSteps: cfg.gearSonicBackendDiffusionSteps,
+      });
+      if (!result?.ok) {
+        setGearSonicGenStatus({ ok: false, message: `Backend failure: ${result?.reason || result?.status || 'unknown'}` });
+        return;
+      }
+      const s = stateRef.current;
+      const tm = s.textMotion = s.textMotion || {};
+      tm.generatedMotion = result.motion;
+      tm.motionId = result.motion.id;
+      tm.motion = result.motion;
+      tm.motionStatus = 'ready';
+      tm.motionReason = `Generated ${result.motion.frames} frames`;
+      tm.motionSource = 'generated';
+      tm.t = 0;
+      // Make sure text-motion is enabled so the new clip plays.
+      setCfg({
+        ...cfg,
+        textMotionEnabled: true,
+        textMotionPrompt: textMotionInput,
+        textMotionNonce: (cfg.textMotionNonce || 0) + 1,
+      });
+      setGearSonicGenStatus({
+        ok: true,
+        message: `Backend returned ${result.motion.frames} frames @ ${result.motion.fps} fps`,
+      });
+    } catch (e) {
+      setGearSonicGenStatus({ ok: false, message: `Generate threw: ${e.message || e}` });
+    }
+  }, [cfg, textMotionInput, setCfg]);
+
+  // GEAR-SONIC robot model side-effect: load when toggle flips on, dispose
+  // when it flips off. Loading is async (~36 STL fetches) so we surface
+  // progress through gearSonicRobotStatus.
+  useEffect(() => {
+    const s = stateRef.current;
+    if (!s?.scene) return;
+    if (!cfg.gearSonicRobotEnabled) {
+      if (s.gearSonicRobot?.root) {
+        s.scene.remove(s.gearSonicRobot.root);
+        s.gearSonicRobot = null;
+        setGearSonicRobotStatus(null);
+      }
+      return;
+    }
+    if (s.gearSonicRobot?.root) {
+      s.gearSonicRobot.root.position.x = cfg.gearSonicRobotOffsetX ?? 1.2;
+      return;
+    }
+    if (!window.ACS_loadGearSonicRobotModel) {
+      setGearSonicRobotStatus({ ok: false, message: 'gearSonic.js failed to load.' });
+      return;
+    }
+    if (!window.STLLoader) {
+      setGearSonicRobotStatus({ ok: false, message: 'STLLoader not yet ready; reload page.' });
+      return;
+    }
+    setGearSonicRobotStatus({ ok: true, message: 'Loading G1 robot meshes…' });
+    let cancelled = false;
+    window.ACS_loadGearSonicRobotModel(s.THREE, {
+      baseUrl: cfg.gearSonicBaseURL,
+      STLLoader: window.STLLoader,
+      onProgress: ({ loaded, total }) => {
+        if (cancelled) return;
+        setGearSonicRobotStatus({ ok: true, message: `Loading G1 meshes (${loaded}/${total})…` });
+      },
+    }).then((bundle) => {
+      if (cancelled) return;
+      bundle.root.position.x = cfg.gearSonicRobotOffsetX ?? 1.2;
+      s.scene.add(bundle.root);
+      s.gearSonicRobot = bundle;
+      setGearSonicRobotStatus({
+        ok: true,
+        message: `G1 loaded (${Object.keys(bundle.bodyMap).length} bodies)`,
+      });
+    }).catch((e) => {
+      if (cancelled) return;
+      setGearSonicRobotStatus({ ok: false, message: `Robot load failed: ${e.message || e}` });
+    });
+    return () => { cancelled = true; };
+  }, [cfg.gearSonicRobotEnabled, cfg.gearSonicBaseURL, cfg.gearSonicRobotOffsetX]);
+
   const runIpaSpeech = () => setCfg({
     ...cfg,
     ipaSpeechEnabled: true,
@@ -1000,6 +1106,79 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
               </div>
             </div>
             <TextMotionStatus info={textMotionInfo} />
+            <div style={subhead}>GEAR-SONIC reference clips</div>
+            <div style={{ fontSize:10, opacity:0.55, marginBottom:4, lineHeight:1.5 }}>
+              Fetches the recorded JSON motion clip directly from
+              <code> {cfg.gearSonicBaseURL || 'https://nvlabs.github.io/GEAR-SONIC'}/assets/motions/&lt;id&gt;.json</code> and
+              retargets the 29-DOF G1 angles onto the loaded VRM bones. Nothing is copied locally.
+            </div>
+            <S.Row label="Use real clip">
+              <S.Toggle testid="gear-sonic-ref-enabled" value={cfg.gearSonicReferenceEnabled}
+                onChange={v => setCfg({...cfg, gearSonicReferenceEnabled: v})} />
+            </S.Row>
+            <S.Row label="Reference">
+              <S.Select testid="gear-sonic-ref-id" value={cfg.gearSonicReferenceId || ''}
+                onChange={v => setCfg({...cfg, gearSonicReferenceId: v})}
+                options={[{value:'', label:'(derive from prompt)'},
+                  ...((window.ACS_GEAR_SONIC_REFERENCE_INDEX || []).map(r => ({value:r.id, label:r.display})))]} />
+            </S.Row>
+            <S.Row label="Base URL">
+              <input data-testid="gear-sonic-base-url" value={cfg.gearSonicBaseURL || ''}
+                onChange={e => setCfg({...cfg, gearSonicBaseURL: e.target.value})}
+                placeholder="https://nvlabs.github.io/GEAR-SONIC"
+                style={inputStyle} />
+            </S.Row>
+            <div style={subhead}>GEAR-SONIC text→motion backend</div>
+            <div style={{ fontSize:10, opacity:0.55, marginBottom:4, lineHeight:1.5 }}>
+              POSTs <code>{'{prompt, duration, diffusion_steps}'}</code> to <code>&lt;url&gt;/api/generate</code>,
+              the same Kimodo-style endpoint the GEAR-SONIC demo uses. Leave empty to disable; this is the
+              only way to get real neural-network motion in the browser because the public demo backend is
+              not freely accessible from arbitrary origins.
+            </div>
+            <S.Row label="Backend on">
+              <S.Toggle testid="gear-sonic-backend-enabled" value={cfg.gearSonicBackendEnabled}
+                onChange={v => setCfg({...cfg, gearSonicBackendEnabled: v})} />
+            </S.Row>
+            <S.Row label="Backend URL">
+              <input data-testid="gear-sonic-backend-url" value={cfg.gearSonicBackendURL || ''}
+                onChange={e => setCfg({...cfg, gearSonicBackendURL: e.target.value})}
+                placeholder="https://your-server" style={inputStyle} />
+            </S.Row>
+            <S.Row label="Duration s">
+              <S.Slider testid="gear-sonic-backend-duration" value={cfg.gearSonicBackendDuration ?? 5} min={2} max={10} step={0.5}
+                onChange={v => setCfg({...cfg, gearSonicBackendDuration: v})} />
+            </S.Row>
+            <S.Row label="Diff steps">
+              <S.Slider testid="gear-sonic-backend-steps" value={cfg.gearSonicBackendDiffusionSteps ?? 100} min={10} max={200} step={5}
+                onChange={v => setCfg({...cfg, gearSonicBackendDiffusionSteps: v})} />
+            </S.Row>
+            <button data-testid="gear-sonic-generate" onClick={generateGearSonicMotion}
+              style={{...btn, marginTop:6, width:'100%'}}>Generate via backend</button>
+            {gearSonicGenStatus && (
+              <div data-testid="gear-sonic-gen-status" style={{
+                marginTop:6, fontSize:10, color: gearSonicGenStatus.ok ? '#9be7b6' : '#ffb0b0',
+                wordBreak:'break-word', overflowWrap:'anywhere'
+              }}>{gearSonicGenStatus.message}</div>
+            )}
+            <div style={subhead}>GEAR-SONIC robot model</div>
+            <div style={{ fontSize:10, opacity:0.55, marginBottom:4, lineHeight:1.5 }}>
+              Loads the Unitree G1 (29-DOF) MJCF + STL meshes directly from the GEAR-SONIC demo URL alongside
+              the VRM avatar. Same reference clip drives both — switch off here to remove the robot from the scene.
+            </div>
+            <S.Row label="Robot on">
+              <S.Toggle testid="gear-sonic-robot-enabled" value={cfg.gearSonicRobotEnabled}
+                onChange={v => setCfg({...cfg, gearSonicRobotEnabled: v})} />
+            </S.Row>
+            <S.Row label="Robot offset X">
+              <S.Slider testid="gear-sonic-robot-offset" value={cfg.gearSonicRobotOffsetX ?? 1.2} min={-3} max={3} step={0.05}
+                onChange={v => setCfg({...cfg, gearSonicRobotOffsetX: v})} />
+            </S.Row>
+            {gearSonicRobotStatus && (
+              <div data-testid="gear-sonic-robot-status" style={{
+                marginTop:6, fontSize:10, color: gearSonicRobotStatus.ok ? '#9be7b6' : '#ffb0b0',
+                wordBreak:'break-word', overflowWrap:'anywhere'
+              }}>{gearSonicRobotStatus.message}</div>
+            )}
           </S.Section>
 
           <S.Section title="IPA Speech" testid="ipa-speech"
@@ -1365,6 +1544,9 @@ function TextMotionStatus({ info }) {
   const status = runtime?.status || (resources?.ok ? 'ready' : 'blocked');
   const reason = runtime?.reason || resources?.problems?.join('; ') || '';
   const commands = runtime?.plan?.commands?.map(c => c.label).join(' -> ') || '';
+  const motionStatus = runtime?.motionStatus || '';
+  const motionReason = runtime?.motionReason || '';
+  const motionSource = runtime?.motionSource || '';
   return (
     <div data-testid="text-motion-status" style={{
       marginTop: 8,
@@ -1382,6 +1564,12 @@ function TextMotionStatus({ info }) {
       <div>Status: {status}</div>
       {commands && <div>Plan: {commands}</div>}
       {reason && <div style={{ color:'#ffb0b0' }}>{reason}</div>}
+      {motionStatus && (
+        <div data-testid="gear-sonic-motion-status">
+          GEAR-SONIC: {motionStatus}{motionSource ? ` (${motionSource})` : ''}
+          {motionReason && <div style={{ color: motionStatus === 'failed' ? '#ffb0b0' : '#9be7b6' }}>{motionReason}</div>}
+        </div>
+      )}
       <div>Available: {fmtResource(available.memoryMb, ' MiB')} RAM, {fmtResource(available.cpuCores)} cores, WebGL {fmtResource(available.webgl)}, WebGPU {fmtResource(available.webgpu)}</div>
       <div>Required: {fmtResource(required.memoryMb, ' MiB')} RAM, {fmtResource(required.cpuCores)} cores, WebGL {fmtResource(required.webgl)}, model {fmtResource(required.onnxModelMb, ' MiB')}</div>
     </div>
