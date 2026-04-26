@@ -144,6 +144,17 @@
       const p = H.probe();
       if (Math.abs(p.scene.groundOpacity - 0.17) > 0.02) throw new Error(`got ${p.scene.groundOpacity}`);
     });
+    add('scene', 'floor grid toggle creates styled grid', async () => {
+      H.setCfg({ ...H.cfg(), floorGridEnabled: true, floorGridStyle: 'sonic', floorGridSize: 96 });
+      await wait(70);
+      let p = H.probe();
+      if (p.scene.floorGrid !== 'sonic') throw new Error('floor grid not shown');
+      if (p.scene.floorGridSize !== 96) throw new Error(`floor grid size ${p.scene.floorGridSize}`);
+      H.setCfg({ ...H.cfg(), floorGridEnabled: false });
+      await wait(70);
+      p = H.probe();
+      if (p.scene.floorGrid) throw new Error('floor grid still shown');
+    });
 
     // ----- camera -----
     add('camera', 'camera FOV applies', async () => {
@@ -485,6 +496,29 @@
       if (Math.abs(s.charDyn.offsetX) > 0.05 || Math.abs(s.charDyn.offsetY) > 0.05) {
         throw new Error(`offset did not decay: ${s.charDyn.offsetX}, ${s.charDyn.offsetY}`);
       }
+    });
+    add('character', 'mouse force state bends torso and decays after release', async () => {
+      const s = H.state();
+      H.setCfg({ ...H.cfg(), pose:'rest', rot:{}, idleBreath:false, idleMicroHead:false,
+        mouseForceEnabled:true, mouseForceStrength:0.9, mouseForceDecay:8 });
+      s.mouseForce = {
+        active: true,
+        pointerId: 1,
+        targetBone: 'chest',
+        startNDC: { x: 0, y: 0 },
+        ndc: { x: 0.35, y: -0.1 },
+        delta: { x: 0.35, y: -0.1 },
+      };
+      await wait(90);
+      const a = H.probe();
+      if (Math.abs(a.mouseForce.deltaX) < 0.2) throw new Error('mouse force did not start');
+      const chest = a.bones.chest;
+      s.mouseForce.active = false;
+      await wait(450);
+      const b = H.probe();
+      if (chest === b.bones.chest) throw new Error('chest force did not update');
+      if (Math.abs(b.mouseForce.deltaX) >= Math.abs(a.mouseForce.deltaX)) throw new Error('mouse force did not decay');
+      H.setCfg({ ...H.cfg(), mouseForceEnabled:false });
     });
 
     // ----- debug helpers -----

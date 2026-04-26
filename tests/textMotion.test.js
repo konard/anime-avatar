@@ -45,6 +45,22 @@ describe('experimental text-to-motion browser adapter', () => {
     expect(plan.gr00tPlanner.facingDirections[1][1]).toBeGreaterThan(0);
   });
 
+  it('maps GEAR-SONIC reference motion prompts into planner metadata', () => {
+    const plan = window.ACS_createTextMotionPlan('squat then standing kick', {
+      available: GOOD_RESOURCES,
+    });
+
+    expect(plan.ok).toBe(true);
+    expect(plan.commands.map((command) => command.type)).toEqual([
+      'squat',
+      'kick',
+    ]);
+    expect(plan.gearSonicPlanner.modes).toEqual([4, 0]);
+    expect(plan.gearSonicPlanner.heights[0]).toBeGreaterThan(0);
+    expect(plan.gearSonicPlanner.references[0]).toBe('squat_001__A359');
+    expect(window.ACS_TEXT_MOTION_REFERENCE_PROMPTS.length).toBeGreaterThan(3);
+  });
+
   it('generates leg and root deltas for a walk prompt', () => {
     const plan = window.ACS_createTextMotionPlan('walk', {
       available: GOOD_RESOURCES,
@@ -76,5 +92,26 @@ describe('experimental text-to-motion browser adapter', () => {
     expect(plan.ok).toBe(false);
     expect(plan.status).toBe('unsupported-prompt');
     expect(plan.reason).toContain('walk');
+  });
+
+  it('generates body deltas for GEAR-SONIC squat and kick prompts', () => {
+    const squat = window.ACS_createTextMotionPlan('squat', {
+      available: GOOD_RESOURCES,
+    });
+    const squatDelta = window.ACS_textMotionDelta(squat, 0.7);
+
+    expect(squatDelta.active).toBe(true);
+    expect(squatDelta.rot.leftLowerLeg.x).toBeGreaterThan(0);
+    expect(squatDelta.rot.rightLowerLeg.x).toBeGreaterThan(0);
+    expect(squatDelta.root.y).toBeLessThan(0);
+
+    const kick = window.ACS_createTextMotionPlan('standing kick', {
+      available: GOOD_RESOURCES,
+    });
+    const kickDelta = window.ACS_textMotionDelta(kick, 0.45);
+
+    expect(kickDelta.active).toBe(true);
+    expect(kickDelta.rot.rightUpperLeg.x).toBeGreaterThan(0);
+    expect(kickDelta.rot.leftUpperArm.x).toBeDefined();
   });
 });

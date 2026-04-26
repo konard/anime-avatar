@@ -115,6 +115,10 @@
     R.scene = (c) => {
       c.bg = randHex();
       c.groundOpacity = rand(0, 1);
+      c.floorGridEnabled = Math.random() < 0.5;
+      const styles = window.ACS_FLOOR_GRID_STYLES || [];
+      if (styles.length) c.floorGridStyle = styles[Math.floor(Math.random() * styles.length)].id;
+      c.floorGridSize = rand(40, 140);
     };
     R.camera = (c) => {
       c.cameraFov = rand(18, 55);
@@ -173,6 +177,9 @@
       c.charInertia = Math.random() < 0.7;
       c.charSpringK = rand(2, 10);
       c.charDamping = rand(2, 8);
+      c.mouseForceEnabled = Math.random() < 0.3;
+      c.mouseForceStrength = rand(0.25, 1.2);
+      c.mouseForceDecay = rand(2.5, 10);
     };
     R.debug = (c) => {
       c.debugBoneHelpers = Math.random() < 0.4;
@@ -214,7 +221,7 @@
         'wave',
       ];
       c.textMotionPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-      c.textMotionModel = window.ACS_TEXT_MOTION_MODEL_ID || 'gr00t-browser-adapter-v0';
+      c.textMotionModel = window.ACS_TEXT_MOTION_MODEL_ID || 'gear-sonic-browser-adapter-v1';
       if (c.textMotionEnabled) c.textMotionNonce = (c.textMotionNonce || 0) + 1;
     };
     R.ipaSpeech = (c) => {
@@ -266,7 +273,13 @@
         c.rimColor = defaults.rimColor; c.rimIntensity = defaults.rimIntensity;
         c.ambientColor = defaults.ambientColor; c.ambientIntensity = defaults.ambientIntensity;
       },
-      scene:       (c) => { c.bg = defaults.bg; c.groundOpacity = defaults.groundOpacity; },
+      scene:       (c) => {
+        c.bg = defaults.bg;
+        c.groundOpacity = defaults.groundOpacity;
+        c.floorGridEnabled = defaults.floorGridEnabled;
+        c.floorGridStyle = defaults.floorGridStyle;
+        c.floorGridSize = defaults.floorGridSize;
+      },
       camera:      (c) => { c.cameraFov = defaults.cameraFov; c.cameraDist = defaults.cameraDist; c.cameraHeight = defaults.cameraHeight; c.cameraInertia = defaults.cameraInertia; },
       svgCamera:   (c) => { c.svgCamFov = defaults.svgCamFov; c.svgCamDist = defaults.svgCamDist; c.svgCamHeight = defaults.svgCamHeight; },
       behaviour:   (c) => {
@@ -313,6 +326,9 @@
         c.charInertia = defaults.charInertia;
         c.charSpringK = defaults.charSpringK;
         c.charDamping = defaults.charDamping;
+        c.mouseForceEnabled = defaults.mouseForceEnabled;
+        c.mouseForceStrength = defaults.mouseForceStrength;
+        c.mouseForceDecay = defaults.mouseForceDecay;
       },
       debug:       (c) => {
         c.debugBoneHelpers = defaults.debugBoneHelpers; c.debugAxes = defaults.debugAxes;

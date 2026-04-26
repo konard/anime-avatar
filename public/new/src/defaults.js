@@ -83,6 +83,9 @@ window.ACS_DEFAULTS = {
 
   bg: '#141026',
   groundOpacity: 0.35,
+  floorGridEnabled: false,
+  floorGridStyle: 'sonic',
+  floorGridSize: 80,
 
   keyColor: '#fff4e0',  keyIntensity: 1.15,
   fillColor: '#b8d4ff', fillIntensity: 0.55,
@@ -129,6 +132,9 @@ window.ACS_DEFAULTS = {
   charInertia: true,
   charSpringK: 6.0,
   charDamping: 4.0,
+  mouseForceEnabled: false,
+  mouseForceStrength: 0.65,
+  mouseForceDecay: 6.0,
 
   // Debug helpers — off by default.
   debugBoneHelpers: false,
@@ -160,12 +166,12 @@ window.ACS_DEFAULTS = {
   gestureEasing: 'easeInOut', // applies to envelope shape
 
   // EXPERIMENTAL: browser-side text-to-motion adapter. The prompt is parsed
-  // locally into a GR00T-style planner intent and procedural VRM bone deltas.
+  // locally into GR00T/GEAR-SONIC-style planner intent and procedural VRM bone deltas.
   // `textMotionNonce` bumps when the user wants to replay the same prompt.
   textMotionEnabled: false,
   textMotionPrompt: 'walk',
   textMotionNonce: 0,
-  textMotionModel: 'gr00t-browser-adapter-v0',
+  textMotionModel: 'gear-sonic-browser-adapter-v1',
 
   // EXPERIMENTAL: English text -> IPA -> mouth animation. The adapter is
   // local and deterministic; it drives VRM mouth expressions and the jaw
@@ -206,7 +212,7 @@ window.ACS_GROUP_CFG_KEYS = {
   lookAt: ['lookYaw','lookPitch'],
   materials: ['matGlobalTint','matTintAmount','matSaturation','matEmissive','matEmissiveAmount'],
   lights: ['keyColor','keyIntensity','fillColor','fillIntensity','rimColor','rimIntensity','ambientColor','ambientIntensity'],
-  scene: ['bg','groundOpacity'],
+  scene: ['bg','groundOpacity','floorGridEnabled','floorGridStyle','floorGridSize'],
   camera: ['cameraFov','cameraDist','cameraHeight','cameraInertia'],
   svgCamera: ['svgCamFov','svgCamDist','svgCamHeight'],
   behaviour: ['autoRotate','showFPS','experimentalJointControls','jointControlSize','jointControlSelected'],
@@ -219,7 +225,7 @@ window.ACS_GROUP_CFG_KEYS = {
          'lookEyeFollowAngle','lookEyeFollowAmount',
          'lookHeadFollowAngle','lookHeadFollowAmount',
          'lookRandomMinInterval','lookRandomMaxInterval'],
-  character: ['charPos','charInertia','charSpringK','charDamping'],
+  character: ['charPos','charInertia','charSpringK','charDamping','mouseForceEnabled','mouseForceStrength','mouseForceDecay'],
   debug: ['debugBoneHelpers','debugAxes','debugGrid','debugSpringBones','debugWireframe','debugMeshOnly','debugMToonMode','debugLookAt','debugLookAtPeriod'],
   animation: ['animationUrl','animationPresetId','animationTimeScale'],
   gestures: ['gesture','gestureNonce','gestureEasing','mood','exprTransitionMs','exprTransitionEasing'],

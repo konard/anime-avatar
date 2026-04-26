@@ -389,6 +389,42 @@ window.ACS_normalizeModelURL = function normalizeModelURL(url) {
 // MToon debug modes (see three-vrm materials-debug example).
 window.ACS_MTOON_DEBUG_MODES = ['none', 'normal', 'litShadeRate', 'uv'];
 
+// Opt-in infinite-floor grid styles inspired by the GEAR-SONIC demo floor.
+// GridHelper is finite internally, but these large line fields read as an
+// infinite floor at normal avatar camera distances.
+window.ACS_FLOOR_GRID_STYLES = [
+  {
+    id: 'sonic',
+    label: 'SONIC green',
+    size: 80,
+    divisions: 80,
+    majorDivisions: 20,
+    color: 0x6aaa7a,
+    secondaryColor: 0x3a6a48,
+    opacity: 0.42,
+  },
+  {
+    id: 'violet',
+    label: 'Studio violet',
+    size: 80,
+    divisions: 80,
+    majorDivisions: 16,
+    color: 0x8c6eff,
+    secondaryColor: 0x332a55,
+    opacity: 0.38,
+  },
+  {
+    id: 'blueprint',
+    label: 'Blueprint',
+    size: 100,
+    divisions: 100,
+    majorDivisions: 20,
+    color: 0x6ed5ff,
+    secondaryColor: 0x1f4058,
+    opacity: 0.34,
+  },
+];
+
 // Programmatic gestures — driven by gestures.js each frame. Each has a
 // default duration + mood presets so the same gesture feels different
 // depending on the user's selected mood. `expr` is layered in during the
