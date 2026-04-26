@@ -286,7 +286,7 @@
     });
 
     // ----- isolation -----
-    for (const g of ['lookAt','lights','scene','camera','behaviour','svg','idle','character','debug','animation']) {
+    for (const g of ['lookAt','lights','scene','camera','behaviour','svg','idle','character','debug','animation','textMotion']) {
       add('isolation', `group randomize '${g}' only mutates its own keys`, async () => {
         H.globalReset();
         await wait(80);
@@ -321,7 +321,7 @@
     }
 
     // ----- per-group reset -----
-    for (const g of ['lookAt','lights','scene','camera','svg','behaviour','svgCamera','idle','character','debug','animation']) {
+    for (const g of ['lookAt','lights','scene','camera','svg','behaviour','svgCamera','idle','character','debug','animation','textMotion']) {
       add('reset-group', `reset '${g}' restores defaults`, async () => {
         H.groupRandomize(g);
         await wait(80);
@@ -674,6 +674,37 @@
       const p = H.probe();
       // name is still stored but t >= duration; apply.js stops overlaying.
       if (p.gesture.t < 1.6) throw new Error('gesture did not finish: t=' + p.gesture.t);
+    });
+
+    // ----- text-to-motion -------------------------------------------------
+    add('textMotion', 'resource report exposes available and required budgets', async () => {
+      const report = window.ACS_getTextMotionResourceReport?.();
+      if (!report?.available || !report?.required) throw new Error('missing resource report');
+      if (!('memoryMb' in report.required)) throw new Error('missing required memory');
+      if (!('webgl' in report.available)) throw new Error('missing available WebGL flag');
+    });
+    add('textMotion', 'walk prompt creates a GR00T-style browser motion plan', async () => {
+      const plan = window.ACS_createTextMotionPlan('walk', {
+        available: { memoryMb: 4096, cpuCores: 8, wasm: true, webgl: true, webgpu: true },
+      });
+      if (!plan.ok) throw new Error(plan.reason || plan.status);
+      if (plan.gr00tPlanner.modes[0] !== 2) throw new Error('walk did not map to mode 2');
+      if (plan.gr00tPlanner.movementDirections[0][0] !== 1) throw new Error('walk direction not forward');
+    });
+    add('textMotion', 'enabled walk prompt moves legs and root', async () => {
+      H.setCfg({ ...H.cfg(), pose:'rest', rot:{}, idleBreath:false,
+        idleMicroHead:false, gesture:'', animationUrl:'',
+        textMotionEnabled:true, textMotionPrompt:'walk',
+        textMotionNonce:(H.cfg().textMotionNonce || 0) + 1 });
+      await wait(180);
+      const a = H.probe();
+      await wait(260);
+      const b = H.probe();
+      if (b.textMotion?.status === 'insufficient-resources') return;
+      if (b.textMotion?.active !== true) throw new Error('text motion not active');
+      if (a.bones.leftUpperLeg === b.bones.leftUpperLeg) throw new Error('left leg did not animate');
+      if (Math.abs((b.scene.rootPY || 0) - (a.scene.rootPY || 0)) < 0.001) throw new Error('root bob did not change');
+      H.setCfg({ ...H.cfg(), textMotionEnabled:false });
     });
 
     // ----- emotion face-visibility ---------------------------------------

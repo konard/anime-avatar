@@ -159,6 +159,14 @@ window.ACS_DEFAULTS = {
   gestureNonce: 0,     // bump to replay the same gesture
   gestureEasing: 'easeInOut', // applies to envelope shape
 
+  // EXPERIMENTAL: browser-side text-to-motion adapter. The prompt is parsed
+  // locally into a GR00T-style planner intent and procedural VRM bone deltas.
+  // `textMotionNonce` bumps when the user wants to replay the same prompt.
+  textMotionEnabled: false,
+  textMotionPrompt: 'walk',
+  textMotionNonce: 0,
+  textMotionModel: 'gr00t-browser-adapter-v0',
+
   // Expression blend-transition duration (seconds) + easing. Changing any
   // slider or mood triggers a cross-fade over this duration.
   exprTransitionMs: 450,
@@ -207,5 +215,6 @@ window.ACS_GROUP_CFG_KEYS = {
   debug: ['debugBoneHelpers','debugAxes','debugGrid','debugSpringBones','debugWireframe','debugMeshOnly','debugMToonMode','debugLookAt','debugLookAtPeriod'],
   animation: ['animationUrl','animationPresetId','animationTimeScale'],
   gestures: ['gesture','gestureNonce','gestureEasing','mood','exprTransitionMs','exprTransitionEasing'],
+  textMotion: ['textMotionEnabled','textMotionPrompt','textMotionNonce','textMotionModel'],
   svg: ['svgLivePreview','svgYaw','svgPitch','svgBg','svgStroke','svgStrokeWidth','svgQuality'],
 };

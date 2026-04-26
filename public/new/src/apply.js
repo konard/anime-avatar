@@ -51,6 +51,24 @@
     return s.gesture;
   }
 
+  function ensureTextMotion(s) {
+    if (!s.textMotion) {
+      s.textMotion = {
+        prompt: '',
+        nonce: -1,
+        t: 0,
+        plan: null,
+        status: 'idle',
+        reason: '',
+        active: false,
+        rootYaw: 0,
+        root: { x: 0, y: 0, yaw: 0 },
+        resources: null,
+      };
+    }
+    return s.textMotion;
+  }
+
   // Emotion transition state: cfg.expr + mood bleed through a cross-fade.
   function ensureEmo(s) {
     if (!s.emo) s.emo = { from: {}, to: {}, started: -Infinity, durationMs: 0, easing: 'easeInOut' };
@@ -85,13 +103,15 @@
     const vrm = s.vrm;
     if (!vrm) return;
 
+    const animActive = !!s.animation?.action && s.animation.action.isRunning?.();
+    const textMotionDelta = stepTextMotion(s, c, dt, animActive);
+
     updateCharPos(s, c);
     if (vrm.scene) {
-      vrm.scene.position.x = (c.charPos?.x || 0) + (s.charDyn?.offsetX || 0);
-      vrm.scene.position.y = (c.charPos?.y || 0) + (s.charDyn?.offsetY || 0);
+      const textRoot = textMotionDelta?.root || {};
+      vrm.scene.position.x = (c.charPos?.x || 0) + (s.charDyn?.offsetX || 0) + (textRoot.x || 0);
+      vrm.scene.position.y = (c.charPos?.y || 0) + (s.charDyn?.offsetY || 0) + (textRoot.y || 0);
     }
-
-    const animActive = !!s.animation?.action && s.animation.action.isRunning?.();
 
     // --- Gesture tick (may fully replace the pose if a gesture is active) ---
     const g = ensureGesture(s);
@@ -144,6 +164,11 @@
             rx += gestureDelta.rot[b].x || 0;
             ry += gestureDelta.rot[b].y || 0;
             rz += gestureDelta.rot[b].z || 0;
+          }
+          if (textMotionDelta?.rot?.[b]) {
+            rx += textMotionDelta.rot[b].x || 0;
+            ry += textMotionDelta.rot[b].y || 0;
+            rz += textMotionDelta.rot[b].z || 0;
           }
           // Clamp the combined Euler to the bone's anatomical limit. Because
           // the limit table covers VRM humanoid bones we recognize and
@@ -206,7 +231,7 @@
 
     // --- Expression blend + idle blink ---
     if (vrm.expressionManager) {
-      applyExpressions(s, c, vrm, dt, gestureDelta);
+      applyExpressions(s, c, vrm, dt, mergeExpressionDeltas(gestureDelta, textMotionDelta));
       if (c.idleBlink) stepBlink(vrm, c, idle, dt);
     }
 
@@ -222,6 +247,67 @@
       cvs.style.filter = `saturate(${sat.toFixed(3)})`;
     }
   };
+
+  function stepTextMotion(s, c, dt, animActive) {
+    const tm = ensureTextMotion(s);
+    if (!c.textMotionEnabled) {
+      tm.status = 'idle';
+      tm.active = false;
+      tm.reason = '';
+      tm.rootYaw = 0;
+      tm.root = { x: 0, y: 0, yaw: 0 };
+      return null;
+    }
+    if (animActive) {
+      tm.status = 'blocked-animation';
+      tm.active = false;
+      tm.reason = 'Stop the loaded FBX animation before running text-to-motion.';
+      tm.rootYaw = 0;
+      tm.root = { x: 0, y: 0, yaw: 0 };
+      return null;
+    }
+
+    const prompt = c.textMotionPrompt || '';
+    const nonce = c.textMotionNonce || 0;
+    if (!tm.plan || tm.prompt !== prompt || tm.nonce !== nonce) {
+      tm.prompt = prompt;
+      tm.nonce = nonce;
+      tm.t = 0;
+      tm.plan = window.ACS_createTextMotionPlan
+        ? window.ACS_createTextMotionPlan(prompt)
+        : { ok: false, status: 'missing-model', reason: 'Text motion module is not loaded.' };
+      tm.resources = tm.plan.resources || window.ACS_getTextMotionResourceReport?.() || null;
+      tm.status = tm.plan.ok ? 'running' : tm.plan.status;
+      tm.reason = tm.plan.reason || '';
+    }
+
+    if (!tm.plan?.ok) {
+      tm.active = false;
+      tm.rootYaw = 0;
+      tm.root = { x: 0, y: 0, yaw: 0 };
+      return null;
+    }
+
+    tm.t += dt;
+    const delta = window.ACS_textMotionDelta?.(tm.plan, tm.t, dt) || null;
+    tm.active = !!delta?.active;
+    tm.status = tm.active ? 'running' : 'complete';
+    tm.reason = '';
+    tm.root = delta?.root || { x: 0, y: 0, yaw: 0 };
+    tm.rootYaw = tm.root.yaw || 0;
+    return tm.active ? delta : null;
+  }
+
+  function mergeExpressionDeltas(...deltas) {
+    const exprs = {};
+    for (const delta of deltas) {
+      if (!delta?.exprs) continue;
+      for (const [name, value] of Object.entries(delta.exprs)) {
+        exprs[name] = Math.max(exprs[name] || 0, value || 0);
+      }
+    }
+    return Object.keys(exprs).length ? { exprs } : null;
+  }
 
   // Expression cross-fade: combine user cfg.expr with mood background weight,
   // interpolate from the last committed set with configurable easing.
@@ -760,7 +846,7 @@
   }
 
   window.ACS_probe = function probe(s) {
-    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, shade: {} };
+    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, textMotion: {}, shade: {} };
     if (!s) return out;
     const vrm = s.vrm;
     if (vrm && vrm.humanoid) {
@@ -813,6 +899,12 @@
     out.anim.playing = !!s.animation?.action?.isRunning?.();
     out.gesture.name = s.gesture?.name || '';
     out.gesture.t = Math.round((s.gesture?.t || 0) * 100) / 100;
+    out.textMotion.status = s.textMotion?.status || 'idle';
+    out.textMotion.active = !!s.textMotion?.active;
+    out.textMotion.t = Math.round((s.textMotion?.t || 0) * 100) / 100;
+    out.textMotion.prompt = s.textMotion?.prompt || '';
+    out.textMotion.reason = s.textMotion?.reason || '';
+    out.textMotion.plan = (s.textMotion?.plan?.commands || []).map(c => c.type).join(',');
     return out;
   };
 
