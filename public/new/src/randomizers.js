@@ -204,6 +204,19 @@
       c.exprTransitionMs = 200 + Math.random() * 800;
       c.exprTransitionEasing = easings[Math.floor(Math.random() * easings.length)];
     };
+    R.textMotion = (c) => {
+      const prompts = [
+        'walk',
+        'slow walk then turn left',
+        'run',
+        'turn right',
+        'happy walk',
+        'wave',
+      ];
+      c.textMotionPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      c.textMotionModel = window.ACS_TEXT_MOTION_MODEL_ID || 'gr00t-browser-adapter-v0';
+      if (c.textMotionEnabled) c.textMotionNonce = (c.textMotionNonce || 0) + 1;
+    };
     R.svg = (c) => {
       c.svgYaw = rand(-180, 180);
       c.svgPitch = rand(-40, 40);
@@ -307,6 +320,12 @@
         c.mood = defaults.mood;
         c.exprTransitionMs = defaults.exprTransitionMs;
         c.exprTransitionEasing = defaults.exprTransitionEasing;
+      },
+      textMotion:  (c) => {
+        c.textMotionEnabled = defaults.textMotionEnabled;
+        c.textMotionPrompt = defaults.textMotionPrompt;
+        c.textMotionNonce = defaults.textMotionNonce;
+        c.textMotionModel = defaults.textMotionModel;
       },
       svg:         (c) => {
         c.svgYaw = defaults.svgYaw;

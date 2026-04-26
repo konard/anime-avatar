@@ -42,6 +42,11 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   const [svgMarkup, setSvgMarkup] = useState('');
   const [urlInput, setUrlInput] = useState(cfg.vrmUrl || DEFAULT_VRM_URL);
   const [animUrlInput, setAnimUrlInput] = useState(cfg.animationUrl || '');
+  const [textMotionInput, setTextMotionInput] = useState(cfg.textMotionPrompt || 'walk');
+  const [textMotionInfo, setTextMotionInfo] = useState(() => ({
+    runtime: null,
+    resources: window.ACS_getTextMotionResourceReport?.() || null,
+  }));
   const [fps, setFps] = useState(0);
 
   useEffect(() => {
@@ -49,6 +54,18 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     const id = setInterval(() => setFps(stateRef.current.fps || 0), 250);
     return () => clearInterval(id);
   }, [cfg.showFPS]);
+  useEffect(() => {
+    setTextMotionInput(cfg.textMotionPrompt || 'walk');
+  }, [cfg.textMotionPrompt]);
+  useEffect(() => {
+    const update = () => setTextMotionInfo({
+      runtime: stateRef.current.textMotion || null,
+      resources: stateRef.current.textMotion?.resources || window.ACS_getTextMotionResourceReport?.() || null,
+    });
+    update();
+    const id = setInterval(update, 350);
+    return () => clearInterval(id);
+  }, []);
 
   // Auto-hide the loading-error overlay so the stage doesn't get stuck behind
   // it after a one-off failure (issue #19). 8 s is long enough to read the
@@ -228,8 +245,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           // baseYaw=π). Without persisting it here the autoRotate-off branch
           // would clobber the bake every frame.
           const baseYaw = s.baseYaw || 0;
+          const textMotionYaw = s.textMotion?.rootYaw || 0;
           if (c.autoRotate) s.vrm.scene.rotation.y += dt * 0.5;
-          else s.vrm.scene.rotation.y = baseYaw;
+          else s.vrm.scene.rotation.y = baseYaw + textMotionYaw;
           s.vrm.update?.(dt);
         }
 
@@ -609,6 +627,26 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     setCfg(c);
   };
   const globalReset = () => setCfg({ ...DEFAULTS });
+  const runTextMotion = () => setCfg({
+    ...cfg,
+    textMotionEnabled: true,
+    textMotionPrompt: textMotionInput,
+    textMotionNonce: (cfg.textMotionNonce || 0) + 1,
+    textMotionModel: window.ACS_TEXT_MOTION_MODEL_ID || cfg.textMotionModel,
+  });
+  const toggleTextMotion = (enabled) => {
+    if (enabled) {
+      setCfg({
+        ...cfg,
+        textMotionEnabled: true,
+        textMotionPrompt: textMotionInput,
+        textMotionNonce: (cfg.textMotionNonce || 0) + 1,
+        textMotionModel: window.ACS_TEXT_MOTION_MODEL_ID || cfg.textMotionModel,
+      });
+    } else {
+      setCfg({ ...cfg, textMotionEnabled: false });
+    }
+  };
 
   const updRot = (bone, axis, val) => {
     const rot = { ...(cfg.rot || {}) };
@@ -894,6 +932,27 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <AnimationMetaView preset={(ANIMATION_PRESETS.find(p => p.id === cfg.animationPresetId) || null)}
                                animState={stateRef.current.animation}
                                animMeta={stateRef.current.animationMeta} />
+          </S.Section>
+
+          <S.Section title="Text to Motion" testid="text-motion"
+            onRandomize={() => applyGroupRandomize('textMotion')}
+            onReset={() => applyGroupReset('textMotion')}>
+            <S.Row label="Enabled">
+              <S.Toggle testid="text-motion-enabled" value={cfg.textMotionEnabled}
+                onChange={toggleTextMotion} />
+            </S.Row>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <textarea data-testid="text-motion-prompt" value={textMotionInput}
+                onChange={e=>setTextMotionInput(e.target.value)}
+                placeholder="walk, turn left, run, wave"
+                rows={3}
+                style={textareaStyle} />
+              <div style={{ display:'flex', gap:6 }}>
+                <button data-testid="text-motion-run" onClick={runTextMotion} style={{...btn, flex:1}}>Run</button>
+                <button data-testid="text-motion-stop" onClick={() => setCfg({...cfg, textMotionEnabled:false})} style={{...btn, flex:1}}>Stop</button>
+              </div>
+            </div>
+            <TextMotionStatus info={textMotionInfo} />
           </S.Section>
 
           <S.Section title="Pose" testid="pose"
@@ -1210,6 +1269,41 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         </S.ConfigDrawer>
       )}
     </>
+  );
+}
+
+function fmtResource(value, suffix = '') {
+  if (value === null || value === undefined || value === '') return 'unknown';
+  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  return `${value}${suffix}`;
+}
+
+function TextMotionStatus({ info }) {
+  const runtime = info?.runtime;
+  const resources = info?.resources || window.ACS_getTextMotionResourceReport?.();
+  const available = resources?.available || {};
+  const required = resources?.required || window.ACS_TEXT_MOTION_REQUIRED || {};
+  const status = runtime?.status || (resources?.ok ? 'ready' : 'blocked');
+  const reason = runtime?.reason || resources?.problems?.join('; ') || '';
+  const commands = runtime?.plan?.commands?.map(c => c.label).join(' -> ') || '';
+  return (
+    <div data-testid="text-motion-status" style={{
+      marginTop: 8,
+      padding: 8,
+      borderRadius: 8,
+      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(255,255,255,0.04)',
+      fontSize: 10,
+      lineHeight: 1.55,
+      color: 'rgba(255,255,255,0.72)',
+      fontFamily: 'ui-monospace, Menlo, monospace',
+    }}>
+      <div>Status: {status}</div>
+      {commands && <div>Plan: {commands}</div>}
+      {reason && <div style={{ color:'#ffb0b0' }}>{reason}</div>}
+      <div>Available: {fmtResource(available.memoryMb, ' MiB')} RAM, {fmtResource(available.cpuCores)} cores, WebGL {fmtResource(available.webgl)}, WebGPU {fmtResource(available.webgpu)}</div>
+      <div>Required: {fmtResource(required.memoryMb, ' MiB')} RAM, {fmtResource(required.cpuCores)} cores, WebGL {fmtResource(required.webgl)}, model {fmtResource(required.onnxModelMb, ' MiB')}</div>
+    </div>
   );
 }
 
@@ -1564,6 +1658,21 @@ const btn = {
 const inputStyle = {
   flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
   color: '#fff', padding: '7px 8px', borderRadius: 6, fontSize: 11, outline: 'none',
+};
+const textareaStyle = {
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
+  resize: 'vertical',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  color: '#fff',
+  padding: '8px 9px',
+  borderRadius: 6,
+  fontSize: 11,
+  lineHeight: 1.45,
+  outline: 'none',
+  fontFamily: 'ui-monospace, Menlo, monospace',
 };
 const subhead = { fontSize:10, opacity:0.55, marginTop:6, marginBottom:2, letterSpacing:0.5, textTransform:'uppercase' };
 const rowStyle = { display:'flex', alignItems:'center', gap:6 };
