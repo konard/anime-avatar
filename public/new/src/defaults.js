@@ -173,6 +173,31 @@ window.ACS_DEFAULTS = {
   textMotionNonce: 0,
   textMotionModel: 'gear-sonic-browser-adapter-v1',
 
+  // GEAR-SONIC reference motions: when on AND the prompt resolves to a
+  // referenceId, fetch the corresponding JSON clip from the GEAR-SONIC
+  // demo (no copy in this repo) and play the real recorded animation
+  // retargeted to the VRM humanoid. Falls back to the procedural mapping
+  // if the fetch fails (e.g. CORS or offline).
+  gearSonicReferenceEnabled: false,
+  gearSonicReferenceId: '',           // empty = derive from prompt
+  gearSonicBaseURL: 'https://nvlabs.github.io/GEAR-SONIC',
+
+  // Real text-to-motion backend (GEAR-SONIC Kimodo /api/generate). The
+  // demo's hosted endpoint is private to NVIDIA, so we leave this empty by
+  // default; configure it to point at any compatible server (e.g. a local
+  // mirror) and turn the toggle on to issue real network requests.
+  gearSonicBackendEnabled: false,
+  gearSonicBackendURL: '',
+  gearSonicBackendDuration: 5.0,
+  gearSonicBackendDiffusionSteps: 100,
+
+  // GEAR-SONIC G1-29DOF robot model (loaded from the demo's
+  // assets/robot/scene.xml + STL meshes by URL). Adds a second character
+  // alongside the VRM avatar; reference motions drive both. Off by default
+  // because it adds ~36 STL fetches.
+  gearSonicRobotEnabled: false,
+  gearSonicRobotOffsetX: 1.2,
+
   // EXPERIMENTAL: English text -> IPA -> mouth animation. The adapter is
   // local and deterministic; it drives VRM mouth expressions and the jaw
   // bone from IPA-derived visemes.
@@ -229,7 +254,10 @@ window.ACS_GROUP_CFG_KEYS = {
   debug: ['debugBoneHelpers','debugAxes','debugGrid','debugSpringBones','debugWireframe','debugMeshOnly','debugMToonMode','debugLookAt','debugLookAtPeriod'],
   animation: ['animationUrl','animationPresetId','animationTimeScale'],
   gestures: ['gesture','gestureNonce','gestureEasing','mood','exprTransitionMs','exprTransitionEasing'],
-  textMotion: ['textMotionEnabled','textMotionPrompt','textMotionNonce','textMotionModel'],
+  textMotion: ['textMotionEnabled','textMotionPrompt','textMotionNonce','textMotionModel',
+               'gearSonicReferenceEnabled','gearSonicReferenceId','gearSonicBaseURL',
+               'gearSonicBackendEnabled','gearSonicBackendURL','gearSonicBackendDuration','gearSonicBackendDiffusionSteps',
+               'gearSonicRobotEnabled','gearSonicRobotOffsetX'],
   ipaSpeech: ['ipaSpeechEnabled','ipaSpeechText','ipaSpeechNonce','ipaSpeechModel'],
   svg: ['svgLivePreview','svgYaw','svgPitch','svgBg','svgStroke','svgStrokeWidth','svgQuality'],
 };
