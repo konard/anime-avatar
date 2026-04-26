@@ -12,6 +12,12 @@
   const GESTURES = window.ACS_GESTURE_PRESETS;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const easeSin = (t) => 0.5 - 0.5 * Math.cos(Math.PI * 2 * t);
+  const addRot = (rot, bone, vals) => {
+    rot[bone] = rot[bone] || { x: 0, y: 0, z: 0 };
+    rot[bone].x += vals.x || 0;
+    rot[bone].y += vals.y || 0;
+    rot[bone].z += vals.z || 0;
+  };
 
   window.ACS_mergePose = function mergePose(rot, pose) {
     const out = {};
@@ -88,6 +94,20 @@
     return s.ipaSpeech;
   }
 
+  function ensureMouseForce(s) {
+    if (!s.mouseForce) {
+      s.mouseForce = {
+        active: false,
+        pointerId: null,
+        targetBone: '',
+        startNDC: { x: 0, y: 0 },
+        ndc: { x: 0, y: 0 },
+        delta: { x: 0, y: 0 },
+      };
+    }
+    return s.mouseForce;
+  }
+
   // Emotion transition state: cfg.expr + mood bleed through a cross-fade.
   function ensureEmo(s) {
     if (!s.emo) s.emo = { from: {}, to: {}, started: -Infinity, durationMs: 0, easing: 'easeInOut' };
@@ -105,6 +125,7 @@
       else s.scene.background.set(c.bg);
     }
     if (s.groundMat) s.groundMat.opacity = c.groundOpacity;
+    applyFloorGrid(s, c, THREE);
 
     if (s.lights) {
       s.lights.key.color.set(c.keyColor); s.lights.key.intensity = c.keyIntensity;
@@ -123,14 +144,16 @@
     if (!vrm) return;
 
     const animActive = !!s.animation?.action && s.animation.action.isRunning?.();
+    const mouseForceDelta = stepMouseForce(s, c, dt);
     const textMotionDelta = stepTextMotion(s, c, dt, animActive);
     const ipaSpeechDelta = stepIpaSpeech(s, c, dt);
 
     updateCharPos(s, c);
     if (vrm.scene) {
       const textRoot = textMotionDelta?.root || {};
-      vrm.scene.position.x = (c.charPos?.x || 0) + (s.charDyn?.offsetX || 0) + (textRoot.x || 0);
-      vrm.scene.position.y = (c.charPos?.y || 0) + (s.charDyn?.offsetY || 0) + (textRoot.y || 0);
+      const forceRoot = mouseForceDelta?.root || {};
+      vrm.scene.position.x = (c.charPos?.x || 0) + (s.charDyn?.offsetX || 0) + (textRoot.x || 0) + (forceRoot.x || 0);
+      vrm.scene.position.y = (c.charPos?.y || 0) + (s.charDyn?.offsetY || 0) + (textRoot.y || 0) + (forceRoot.y || 0);
     }
 
     // --- Gesture tick (may fully replace the pose if a gesture is active) ---
@@ -195,6 +218,11 @@
             ry += ipaSpeechDelta.rot[b].y || 0;
             rz += ipaSpeechDelta.rot[b].z || 0;
           }
+          if (mouseForceDelta?.rot?.[b]) {
+            rx += mouseForceDelta.rot[b].x || 0;
+            ry += mouseForceDelta.rot[b].y || 0;
+            rz += mouseForceDelta.rot[b].z || 0;
+          }
           // Clamp the combined Euler to the bone's anatomical limit. Because
           // the limit table covers VRM humanoid bones we recognize and
           // returns the full ±360° for unknown bones, this is a no-op for
@@ -256,7 +284,7 @@
 
     // --- Expression blend + idle blink ---
     if (vrm.expressionManager) {
-      applyExpressions(s, c, vrm, dt, mergeExpressionDeltas(gestureDelta, textMotionDelta, ipaSpeechDelta));
+      applyExpressions(s, c, vrm, dt, mergeExpressionDeltas(gestureDelta, textMotionDelta, ipaSpeechDelta, mouseForceDelta));
       if (c.idleBlink) stepBlink(vrm, c, idle, dt);
     }
 
@@ -365,6 +393,119 @@
     speech.viseme = delta?.viseme || '';
     speech.mouth = delta?.mouth || null;
     return speech.active ? delta : null;
+  }
+
+  function mouseForceDelta(force, c) {
+    if (!c.mouseForceEnabled || !force) return null;
+    const dx = clamp(force.delta?.x || 0, -1.2, 1.2);
+    const dy = clamp(force.delta?.y || 0, -1.2, 1.2);
+    const strength = c.mouseForceStrength ?? 0.65;
+    const mag = clamp(Math.sqrt(dx * dx + dy * dy) * 1.6, 0, 1);
+    if (mag < 0.01) return null;
+
+    const sx = dx * strength;
+    const sy = dy * strength;
+    const rot = {};
+    addRot(rot, 'hips', { x: -0.05 * sy, y: -0.18 * sx, z: -0.16 * sx });
+    addRot(rot, 'spine', { x: 0.20 * sy, y: -0.10 * sx, z: -0.30 * sx });
+    addRot(rot, 'chest', { x: 0.18 * sy, y: -0.12 * sx, z: -0.28 * sx });
+    addRot(rot, 'neck', { x: 0.08 * sy, y: -0.08 * sx, z: -0.10 * sx });
+    addRot(rot, 'head', { x: 0.10 * sy, y: -0.08 * sx, z: -0.10 * sx });
+    addRot(rot, 'leftUpperArm', { x: -0.16 * sy, z: -0.12 * sx });
+    addRot(rot, 'rightUpperArm', { x: -0.16 * sy, z: -0.12 * sx });
+
+    const target = force.targetBone || '';
+    if (target) {
+      addRot(rot, target, {
+        x: 0.16 * sy,
+        y: -0.10 * sx,
+        z: -0.20 * sx,
+      });
+    }
+
+    return {
+      active: true,
+      rot,
+      exprs: { surprised: 0.18 * mag },
+      root: {
+        x: sx * 0.035,
+        y: Math.abs(sx) * 0.012 + Math.abs(sy) * 0.008,
+        yaw: 0,
+      },
+      mag,
+    };
+  }
+
+  function stepMouseForce(s, c, dt) {
+    const force = ensureMouseForce(s);
+    if (!c.mouseForceEnabled) {
+      force.active = false;
+      force.delta = { x: 0, y: 0 };
+      updateMouseForceHelper(s, null);
+      return null;
+    }
+    if (!force.active) {
+      const k = Math.exp(-Math.max(0.1, c.mouseForceDecay ?? 6) * dt);
+      force.delta.x *= k;
+      force.delta.y *= k;
+      if (Math.abs(force.delta.x) < 0.001) force.delta.x = 0;
+      if (Math.abs(force.delta.y) < 0.001) force.delta.y = 0;
+    }
+    const delta = mouseForceDelta(force, c);
+    updateMouseForceHelper(s, delta);
+    return delta;
+  }
+
+  function updateMouseForceHelper(s, delta) {
+    const THREE = s.THREE;
+    if (!THREE || !s.scene) return;
+    if (!delta) {
+      if (s.mouseForceHelper) {
+        s.mouseForceHelper.arrow.visible = false;
+        s.mouseForceHelper.sphere.visible = false;
+      }
+      return;
+    }
+    if (!s.mouseForceHelper) {
+      const arrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0.001, 0x76b947, 0.07, 0.045);
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.018, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0x76b947, depthTest: false }),
+      );
+      arrow.line.material.depthTest = false;
+      arrow.cone.material.depthTest = false;
+      arrow.renderOrder = 999;
+      sphere.renderOrder = 999;
+      s.scene.add(arrow);
+      s.scene.add(sphere);
+      s.mouseForceHelper = { arrow, sphere };
+    }
+
+    const force = s.mouseForce;
+    const origin = new THREE.Vector3(0, 1.25, 0);
+    const node = force?.targetBone && s.vrm?.humanoid?.getNormalizedBoneNode(force.targetBone);
+    if (node) node.getWorldPosition(origin);
+
+    const right = new THREE.Vector3(1, 0, 0);
+    const up = new THREE.Vector3(0, 1, 0);
+    if (s.camera) {
+      const e = s.camera.matrixWorld.elements;
+      right.set(e[0], e[1], e[2]).normalize();
+      up.set(e[4], e[5], e[6]).normalize();
+    }
+    const dir = right
+      .multiplyScalar(force.delta?.x || 0)
+      .add(up.multiplyScalar(force.delta?.y || 0));
+    const len = clamp(dir.length() * 0.45, 0.04, 0.45);
+    if (dir.lengthSq() < 1e-5) dir.set(1, 0, 0);
+    dir.normalize();
+
+    s.mouseForceHelper.sphere.position.copy(origin);
+    s.mouseForceHelper.sphere.visible = true;
+    s.mouseForceHelper.arrow.position.copy(origin);
+    s.mouseForceHelper.arrow.setDirection(dir);
+    s.mouseForceHelper.arrow.setLength(len, Math.min(0.08, len * 0.35), Math.min(0.05, len * 0.25));
+    s.mouseForceHelper.arrow.visible = true;
   }
 
   function mergeExpressionDeltas(...deltas) {
@@ -857,6 +998,77 @@
     }
   }
 
+  function disposeObject3D(obj) {
+    if (!obj) return;
+    obj.traverse?.((n) => {
+      n.geometry?.dispose?.();
+      const mats = Array.isArray(n.material) ? n.material : [n.material];
+      for (const m of mats) m?.dispose?.();
+    });
+  }
+
+  function floorGridStyle(id) {
+    const styles = window.ACS_FLOOR_GRID_STYLES || [];
+    return styles.find(style => style.id === id) || styles[0] || {
+      id: 'default',
+      size: 80,
+      divisions: 80,
+      majorDivisions: 20,
+      color: 0x8c6eff,
+      secondaryColor: 0x332a55,
+      opacity: 0.35,
+    };
+  }
+
+  function setGridOpacity(grid, opacity) {
+    const mats = Array.isArray(grid.material) ? grid.material : [grid.material];
+    for (const mat of mats) {
+      if (!mat) continue;
+      mat.transparent = true;
+      mat.opacity = opacity;
+      mat.depthWrite = false;
+    }
+  }
+
+  function applyFloorGrid(s, c, THREE) {
+    if (!s.scene) return;
+    if (!c.floorGridEnabled) {
+      if (s.floorGrid) {
+        s.scene.remove(s.floorGrid.group);
+        disposeObject3D(s.floorGrid.group);
+        s.floorGrid = null;
+      }
+      return;
+    }
+
+    const style = floorGridStyle(c.floorGridStyle);
+    const size = Math.max(10, c.floorGridSize || style.size || 80);
+    const divisions = Math.max(2, Math.round(style.divisions || size));
+    const majorDivisions = Math.max(2, Math.round(style.majorDivisions || divisions / 4));
+    const sig = `${style.id}|${size}|${divisions}|${majorDivisions}`;
+    if (s.floorGrid?.sig === sig) return;
+
+    if (s.floorGrid) {
+      s.scene.remove(s.floorGrid.group);
+      disposeObject3D(s.floorGrid.group);
+    }
+
+    const group = new THREE.Group();
+    group.name = 'ACS floor grid';
+    const fine = new THREE.GridHelper(size, divisions, style.color, style.secondaryColor);
+    fine.position.y = 0.002;
+    setGridOpacity(fine, style.opacity ?? 0.35);
+    group.add(fine);
+
+    const major = new THREE.GridHelper(size, majorDivisions, style.color, style.color);
+    major.position.y = 0.004;
+    setGridOpacity(major, Math.min(0.85, (style.opacity ?? 0.35) + 0.16));
+    group.add(major);
+
+    s.scene.add(group);
+    s.floorGrid = { group, sig, style: style.id, size };
+  }
+
   function applyDebugHelpers(s, c, THREE) {
     if (c.debugAxes && !s.axesHelper) {
       s.axesHelper = new THREE.AxesHelper(1);
@@ -914,8 +1126,10 @@
     if (Math.abs(d.offsetY) < 1e-4 && Math.abs(d.velY) < 1e-4) { d.offsetY = 0; d.velY = 0; }
   }
 
+  window.ACS_mouseForceDelta = mouseForceDelta;
+
   window.ACS_probe = function probe(s) {
-    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, textMotion: {}, ipaSpeech: {}, shade: {} };
+    const out = { bones: {}, expr: {}, mats: {}, lights: {}, camera: {}, scene: {}, canvas: {}, debug: {}, anim: {}, gesture: {}, textMotion: {}, ipaSpeech: {}, mouseForce: {}, shade: {} };
     if (!s) return out;
     const vrm = s.vrm;
     if (vrm && vrm.humanoid) {
@@ -955,6 +1169,8 @@
     if (s.controls) out.camera.inertia = !!s.controls.enableDamping;
     if (s.scene?.background) { try { out.scene.bg = '#' + s.scene.background.getHexString(); } catch {} }
     if (s.groundMat) out.scene.groundOpacity = Math.round(s.groundMat.opacity * 1000) / 1000;
+    out.scene.floorGrid = s.floorGrid?.style || '';
+    out.scene.floorGridSize = s.floorGrid?.size || 0;
     if (s.renderer) { try { out.canvas.filter = s.renderer.domElement.style.filter || ''; } catch {} }
     if (vrm) {
       out.scene.rootY = Math.round(vrm.scene.rotation.y * 1000) / 1000;
@@ -983,6 +1199,10 @@
     out.ipaSpeech.phoneme = s.ipaSpeech?.phoneme || '';
     out.ipaSpeech.viseme = s.ipaSpeech?.viseme || '';
     out.ipaSpeech.mouth = s.ipaSpeech?.mouth || null;
+    out.mouseForce.active = !!s.mouseForce?.active;
+    out.mouseForce.targetBone = s.mouseForce?.targetBone || '';
+    out.mouseForce.deltaX = Math.round((s.mouseForce?.delta?.x || 0) * 1000) / 1000;
+    out.mouseForce.deltaY = Math.round((s.mouseForce?.delta?.y || 0) * 1000) / 1000;
     return out;
   };
 

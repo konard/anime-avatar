@@ -1,0 +1,80 @@
+[
+  {
+    "id": "dance_in_da_party_001__A464",
+    "display": "Party Dance 1",
+    "frames": 497,
+    "fps": 50
+  },
+  {
+    "id": "dance_in_da_party_001__A464_M",
+    "display": "Party Dance 2",
+    "frames": 497,
+    "fps": 50
+  },
+  {
+    "id": "forward_lunge_R_001__A359_M",
+    "display": "Forward Lunge L",
+    "frames": 399,
+    "fps": 50
+  },
+  {
+    "id": "macarena_001__A545",
+    "display": "Macarena 1",
+    "frames": 1375,
+    "fps": 50
+  },
+  {
+    "id": "macarena_001__A545_M",
+    "display": "Macarena 2",
+    "frames": 1375,
+    "fps": 50
+  },
+  {
+    "id": "neutral_kick_R_001__A543",
+    "display": "Standing Kick R",
+    "frames": 165,
+    "fps": 50
+  },
+  {
+    "id": "neutral_kick_R_001__A543_M",
+    "display": "Standing Kick L",
+    "frames": 165,
+    "fps": 50
+  },
+  {
+    "id": "squat_001__A359",
+    "display": "Squat",
+    "frames": 424,
+    "fps": 50
+  },
+  {
+    "id": "tired_forward_lunge_R_001__A359_M",
+    "display": "Deep Lunge L",
+    "frames": 810,
+    "fps": 50
+  },
+  {
+    "id": "tired_one_leg_jumping_R_001__A359",
+    "display": "One-Leg Jump R",
+    "frames": 500,
+    "fps": 50
+  },
+  {
+    "id": "tired_one_leg_jumping_R_001__A359_M",
+    "display": "One-Leg Jump L",
+    "frames": 500,
+    "fps": 50
+  },
+  {
+    "id": "walking_quip_360_R_002__A428",
+    "display": "360 Spin Walk 1",
+    "frames": 455,
+    "fps": 50
+  },
+  {
+    "id": "walking_quip_360_R_002__A428_M",
+    "display": "360 Spin Walk 2",
+    "frames": 455,
+    "fps": 50
+  }
+]

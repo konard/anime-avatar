@@ -171,6 +171,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         springHelperRoot,
         animation: null, mixer: null,
         mouseNDC: { x: 0, y: 0 },
+        mouseForce: { active: false, pointerId: null, targetBone: '', startNDC: { x: 0, y: 0 }, ndc: { x: 0, y: 0 }, delta: { x: 0, y: 0 } },
         charDyn: { offsetX: 0, offsetY: 0, velX: 0, velY: 0, dragging: false },
       };
 
@@ -981,9 +982,18 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <textarea data-testid="text-motion-prompt" value={textMotionInput}
                 onChange={e=>setTextMotionInput(e.target.value)}
-                placeholder="walk, turn left, run, wave"
+                placeholder="walk, turn left, squat, kick, macarena"
                 rows={3}
                 style={textareaStyle} />
+              <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                {(window.ACS_TEXT_MOTION_REFERENCE_PROMPTS || []).map(ref => (
+                  <button key={ref.referenceId} data-testid={`text-motion-ref-${ref.prompt.replace(/\s+/g, '-')}`}
+                    onClick={() => setTextMotionInput(ref.prompt)}
+                    style={{...btn, flex:'1 1 auto', minWidth:84}}>
+                    {ref.label}
+                  </button>
+                ))}
+              </div>
               <div style={{ display:'flex', gap:6 }}>
                 <button data-testid="text-motion-run" onClick={runTextMotion} style={{...btn, flex:1}}>Run</button>
                 <button data-testid="text-motion-stop" onClick={() => setCfg({...cfg, textMotionEnabled:false})} style={{...btn, flex:1}}>Stop</button>
@@ -1207,6 +1217,10 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <S.Row label="Inertia"><S.Toggle testid="char-inertia" value={cfg.charInertia} onChange={v => setCfg({...cfg, charInertia: v})} /></S.Row>
             <S.Row label="Spring K"><S.Slider testid="char-k" value={cfg.charSpringK} min={0.5} max={15} step={0.1} onChange={v => setCfg({...cfg, charSpringK: v})} /></S.Row>
             <S.Row label="Damping"><S.Slider testid="char-damp" value={cfg.charDamping} min={0.5} max={12} step={0.1} onChange={v => setCfg({...cfg, charDamping: v})} /></S.Row>
+            <div style={subhead}>Mouse force</div>
+            <S.Row label="Enabled"><S.Toggle testid="mouse-force-enabled" value={cfg.mouseForceEnabled} onChange={v => setCfg({...cfg, mouseForceEnabled: v})} /></S.Row>
+            <S.Row label="Strength"><S.Slider testid="mouse-force-strength" value={cfg.mouseForceStrength ?? 0.65} min={0.1} max={1.5} step={0.01} onChange={v => setCfg({...cfg, mouseForceStrength: v})} /></S.Row>
+            <S.Row label="Decay"><S.Slider testid="mouse-force-decay" value={cfg.mouseForceDecay ?? 6} min={1} max={14} step={0.1} onChange={v => setCfg({...cfg, mouseForceDecay: v})} /></S.Row>
             <div style={{ fontSize:10, opacity:0.5, marginTop:4 }}>Ctrl+drag on stage to fling the character; it springs back when inertia is on.</div>
           </S.Section>
 
@@ -1253,6 +1267,13 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             onReset={() => applyGroupReset('scene')}>
             <S.Row label="Background"><S.ColorPick testid="bg" value={cfg.bg} onChange={v => setCfg({...cfg, bg: v})} /></S.Row>
             <S.Row label="Ground"><S.Slider testid="ground-opacity" value={cfg.groundOpacity} min={0} max={1} step={0.01} onChange={v => setCfg({...cfg, groundOpacity: v})} /></S.Row>
+            <S.Row label="Floor grid"><S.Toggle testid="floor-grid-enabled" value={cfg.floorGridEnabled} onChange={v => setCfg({...cfg, floorGridEnabled: v})} /></S.Row>
+            <S.Row label="Grid style">
+              <S.Select testid="floor-grid-style" value={cfg.floorGridStyle || 'sonic'}
+                onChange={v => setCfg({...cfg, floorGridStyle: v})}
+                options={(window.ACS_FLOOR_GRID_STYLES || []).map(style => ({value:style.id, label:style.label}))} />
+            </S.Row>
+            <S.Row label="Grid size"><S.Slider testid="floor-grid-size" value={cfg.floorGridSize ?? 80} min={20} max={160} step={1} onChange={v => setCfg({...cfg, floorGridSize: v})} /></S.Row>
           </S.Section>
 
           <S.Section title="3D Camera" testid="camera"
@@ -1642,7 +1663,7 @@ function attachPointerHandlers(dom, stateRef, cfgRef, setCfgRef, controls) {
     // cfg.jointControlSelected so the gizmo snaps to whichever joint the
     // pointer is closest to. Throttled to once per ~120 ms to avoid React
     // re-render storms while moving the mouse.
-    if (cfgRef.current.experimentalJointControls && s.jointCtl && !s.jointCtl.tc.dragging) {
+    if (cfgRef.current.experimentalJointControls && s.jointCtl && !s.jointCtl.tc.dragging && !s.mouseForce?.active) {
       const now = performance.now();
       if (!s._jointHoverAt || now - s._jointHoverAt > 120) {
         s._jointHoverAt = now;
@@ -1674,26 +1695,49 @@ function attachPointerHandlers(dom, stateRef, cfgRef, setCfgRef, controls) {
       s.charDyn.velX = (s.charDyn.offsetX - prevX) / 0.016;
       s.charDyn.velY = (s.charDyn.offsetY - prevY) / 0.016;
     }
+    if (s.mouseForce?.active) {
+      s.mouseForce.ndc = ndc;
+      s.mouseForce.delta = {
+        x: ndc.x - s.mouseForce.startNDC.x,
+        y: ndc.y - s.mouseForce.startNDC.y,
+      };
+    }
   };
   const onDown = (e) => {
     const s = stateRef.current;
     if (!s) return;
+    const ndc = getNDC(e);
     // Joint tap-to-select (mobile) when experimentalJointControls is on.
     // We only switch the joint when the tap is far enough from the gizmo
     // (the tc has its own pointer handling for ring drags).
     if (cfgRef.current.experimentalJointControls && s.jointCtl && !s.jointCtl.tc.dragging) {
       if (e.pointerType === 'touch') {
-        const ndc = getNDC(e);
         const picked = pickBoneAtNDC(s, ndc, 0.10);
         if (picked && picked !== cfgRef.current.jointControlSelected) {
           setCfgRef.current({ ...cfgRef.current, jointControlSelected: picked });
         }
       }
     }
+    if (cfgRef.current.mouseForceEnabled && e.button === 0 && !e.ctrlKey && !e.metaKey) {
+      const picked = pickBoneAtNDC(s, ndc, e.pointerType === 'touch' ? 0.12 : 0.08);
+      if (picked) {
+        controls.enabled = false;
+        s.mouseForce = {
+          active: true,
+          pointerId: e.pointerId,
+          targetBone: picked,
+          startNDC: ndc,
+          ndc,
+          delta: { x: 0, y: 0 },
+        };
+        try { dom.setPointerCapture?.(e.pointerId); } catch {}
+        e.preventDefault();
+        return;
+      }
+    }
     if (e.ctrlKey || e.metaKey) {
       // Suppress OrbitControls while dragging the character.
       controls.enabled = false;
-      const ndc = getNDC(e);
       s.charDyn.dragging = true;
       s.charDyn.startNDC = ndc;
       s.charDyn.startOffX = s.charDyn.offsetX || 0;
@@ -1704,6 +1748,11 @@ function attachPointerHandlers(dom, stateRef, cfgRef, setCfgRef, controls) {
   const onUp = () => {
     const s = stateRef.current;
     if (!s) return;
+    if (s.mouseForce?.active) {
+      s.mouseForce.active = false;
+      s.mouseForce.pointerId = null;
+      controls.enabled = true;
+    }
     if (s.charDyn?.dragging) {
       s.charDyn.dragging = false;
       controls.enabled = true;

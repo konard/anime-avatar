@@ -1,181 +1,160 @@
-# Case study: Issue #31 - Text-to-motion for avatar studio
+# Case study: Issue #31 - Browser motion generation and GEAR-SONIC parity
 
-> Source: https://github.com/konard/anime-avatar/issues/31
+> Issue: https://github.com/konard/anime-avatar/issues/31
 >
-> PR: https://github.com/konard/anime-avatar/pull/32
+> Prepared PR: https://github.com/konard/anime-avatar/pull/34
+>
+> Prior related PR: https://github.com/konard/anime-avatar/pull/32
 
 ## Summary
 
-Issue #31 asks for an experimental text-to-motion control in the new avatar
-studio (`public/new/`). The user should be able to enable the feature, type a
-short motion prompt such as `walk` or `turn`, see the browser resources
-available versus required, and get generated movement in the scene. The issue
-also asks for a case-study folder with requirements, research, and solution
-plans.
+Issue #31 originally asked for an opt-in browser text-to-motion experiment for
+the new avatar studio. A later owner comment broadened the target to cover the
+main interaction ideas in the GEAR-SONIC demo: generated/reference motions,
+mouse force on the body, a robot-model investigation, and an infinite floor grid
+with styles. The implementation keeps the existing VRM/Three.js editor model and
+adds browser-safe approximations that work across the anime VRM presets.
 
-The implementation in this PR lands the browser integration surface now:
+This branch extends the already-merged text-motion adapter with:
 
-- A local `gr00t-browser-adapter-v0` text-motion module parses short commands.
-- The parser emits GR00T-style planner intent data: mode, movement direction,
-  and facing direction.
-- The current runtime turns that intent into procedural VRM bone/root deltas,
-  layered through the existing `apply.js` animation stack.
-- The editor gets an opt-in Text to Motion section with a toggle, prompt box,
-  Run/Stop controls, runtime status, and resource budget display.
+- GEAR-SONIC reference-prompt buttons and procedural mappings for squat, lunge,
+  standing kick, macarena, and 360 spin walk.
+- Planner metadata under `gearSonicPlanner`, while preserving the existing
+  `gr00tPlanner` compatibility field.
+- A switchable mouse-force layer that bends the VRM torso/head/limbs from a
+  pointer drag and shows an in-scene force arrow.
+- A switchable large floor grid with SONIC green, studio violet, and blueprint
+  styles.
+- Tests for the new prompt mappings, default-off controls, floor grid, and
+  mouse-force deltas.
 
-This is not a full GR00T ONNX model port. It is the browser-side adapter and
-UX required to safely host one later. The current public GR00T WBC docs describe
-deployment through Python/C++/TensorRT/CUDA and fixed ONNX planner tensors, not
-a browser-ready text model.
+## Requirement inventory
 
-## Requirements
+| #   | Requirement                                                                 | Status in this branch                                                                                 |
+| --- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| R1  | Generate animation in the browser from text commands.                       | Implemented through `gear-sonic-browser-adapter-v1` in `public/new/src/textMotion.js`.                |
+| R2  | Fail when resources are insufficient and show available/required resources. | Existing resource checks preserved from PR #32.                                                       |
+| R3  | Feature must be switchable and off by default.                              | Text motion, mouse force, and floor grid default to off.                                              |
+| R4  | Support commands such as `walk` and `turn`.                                 | Existing walk/run/turn/wave mappings preserved.                                                       |
+| R5  | Cover GEAR-SONIC reference animations.                                      | Added reference prompts for squat, kick, lunge, macarena, and spin walk.                              |
+| R6  | Apply force on the body using mouse, switchable.                            | Added `mouseForceEnabled`, pointer drag state, force arrow, and procedural VRM body-force deltas.     |
+| R7  | Make force applicable to all anime models.                                  | Implemented on VRM humanoid bones rather than model-specific meshes.                                  |
+| R8  | Investigate/support the GEAR-SONIC robot model directly if feasible.        | Investigated. The demo robot is MJCF XML plus STL meshes, not VRM/GLB; direct loading remains a plan. |
+| R9  | Add switchable infinite floor grid with different styles.                   | Added `floorGridEnabled`, `floorGridStyle`, and `floorGridSize`.                                      |
+| R10 | Reuse demo libraries as much as practical.                                  | Reuses Three.js patterns. MuJoCo/ONNX remain documented follow-ups because the editor runtime is VRM. |
+| R11 | Compile case-study data under `docs/case-studies/issue-31`.                 | This folder contains issue text, comments, research, requirements, and solution plans.                |
 
-| #   | Requirement                                                                         | Status                                                                            |
-| --- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| R1  | Add a simple experimental text-to-motion feature to the new avatar studio.          | Implemented in `public/new/src/textMotion.js` and `Editor.jsx`.                   |
-| R2  | Use a model running in the browser.                                                 | Implemented as local browser adapter `gr00t-browser-adapter-v0`; no server calls. |
-| R3  | Fail on devices without enough resources.                                           | Implemented resource evaluation before plan creation.                             |
-| R4  | Always show available and required resources.                                       | Implemented in the Text to Motion panel.                                          |
-| R5  | Add a switch to turn the feature on/off.                                            | Implemented as `textMotionEnabled`.                                               |
-| R6  | Add a small text area where the user can type `walk`, `turn`, and similar commands. | Implemented as `textMotionPrompt`.                                                |
-| R7  | Generate animation in the virtual world/scene.                                      | Implemented as procedural full-body/root deltas layered into `apply.js`.          |
-| R8  | Compile issue data and case-study analysis under `docs/case-studies/issue-31`.      | Implemented in this folder.                                                       |
+## GEAR-SONIC demo findings
 
-## Research
+The demo page at https://nvlabs.github.io/GEAR-SONIC/demo.html loads a Three.js
+scene, local ONNX Runtime Web, MuJoCo WASM, `js/demo.js`, `js/viewer.js`, and
+`js/policy.js`. Its UI exposes:
 
-### GR00T Whole-Body Control
+- Reference Motion list loaded from `assets/motions/index.json`.
+- Text generation through a Kimodo backend, not a fully local browser model.
+- Physics and policy toggles.
+- Camera follow.
+- Drag-to-push interaction on robot bodies.
 
-The official `NVlabs/GR00T-WholeBodyControl` repository describes a platform
-for humanoid whole-body control with a C++ inference stack and SONIC training
-stack. Its setup requires Git LFS because large binary assets, including ONNX
-models, are stored outside normal Git blobs.
+The downloaded demo script shows these relevant implementation details:
 
-The GR00T WBC documentation describes several relevant ideas:
+- `viewer.loadScene()` fetches `assets/robot/scene.xml` and mesh files from
+  `assets/robot/meshes/`, then builds a MuJoCo model in WASM memory.
+- The visible floor uses a plane plus fine and coarse `THREE.GridHelper`
+  overlays.
+- Drag-to-push raycasts robot geoms, stores a local body anchor, and applies a
+  spring force plus torque through MuJoCo `xfrc_applied`.
+- The policy loader creates ONNX Runtime Web sessions for
+  `assets/policy/model_encoder.onnx` and `assets/policy/model_decoder.onnx`,
+  preferring WebGPU and falling back to WASM.
 
-- The kinematic planner takes current robot state and high-level navigation
-  commands, then outputs future whole-body MuJoCo `qpos` frames.
-- The documented primary ONNX planner inputs include `context_mujoco_qpos`,
-  `target_vel`, `mode`, `movement_direction`, `facing_direction`, and `height`.
-- The planner operates in MuJoCo's Z-up coordinate system, with X forward,
-  Y left, and Z up.
-- The documented deployment path runs a planner thread at 10 Hz and uses
-  TensorRT/CUDA graph capture in the native stack.
-- Keyboard planner controls map the same user intent we need in the studio:
-  slow walk, walk, run, forward/backward, turn left/right, and styled walking.
+The reference motion index is preserved in
+`docs/case-studies/issue-31/gear-sonic-motion-index.json` and contains these
+public clip names:
 
-Implication: the browser UI should store text prompts and planner-like intent,
-but a real GR00T planner swap-in needs an ONNX/WebGPU model artifact plus a
-VRM-to-G1/SMPL retargeting bridge.
+| Display name    | Demo id                               | Frames | FPS |
+| --------------- | ------------------------------------- | ------ | --- |
+| Party Dance 1   | `dance_in_da_party_001__A464`         | 497    | 50  |
+| Party Dance 2   | `dance_in_da_party_001__A464_M`       | 497    | 50  |
+| Forward Lunge L | `forward_lunge_R_001__A359_M`         | 399    | 50  |
+| Macarena 1      | `macarena_001__A545`                  | 1375   | 50  |
+| Macarena 2      | `macarena_001__A545_M`                | 1375   | 50  |
+| Standing Kick R | `neutral_kick_R_001__A543`            | 165    | 50  |
+| Standing Kick L | `neutral_kick_R_001__A543_M`          | 165    | 50  |
+| Squat           | `squat_001__A359`                     | 424    | 50  |
+| Deep Lunge L    | `tired_forward_lunge_R_001__A359_M`   | 810    | 50  |
+| One-Leg Jump R  | `tired_one_leg_jumping_R_001__A359`   | 500    | 50  |
+| One-Leg Jump L  | `tired_one_leg_jumping_R_001__A359_M` | 500    | 50  |
+| 360 Spin Walk 1 | `walking_quip_360_R_002__A428`        | 455    | 50  |
+| 360 Spin Walk 2 | `walking_quip_360_R_002__A428_M`      | 455    | 50  |
 
-### Browser inference options
+## Solution plan by area
 
-ONNX Runtime Web is the best fit for a future ONNX planner in-browser path.
-Official docs describe WebGPU as a browser execution provider for heavier
-compute and WebAssembly as the smaller default path. They also document that
-WebGPU support is experimental and browser-dependent.
+### Text and reference motion
 
-Transformers.js is relevant for future text understanding, but the current
-issue only requires short imperative commands like `walk` and `turn`. A small
-local parser is safer for the first PR because it avoids a large language model
-download before the motion planner itself exists.
+The current practical solution is a browser adapter: parse short prompts into
+planner-like intent and generate procedural VRM bone deltas. This avoids shipping
+large native assets while keeping the UI and config surface ready for a real
+ONNX/WebGPU planner.
 
-## Solution Options
+Follow-up path: load a browser-compatible SONIC/GR00T ONNX artifact with ONNX
+Runtime Web and retarget qpos/reference frames to VRM humanoid bones.
 
-### Option A - Browser adapter now, ONNX planner later
+### Mouse force
 
-Implement a local parser and procedural motion generator behind the same cfg
-surface that a real planner will use later.
+The demo's true force model requires MuJoCo body IDs and `xfrc_applied`. The
+VRM editor does not simulate rigid bodies, so this branch implements the same UX
+idea as a procedural force layer: pointer drag near a humanoid bone bends the
+torso/head/limbs, shifts the root slightly, and renders a force arrow. It stays
+model-independent because it targets VRM humanoid bones.
 
-Pros:
+Follow-up path: if the editor later hosts physics bodies, map pointer anchors to
+colliders and apply physical impulses instead of animation deltas.
 
-- Works now without shipping huge binary assets.
-- Keeps all computation in the browser.
-- Can fail fast on weak browsers/devices.
-- Gives reviewers the final UI shape and cfg keys.
+### Robot model
 
-Cons:
+The demo robot is not a single VRM/GLB asset. It is MuJoCo MJCF XML plus mesh
+files, loaded into a MuJoCo WASM virtual filesystem. Direct support would require
+a new loader path, coordinate-system conversion, material handling, and clear
+separation from VRM-only controls. This branch documents the asset format and
+does not copy the robot model into the repo.
 
-- Motion is procedural, not a real GR00T policy/planner output.
+Follow-up path: add a "MuJoCo/MJCF scene" mode that can load `scene.xml` by URL
+and rewrite relative mesh paths. Keep it separate from VRM editing.
 
-This PR uses Option A.
+### Floor grid
 
-### Option B - Direct ONNX Runtime Web integration
+The demo uses `THREE.GridHelper` overlays, which fit this editor directly. This
+branch adds an opt-in large grid that reads as infinite at normal avatar camera
+distances and provides multiple styles.
 
-Load a browser-compatible GR00T planner `.onnx` with ONNX Runtime Web and
-WebGPU, feed planner tensors, and retarget output frames to VRM bones.
-
-Pros:
-
-- Closest to the issue's GR00T target.
-
-Cons:
-
-- Needs a browser-suitable model artifact, model hosting, tensor validation,
-  qpos-to-VRM retargeting, memory/download policy, and graceful fallback.
-- Current GR00T docs focus on native TensorRT/CUDA deployment, not browser
-  runtime constraints.
-
-Recommended follow-up after a model artifact is chosen.
-
-### Option C - Server-side GR00T
-
-Run GR00T WBC native stack on a server and stream animation frames to the
-studio.
-
-Pros:
-
-- Reuses the native deployment path more directly.
-
-Cons:
-
-- Violates the issue requirement that the model run in-browser.
-
-Not selected.
-
-## Implementation Notes
-
-New cfg keys:
-
-- `textMotionEnabled`
-- `textMotionPrompt`
-- `textMotionNonce`
-- `textMotionModel`
-
-Runtime flow:
-
-1. The editor toggles `textMotionEnabled` and bumps `textMotionNonce` on Run.
-2. `ACS_createTextMotionPlan()` checks resources and parses the prompt.
-3. The plan carries GR00T-style modes and direction tensors for traceability.
-4. `ACS_textMotionDelta()` emits per-frame VRM bone/root deltas.
-5. `ACS_applyAll()` layers these deltas with pose, gestures, expressions, and
-   the existing anatomical clamps.
-6. `ACS_probe()` exposes text-motion state for tests.
-
-## Test Plan
+## Test plan
 
 Automated:
 
-- `tests/textMotion.test.js` verifies resource failure, command parsing,
-  planner-intent mapping, walk deltas, turn yaw, and unsupported prompts.
-- `public/new/src/tests-registry.js` adds in-browser smoke coverage for the
-  resource report, GR00T-style plan mapping, and live walk animation.
+- `tests/textMotion.test.js` covers resource failure, legacy walk/turn mappings,
+  GEAR-SONIC reference prompt mappings, and generated deltas for squat/kick.
+- `tests/gearSonicControls.test.js` covers default-off controls and the pure
+  mouse-force delta helper.
+- `public/new/src/tests-registry.js` adds browser smoke tests for floor grid and
+  mouse-force state.
 
 Manual:
 
 1. Open `/anime-avatar/new/?view=editor`.
-2. Enable Text to Motion.
-3. Type `walk`, click Run, and observe leg swing/root bob.
-4. Type `turn left`, click Run, and observe turn-in-place body/root yaw.
-5. Inspect the Text to Motion status panel for available and required resource
-   values.
+2. Enable Text to Motion, click Squat/Kick/Lunge/Macarena/Spin Walk, then Run.
+3. Enable Mouse force in Character and drag near the avatar body.
+4. Enable Floor grid in Scene and switch grid styles.
+5. Confirm all three features are disabled again after Reset all.
 
 ## Sources
 
-- GR00T Whole-Body Control repository: https://github.com/NVlabs/GR00T-WholeBodyControl
+- GEAR-SONIC demo: https://nvlabs.github.io/GEAR-SONIC/demo.html
+- GEAR-SONIC demo controller: https://nvlabs.github.io/GEAR-SONIC/js/demo.js?v=2
+- GEAR-SONIC viewer code: https://nvlabs.github.io/GEAR-SONIC/js/viewer.js
+- GEAR-SONIC policy code: https://nvlabs.github.io/GEAR-SONIC/js/policy.js?v=2
+- GEAR-SONIC reference motion index: https://nvlabs.github.io/GEAR-SONIC/assets/motions/index.json
 - GR00T WBC documentation: https://nvlabs.github.io/GR00T-WholeBodyControl/
 - Kinematic Planner ONNX Model Reference: https://nvlabs.github.io/GR00T-WholeBodyControl/references/planner_onnx.html
-- Keyboard planner controls: https://nvlabs.github.io/GR00T-WholeBodyControl/tutorials/keyboard.html
-- Motion reference data: https://nvlabs.github.io/GR00T-WholeBodyControl/references/motion_reference.html
-- ONNX Runtime WebGPU docs: https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html
 - ONNX Runtime Web JavaScript docs: https://onnxruntime.ai/docs/get-started/with-javascript/web.html
-- Transformers.js WebGPU overview: https://huggingface.co/blog/transformersjs-v3
+- ONNX Runtime WebGPU docs: https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html
