@@ -46,6 +46,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   const [ipaSpeechInput, setIpaSpeechInput] = useState(cfg.ipaSpeechText || 'Hello avatar');
   const [gearSonicGenStatus, setGearSonicGenStatus] = useState(null);
   const [gearSonicRobotStatus, setGearSonicRobotStatus] = useState(null);
+  const [textToModelInput, setTextToModelInput] = useState(cfg.textToModelPrompt || '');
+  const [textToModelImageInput, setTextToModelImageInput] = useState(cfg.textToModelImageURL || '');
+  const [textToModelStatus, setTextToModelStatus] = useState(null);
   const [textMotionInfo, setTextMotionInfo] = useState(() => ({
     runtime: null,
     resources: window.ACS_getTextMotionResourceReport?.() || null,
@@ -67,6 +70,12 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   useEffect(() => {
     setIpaSpeechInput(cfg.ipaSpeechText || 'Hello avatar');
   }, [cfg.ipaSpeechText]);
+  useEffect(() => {
+    setTextToModelInput(cfg.textToModelPrompt || '');
+  }, [cfg.textToModelPrompt]);
+  useEffect(() => {
+    setTextToModelImageInput(cfg.textToModelImageURL || '');
+  }, [cfg.textToModelImageURL]);
   useEffect(() => {
     const update = () => setTextMotionInfo({
       runtime: stateRef.current.textMotion || null,
@@ -372,6 +381,21 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         s.mixer = null;
         s.animation = null;
       }
+      // Issue #36: also remove any static (non-VRM) model loaded through
+      // the multi-format dispatcher so the VRM replaces it cleanly.
+      if (s.staticModel?.scene) {
+        s.scene.remove(s.staticModel.scene);
+        try {
+          s.staticModel.scene.traverse?.((n) => {
+            if (n.geometry) n.geometry.dispose?.();
+            if (n.material) {
+              const mats = Array.isArray(n.material) ? n.material : [n.material];
+              mats.forEach((m) => m.dispose?.());
+            }
+          });
+        } catch {}
+        s.staticModel = null;
+      }
       s.vrm = vrm;
       s.scene.add(vrm.scene);
       try { window.THREE_VRM.VRMUtils.rotateVRM0?.(vrm); } catch {}
@@ -489,6 +513,152 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     }
   }, [loadVRMBuffer]);
 
+  // Issue #36: load a non-VRM model (plain GLB / FBX / PLY / OBJ / MJCF)
+  // through the multi-format dispatcher and attach the resulting scene to
+  // the stage as a static prop. The previous VRM (if any) is removed —
+  // we replace the central model rather than overlaying. Returns the
+  // dispatcher result so the caller can record the source URL/format.
+  const loadStaticModel = useCallback(async (result, name) => {
+    const s = stateRef.current;
+    if (!s.THREE || !result?.scene) return;
+    // Dispose any previously attached static model.
+    if (s.staticModel) {
+      s.scene.remove(s.staticModel.scene);
+      try { s.staticModel.scene.traverse?.(n => {
+        if (n.geometry) n.geometry.dispose?.();
+        if (n.material) {
+          const mats = Array.isArray(n.material) ? n.material : [n.material];
+          mats.forEach(m => m.dispose?.());
+        }
+      }); } catch {}
+      s.staticModel = null;
+    }
+    // Remove the previous VRM so the user always sees the latest pick.
+    if (s.vrm) {
+      s.scene.remove(s.vrm.scene);
+      try { window.THREE_VRM.VRMUtils.deepDispose?.(s.vrm.scene); } catch {}
+      if (s.springHelperRoot) {
+        while (s.springHelperRoot.children.length)
+          s.springHelperRoot.remove(s.springHelperRoot.children[0]);
+      }
+      s.vrm = null;
+      s.mixer = null;
+      s.animation = null;
+    }
+    // Add the new scene; the dispatcher already returns an Object3D-rooted
+    // group regardless of source format. Auto-frame it by computing the
+    // bounding box and re-centering on the ground plane.
+    s.scene.add(result.scene);
+    try {
+      const box = new s.THREE.Box3().setFromObject(result.scene);
+      const size = new s.THREE.Vector3();
+      const center = new s.THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      const targetH = 1.4; // approx VRM head height
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = targetH / maxDim;
+      result.scene.scale.setScalar(scale);
+      result.scene.position.x = -center.x * scale;
+      result.scene.position.y = -box.min.y * scale; // sit on ground
+      result.scene.position.z = -center.z * scale;
+      result.scene.traverse(n => {
+        if (n.isMesh || n.isSkinnedMesh) n.frustumCulled = false;
+      });
+    } catch {}
+    s.staticModel = {
+      scene: result.scene,
+      format: result.format,
+      kind: result.kind,
+      url: result.url || '',
+      name,
+    };
+    s.baseYaw = 0;
+    setBones([]);
+    setExprs([]);
+    setMeshes([]);
+    setVrmMeta({
+      title: name || 'model',
+      version: result.format?.toUpperCase() || '',
+      authors: [],
+      licenseUrl: '',
+    });
+    setVrmName(name || `loaded.${result.format || 'model'}`);
+    setStatus('loaded');
+  }, []);
+
+  // Multi-format URL loader (issue #36). Detects the file format from the
+  // URL extension first and only routes to the VRM-specific path when the
+  // pick really is a VRM (so plain GLB doesn't trigger the legacy
+  // 'No VRM extension in file' throw). Used by the unified Model selector
+  // and by the text-to-model "Generate" path.
+  const loadModelFromURLDispatcher = useCallback(async (url, opts = {}) => {
+    if (!url) return;
+    setStatus('loading'); setError(null);
+    try {
+      const resolved = window.ACS_normalizeModelURL
+        ? window.ACS_normalizeModelURL(url)
+        : url;
+      const fmt = opts.format
+        || (window.ACS_detectModelFormat
+          ? window.ACS_detectModelFormat(resolved, null, null)
+          : 'vrm');
+      if (fmt === 'vrm') {
+        await loadVRMFromURL(url);
+        return;
+      }
+      // MJCF + GLB + FBX + PLY + OBJ — go through the dispatcher.
+      const s = stateRef.current;
+      const result = await window.ACS_loadModelFromURL(url, {
+        ...opts,
+        format: fmt,
+        THREE: s?.THREE,
+        GLTFLoader: window.GLTFLoader,
+        FBXLoader: window.FBXLoader,
+        PLYLoader: window.PLYLoader,
+        OBJLoader: window.OBJLoader,
+        STLLoader: window.STLLoader,
+      });
+      await loadStaticModel(result, resolved.split('/').pop() || `model.${fmt}`);
+    } catch (e) {
+      console.error('Model load failed', e);
+      setError(String(e.message || e));
+      setStatus('error');
+    }
+  }, [loadVRMFromURL, loadStaticModel]);
+
+  // Multi-format buffer loader (drag-drop / file input / generated GLB).
+  // Caller passes the format explicitly when known; otherwise we sniff the
+  // file extension from the name.
+  const loadModelFromBufferDispatcher = useCallback(async (buf, name, format) => {
+    setStatus('loading'); setError(null);
+    try {
+      const fmt = (format
+        || (typeof name === 'string'
+          ? (window.ACS_detectModelFormat
+            ? window.ACS_detectModelFormat(name, null, null)
+            : 'vrm')
+          : 'vrm'));
+      if (fmt === 'vrm') {
+        await loadVRMBuffer(buf, name);
+        return;
+      }
+      const s = stateRef.current;
+      const result = await window.ACS_loadModelFromBuffer(buf, fmt, {
+        THREE: s?.THREE,
+        GLTFLoader: window.GLTFLoader,
+        FBXLoader: window.FBXLoader,
+        PLYLoader: window.PLYLoader,
+        OBJLoader: window.OBJLoader,
+      });
+      await loadStaticModel(result, name);
+    } catch (e) {
+      console.error('Model buffer load failed', e);
+      setError(String(e.message || e));
+      setStatus('error');
+    }
+  }, [loadVRMBuffer, loadStaticModel]);
+
   const [animationBump, setAnimationBump] = useState(0);
 
   const loadAnimationFromURL = useCallback(async (url) => {
@@ -558,12 +728,20 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
   }, []);
 
   // Wire refs used by pointer/drop handlers (which are set up inside init).
-  useEffect(() => { loadVRMBufferRef.current = loadVRMBuffer; }, [loadVRMBuffer]);
+  // Drop handler now goes through the multi-format dispatcher so dropping a
+  // plain GLB or PLY also works (issue #36).
+  useEffect(() => { loadVRMBufferRef.current = loadModelFromBufferDispatcher; }, [loadModelFromBufferDispatcher]);
   useEffect(() => { loadAnimationBufferRef.current = loadAnimationFromBuffer; }, [loadAnimationFromBuffer]);
 
   useEffect(() => {
-    window.__acsB_load = { loadVRMFromURL, loadVRMBuffer, loadAnimationFromURL, loadAnimationFromBuffer };
-  }, [loadVRMFromURL, loadVRMBuffer, loadAnimationFromURL, loadAnimationFromBuffer]);
+    window.__acsB_load = {
+      loadVRMFromURL, loadVRMBuffer,
+      loadModelFromURL: loadModelFromURLDispatcher,
+      loadModelFromBuffer: loadModelFromBufferDispatcher,
+      loadAnimationFromURL, loadAnimationFromBuffer,
+    };
+  }, [loadVRMFromURL, loadVRMBuffer, loadModelFromURLDispatcher,
+      loadModelFromBufferDispatcher, loadAnimationFromURL, loadAnimationFromBuffer]);
 
   // React to animationUrl cfg changes (e.g., preset dropdown).
   useEffect(() => {
@@ -720,6 +898,71 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     }
   }, [cfg, textMotionInput, setCfg]);
 
+  // Text-to-model (issue #36). Posts the prompt to the configured TRELLIS /
+  // Hugging Face Space / NIM endpoint, fetches the resulting GLB, and pipes
+  // it through the unified loader so the new mesh shows up in the same
+  // selector. Mirrors generateGearSonicMotion: surfaces verbatim errors,
+  // never fakes a result, off by default.
+  const runTextToModel = useCallback(async () => {
+    setTextToModelStatus({ ok: true, message: 'Calling text-to-model backend…' });
+    if (!cfg.textToModelEnabled) {
+      setTextToModelStatus({
+        ok: false,
+        message: 'Text-to-model is disabled. Toggle "Enabled" to call the backend.',
+      });
+      return;
+    }
+    if (!cfg.textToModelBackendURL) {
+      setTextToModelStatus({
+        ok: false,
+        message:
+          'No backend URL set. TRELLIS / TRELLIS.2 cannot run in the browser; ' +
+          'point Backend URL at a self-hosted /api/generate endpoint, a Hugging Face Space, or NVIDIA NIM.',
+      });
+      return;
+    }
+    if (!window.ACS_generateModelFromText) {
+      setTextToModelStatus({ ok: false, message: 'textToModel.js failed to load.' });
+      return;
+    }
+    try {
+      const result = await window.ACS_generateModelFromText(textToModelInput, {
+        backendURL: cfg.textToModelBackendURL,
+        providerId: cfg.textToModelProviderId,
+        imageUrl: textToModelImageInput,
+      });
+      if (!result?.ok) {
+        setTextToModelStatus({
+          ok: false,
+          message: `Backend failure (${result?.status || 'unknown'}): ${result?.reason || 'unknown reason'}`,
+        });
+        return;
+      }
+      // Pipe the returned GLB through the multi-format dispatcher so it
+      // appears on the stage just like a preset would.
+      await loadModelFromBufferDispatcher(result.glb, `generated.glb`, 'glb');
+      setCfg({
+        ...cfg,
+        textToModelPrompt: textToModelInput,
+        textToModelImageURL: textToModelImageInput,
+        textToModelLastResultURL: result.sourceURL || '',
+        textToModelNonce: (cfg.textToModelNonce || 0) + 1,
+        modelPresetId: 'generated',
+        modelUrl: result.sourceURL || '',
+        modelFormat: 'glb',
+        modelKind: 'prop',
+      });
+      const sizeMb = ((result.sizeBytes || 0) / 1024 / 1024).toFixed(2);
+      const seconds = ((result.durationMs || 0) / 1000).toFixed(1);
+      setTextToModelStatus({
+        ok: true,
+        message: `Generated ${sizeMb} MB GLB in ${seconds} s · ${result.providerId}`,
+      });
+    } catch (e) {
+      setTextToModelStatus({ ok: false, message: `Generate threw: ${e.message || e}` });
+    }
+  }, [cfg, textToModelInput, textToModelImageInput, loadModelFromBufferDispatcher, setCfg]);
+
   // GEAR-SONIC robot model side-effect: load when toggle flips on, dispose
   // when it flips off. Loading is async (~36 STL fetches) so we surface
   // progress through gearSonicRobotStatus.
@@ -867,8 +1110,14 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     const f = e.target.files?.[0]; if (!f) return;
     const buf = await f.arrayBuffer();
     const ext = f.name.split('.').pop()?.toLowerCase();
-    if (ext === 'fbx') await loadAnimationFromBuffer(buf, f.name);
-    else await loadVRMBuffer(buf, f.name);
+    // FBX picked from the file input is treated as a Mixamo animation when a
+    // VRM is already loaded (existing behaviour); otherwise it loads as a
+    // plain model through the dispatcher. .vrm always wins as a model.
+    if (ext === 'fbx' && stateRef.current?.vrm) {
+      await loadAnimationFromBuffer(buf, f.name);
+    } else {
+      await loadModelFromBufferDispatcher(buf, f.name, ext);
+    }
     e.target.value = '';
   };
   const onAnimFileChosen = async (e) => {
@@ -986,7 +1235,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             meta={vrmMeta}
             animation={stateRef.current.animation}
             animPreset={stateRef.current.animationMeta}
-            vrmPreset={(window.ACS_VRM_PRESETS || []).find(p => p.url === cfg.vrmUrl) || null}
+            vrmPreset={(window.ACS_MODEL_PRESETS || []).find(p =>
+              p.url === (cfg.modelUrl || cfg.vrmUrl) || p.id === cfg.modelPresetId
+            ) || null}
           />
         )}
       </S.Stage>
@@ -1011,34 +1262,125 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <input ref={cfgFileRef} type="file" accept="application/json,.json" onChange={importCfg} style={{display:'none'}} />
           </div>
 
-          <S.Section title="VRM Source" testid="io">
+          <S.Section title="Model" testid="io">
             <S.Row label="Preset">
-              <S.Select testid="vrm-preset" value={cfg.vrmPreset}
+              <S.Select testid="model-preset" value={cfg.modelPresetId || cfg.vrmPreset || 'pixiv'}
                 onChange={v => {
-                  const p = (window.ACS_VRM_PRESETS || []).find(x => x.id === v);
-                  if (!p) { setCfg({...cfg, vrmPreset: v}); return; }
+                  const presets = window.ACS_MODEL_PRESETS || [];
+                  const p = presets.find(x => x.id === v);
+                  if (!p) { setCfg({...cfg, modelPresetId: v}); return; }
                   setUrlInput(p.url);
-                  setCfg({...cfg, vrmPreset: v, vrmUrl: p.url});
-                  loadVRMFromURL(p.url);
+                  // Keep vrmPreset / vrmUrl in sync for VRM picks so the
+                  // existing baseYaw / matchedPreset flag lookups still work.
+                  const next = {
+                    ...cfg,
+                    modelPresetId: p.id,
+                    modelUrl: p.url,
+                    modelFormat: p.format,
+                    modelKind: p.kind,
+                  };
+                  if (p.format === 'vrm') {
+                    next.vrmPreset = p.id;
+                    next.vrmUrl = p.url;
+                  }
+                  setCfg(next);
+                  loadModelFromURLDispatcher(p.url, { format: p.format });
                 }}
                 options={[
-                  ...(window.ACS_VRM_PRESETS || []).map(p => ({value:p.id, label:p.label})),
+                  ...((window.ACS_MODEL_PRESETS || []).map(p => ({
+                    value: p.id,
+                    label: `${p.label} · ${(p.format || '').toUpperCase()}`,
+                  }))),
                   {value:'custom', label:'— custom URL —'},
+                  {value:'generated', label:'— generated (text-to-model) —'},
                 ]} />
             </S.Row>
             <S.Row label="URL">
               <div style={{ display:'flex', gap:4, flex:1, maxWidth:'100%' }}>
-                <input data-testid="url-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)} style={inputStyle} />
-                <button data-testid="url-load" onClick={()=>{ setCfg({...cfg, vrmPreset: 'custom', vrmUrl: urlInput}); loadVRMFromURL(urlInput); }} style={{...btn, minWidth:46}}>Load</button>
+                <input data-testid="url-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)}
+                  placeholder="paste any .vrm / .glb / .gltf / .fbx / .ply / .obj URL"
+                  style={inputStyle} />
+                <button data-testid="url-load" onClick={()=>{
+                    setCfg({
+                      ...cfg,
+                      modelPresetId: 'custom',
+                      modelUrl: urlInput,
+                      vrmPreset: 'custom',
+                      vrmUrl: urlInput,
+                    });
+                    loadModelFromURLDispatcher(urlInput);
+                  }} style={{...btn, minWidth:46}}>Load</button>
               </div>
             </S.Row>
             <S.Row label="Local file">
               <>
-                <input ref={fileInputRef} data-testid="file-input" type="file" accept=".vrm,.glb,.gltf,.fbx" onChange={onFileChosen} style={{ display:'none' }} />
-                <button onClick={()=>fileInputRef.current?.click()} style={btn}>Choose .vrm / .fbx</button>
+                <input ref={fileInputRef} data-testid="file-input" type="file"
+                  accept=".vrm,.glb,.gltf,.fbx,.ply,.obj" onChange={onFileChosen}
+                  style={{ display:'none' }} />
+                <button onClick={()=>fileInputRef.current?.click()} style={btn}>Choose model file</button>
               </>
             </S.Row>
-            <div style={{ fontSize:10, opacity:0.5, marginTop:4, lineHeight:1.5 }}>Drop any .vrm / .glb on the stage to load it. .fbx drops are retargeted as a Mixamo animation for the current avatar. All presets ship with permissive licences — the VRM file's own meta is always shown below (and as an on-stage © overlay).</div>
+            <div style={{ fontSize:10, opacity:0.5, marginTop:4, lineHeight:1.5 }}>
+              Single selector for every model regardless of format (VRM, GLB,
+              glTF, FBX, PLY, OBJ, MJCF). Drop any of those on the stage to
+              load it; .fbx drops while a VRM is loaded are retargeted as a
+              Mixamo animation. The "Text to Model" section below generates
+              a new GLB through TRELLIS / TRELLIS.2 when a backend is set.
+            </div>
+          </S.Section>
+
+          <S.Section title="Text to Model" testid="text-to-model"
+            onRandomize={() => applyGroupRandomize('textToModel')}
+            onReset={() => applyGroupReset('textToModel')}>
+            <S.Row label="Enabled">
+              <S.Toggle testid="text-to-model-enabled" value={cfg.textToModelEnabled}
+                onChange={v => setCfg({...cfg, textToModelEnabled: v})} />
+            </S.Row>
+            <div style={{ fontSize:10, opacity:0.55, marginBottom:4, lineHeight:1.5 }}>
+              POSTs <code>{'{prompt, ...}'}</code> to a TRELLIS-compatible
+              <code> /api/generate</code> endpoint and loads the returned GLB
+              into the scene. TRELLIS / TRELLIS.2 cannot run in the browser
+              (≥16 GB GPU, Linux+CUDA — see
+              <code> github.com/microsoft/TRELLIS</code>), so leave Backend URL
+              empty unless you've stood up your own server, a Hugging Face
+              Space, or NVIDIA NIM. Off by default for every avatar.
+            </div>
+            <S.Row label="Provider">
+              <S.Select testid="text-to-model-provider" value={cfg.textToModelProviderId || 'trellis-text'}
+                onChange={v => setCfg({...cfg, textToModelProviderId: v})}
+                options={(window.ACS_TEXT_TO_MODEL_PROVIDERS || []).map(p => ({value:p.id, label:p.label}))} />
+            </S.Row>
+            <S.Row label="Backend URL">
+              <input data-testid="text-to-model-backend-url" value={cfg.textToModelBackendURL || ''}
+                onChange={e => setCfg({...cfg, textToModelBackendURL: e.target.value})}
+                placeholder="https://your-trellis-server" style={inputStyle} />
+            </S.Row>
+            <textarea data-testid="text-to-model-prompt" value={textToModelInput}
+              onChange={e => setTextToModelInput(e.target.value)}
+              placeholder="a cute anime catgirl wearing a hoodie"
+              rows={3}
+              style={textareaStyle} />
+            {(() => {
+              const provider = (window.ACS_TEXT_TO_MODEL_PROVIDERS || [])
+                .find(p => p.id === (cfg.textToModelProviderId || 'trellis-text'));
+              if (!provider?.inputs?.includes('imageUrl')) return null;
+              return (
+                <S.Row label="Image URL">
+                  <input data-testid="text-to-model-image-url" value={textToModelImageInput}
+                    onChange={e => setTextToModelImageInput(e.target.value)}
+                    placeholder="https://example.com/source-image.png"
+                    style={inputStyle} />
+                </S.Row>
+              );
+            })()}
+            <button data-testid="text-to-model-generate" onClick={runTextToModel}
+              style={{...btn, marginTop:6, width:'100%'}}>Generate via backend</button>
+            {textToModelStatus && (
+              <div data-testid="text-to-model-status" style={{
+                marginTop:6, fontSize:10, color: textToModelStatus.ok ? '#9be7b6' : '#ffb0b0',
+                wordBreak:'break-word', overflowWrap:'anywhere'
+              }}>{textToModelStatus.message}</div>
+            )}
           </S.Section>
 
           <S.Section title="Animation" testid="animation"
@@ -1974,10 +2316,12 @@ function attachDropHandlers(mount, stateRef, cfgRef, loadVRMRef, loadAnimRef) {
     for (const file of files) {
       const ext = file.name.split('.').pop()?.toLowerCase();
       const buf = await file.arrayBuffer();
-      if (ext === 'fbx') {
+      // FBX is a Mixamo animation when a VRM avatar is already on stage,
+      // otherwise it's just a plain model that goes through the dispatcher.
+      if (ext === 'fbx' && stateRef.current?.vrm) {
         if (loadAnimRef.current) await loadAnimRef.current(buf, file.name);
       } else {
-        if (loadVRMRef.current) await loadVRMRef.current(buf, file.name);
+        if (loadVRMRef.current) await loadVRMRef.current(buf, file.name, ext);
       }
     }
   };
