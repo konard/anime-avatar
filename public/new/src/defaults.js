@@ -3,6 +3,15 @@
 window.ACS_DEFAULTS = {
   vrmUrl: window.ACS_DEFAULT_VRM_URL,
   vrmPreset: 'pixiv',  // which ACS_VRM_PRESETS entry is selected (or 'custom')
+  // Issue #36: unified multi-format model selector. `modelPresetId` mirrors
+  // `vrmPreset` for VRM picks; for non-VRM presets (GLB/MJCF/...) the
+  // dispatcher in modelLoader.js takes over. `modelUrl` is the URL for the
+  // currently-loaded model regardless of format. Both default to the VRM
+  // picks so existing config JSON files keep working without migration.
+  modelPresetId: 'pixiv',
+  modelUrl: window.ACS_DEFAULT_VRM_URL,
+  modelFormat: 'vrm',
+  modelKind: 'humanoid',
 
   // Pose: 'rest' means no extra rotation on top of the VRM's shipped rest pose.
   pose: 'rest',
@@ -198,6 +207,20 @@ window.ACS_DEFAULTS = {
   gearSonicRobotEnabled: false,
   gearSonicRobotOffsetX: 1.2,
 
+  // EXPERIMENTAL: text-to-model generation (TRELLIS / TRELLIS.2). Off by
+  // default — TRELLIS is server-side only (≥16 GB GPU, Linux+CUDA), so the
+  // user must point Backend URL at a self-hosted /api/generate endpoint, a
+  // Hugging Face Space, or NVIDIA NIM. Mirrors the GEAR-SONIC text→motion
+  // pattern: when the URL is empty the call returns no-backend instead of
+  // faking a result. See textToModel.js + docs/case-studies/issue-36.
+  textToModelEnabled: false,
+  textToModelProviderId: 'trellis-text',
+  textToModelBackendURL: '',
+  textToModelPrompt: 'a cute anime catgirl wearing a hoodie',
+  textToModelImageURL: '',
+  textToModelLastResultURL: '',
+  textToModelNonce: 0,
+
   // EXPERIMENTAL: English text -> IPA -> mouth animation. The adapter is
   // local and deterministic; it drives VRM mouth expressions and the jaw
   // bone from IPA-derived visemes.
@@ -258,6 +281,8 @@ window.ACS_GROUP_CFG_KEYS = {
                'gearSonicReferenceEnabled','gearSonicReferenceId','gearSonicBaseURL',
                'gearSonicBackendEnabled','gearSonicBackendURL','gearSonicBackendDuration','gearSonicBackendDiffusionSteps',
                'gearSonicRobotEnabled','gearSonicRobotOffsetX'],
+  textToModel: ['textToModelEnabled','textToModelProviderId','textToModelBackendURL',
+                'textToModelPrompt','textToModelImageURL','textToModelLastResultURL','textToModelNonce'],
   ipaSpeech: ['ipaSpeechEnabled','ipaSpeechText','ipaSpeechNonce','ipaSpeechModel'],
   svg: ['svgLivePreview','svgYaw','svgPitch','svgBg','svgStroke','svgStrokeWidth','svgQuality'],
 };

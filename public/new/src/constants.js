@@ -330,11 +330,23 @@ window.ACS_ANIMATION_PRESETS = [
                   credit:'Mixamo · V-Sekai', license:'Mixamo terms (free use with your avatar)' },
 ];
 
-// Publicly-hosted VRM models with permissive licenses for testing. All of
-// them are reachable via CORS-enabled CDNs. Each entry carries its credit
-// string; the actual license lives in the VRM meta (we still render it).
+// Centralized model presets — superset of the original VRM-only list. Issue
+// #36 asked for a single selector that lists every model regardless of
+// underlying file format (VRM, GLB/glTF, FBX, PLY, OBJ, MJCF) so the user
+// picks one entry and the loader dispatches by format. Each entry carries:
 //
-// Per-preset flags:
+//   id         — stable cfg key
+//   label      — human-readable name shown in the dropdown
+//   url        — direct fetchable URL (any GitHub blob URL is auto-rewritten
+//                via ACS_normalizeModelURL before fetch)
+//   format     — 'vrm' | 'glb' | 'gltf' | 'fbx' | 'ply' | 'obj' | 'mjcf'
+//   kind       — 'humanoid' | 'prop' | 'robot' (drives mode-aware UI:
+//                expression / spring-bone / pose panels are hidden for non-
+//                humanoid kinds)
+//   credit     — attribution string for the © overlay
+//   license    — license string for the © overlay
+//
+// Per-preset flags (humanoid VRMs only):
 //   flipped              — load with a 180° Y-axis bake (model exported back-
 //                          facing). The Editor stores this in s.baseYaw so the
 //                          per-frame autoRotate-off branch doesn't clobber it.
@@ -346,15 +358,18 @@ window.ACS_ANIMATION_PRESETS = [
 //                          is silent. Used when the licence (e.g. Niconi
 //                          Commons) demands attribution but the file's own
 //                          creditNotation isn't 'required'.
-window.ACS_VRM_PRESETS = [
+window.ACS_MODEL_PRESETS = [
   { id:'pixiv',   label:'pixiv VRM1 sample (CC-ish / VRM license)',
                   url:window.ACS_DEFAULT_VRM_URL,
+                  format:'vrm', kind:'humanoid',
                   credit:'pixiv Inc.', license:'VRM Public License 1.0' },
   { id:'seed',    label:'Seed-san (VirtualCast · VRM Public License 1.0)',
                   url:'https://cdn.jsdelivr.net/gh/vrm-c/vrm-specification@master/samples/Seed-san/vrm/Seed-san.vrm',
+                  format:'vrm', kind:'humanoid',
                   credit:'VirtualCast, Inc.', license:'VRM Public License 1.0' },
   { id:'alicia',  label:'Alicia Solid (Dwango / Nikoni Commons)',
                   url:'https://cdn.jsdelivr.net/gh/vrm-c/UniVRM@master/Tests/Models/Alicia_vrm-0.51/AliciaSolid_vrm-0.51.vrm',
+                  format:'vrm', kind:'humanoid',
                   credit:'© DWANGO Co., Ltd. / Nikoni Commons',
                   license:'Niconi Commons Attribution (requires credit)',
                   flipped:true, attributionRequired:true },
@@ -362,8 +377,65 @@ window.ACS_VRM_PRESETS = [
   // repo as the Gangnam Style FBX so they pair naturally.
   { id:'vsekai',  label:'three-vrm girl 1.0β (V-Sekai)',
                   url:'https://raw.githubusercontent.com/V-Sekai/three-vrm-1-sandbox-mixamo/master/three-vrm-girl-1.0-beta.vrm',
+                  format:'vrm', kind:'humanoid',
                   credit:'V-Sekai community', license:'See repository' },
+  // Khronos sample GLB without a humanoid rig — loads as a static prop so the
+  // user can verify the multi-format dispatcher works end-to-end without
+  // depending on a TRELLIS backend (issue #36 R5/R6).
+  { id:'khronos-duck', label:'Khronos sample Duck (GLB)',
+                  url:'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb',
+                  format:'glb', kind:'prop',
+                  credit:'Khronos Group', license:'CC-BY 4.0' },
+  { id:'khronos-helmet', label:'Khronos DamagedHelmet (GLB, PBR)',
+                  url:'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb',
+                  format:'glb', kind:'prop',
+                  credit:'theblueturtle_ / Khronos Group',
+                  license:'CC-BY-NC 4.0' },
+  // GEAR-SONIC robot — same MJCF + STL pipeline that issue #31 introduced;
+  // exposed here so picking it from the unified selector loads it through
+  // the same dispatcher (instead of the legacy ACS_loadGearSonicRobotModel
+  // toggle, which still works).
+  { id:'g1-robot', label:'Unitree G1 (29-DOF, GEAR-SONIC demo)',
+                  url:'https://nvlabs.github.io/GEAR-SONIC/assets/robot/scene.xml',
+                  format:'mjcf', kind:'robot',
+                  credit:'NVIDIA / Unitree Robotics',
+                  license:'See https://github.com/NVlabs/GR00T-WholeBodyControl/blob/main/LICENSE' },
 ];
+
+// Backwards-compat alias for callers that still reference the VRM-only list
+// (e.g. third-party harnesses or older tests). The aliased array is a fresh
+// filtered copy so mutating ACS_VRM_PRESETS doesn't reach back into
+// ACS_MODEL_PRESETS, but the entry objects are shared by reference so flags
+// like `flipped` on the same preset stay in sync.
+window.ACS_VRM_PRESETS = window.ACS_MODEL_PRESETS.filter(
+  (p) => p.format === 'vrm'
+);
+
+// Detect a model file's format from its URL extension first (the common
+// case — every preset and most shared links carry a sensible suffix), then
+// fall back to the HTTP Content-Type header for opaque CDN URLs. An explicit
+// `hint` (e.g. set per-preset) wins over both. Throws when nothing matches —
+// callers surface the message in the UI status block instead of silently
+// loading the wrong loader.
+window.ACS_detectModelFormat = function detectModelFormat(url, contentType, hint) {
+  if (hint) return String(hint).toLowerCase();
+  const u = (typeof url === 'string') ? url.split(/[?#]/)[0] : '';
+  const ext = (u.split('.').pop() || '').toLowerCase();
+  if (ext === 'vrm') return 'vrm';
+  if (ext === 'glb' || ext === 'gltf') return 'glb';
+  if (ext === 'fbx') return 'fbx';
+  if (ext === 'ply') return 'ply';
+  if (ext === 'obj') return 'obj';
+  if (ext === 'xml') return 'mjcf';
+  if (typeof contentType === 'string') {
+    const ct = contentType.toLowerCase();
+    if (ct.includes('model/vrm') || ct.includes('application/vrm')) return 'vrm';
+    if (ct.includes('model/gltf-binary')) return 'glb';
+    if (ct.includes('model/gltf+json')) return 'glb';
+    if (ct.includes('application/octet-stream')) return 'glb';
+  }
+  throw new Error(`Unknown model format for URL: ${url || '<empty>'}`);
+};
 
 // Rewrite a `github.com/<o>/<r>/blob/<rev>/<path>` (or `…/raw/<rev>/<path>` /
 // `…/raw/refs/heads/<rev>/<path>`) URL into the equivalent
