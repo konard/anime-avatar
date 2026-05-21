@@ -37,12 +37,204 @@
     return format === 'zip' || format === 'rar';
   }
 
-  function archiveModelError(format) {
-    const label = String(format || 'archive').toUpperCase();
-    return new Error(
-      `Archive model package (${label}) is download-only; extract a supported ` +
-      '.vrm, .glb, .gltf, .fbx, .ply, or .obj file before loading.'
-    );
+  function normalizeArchivePath(path) {
+    let p = String(path || '').replace(/\\/g, '/');
+    p = p.replace(/^mmd-archive:\/\/[^/]*\//i, '');
+    p = p.replace(/[?#].*$/, '');
+    try { p = decodeURI(p); } catch {}
+    const out = [];
+    for (const part of p.split('/')) {
+      if (!part || part === '.') continue;
+      if (part === '..') out.pop();
+      else out.push(part);
+    }
+    return out.join('/');
+  }
+
+  function archiveDirname(path) {
+    const p = normalizeArchivePath(path);
+    const idx = p.lastIndexOf('/');
+    return idx >= 0 ? p.slice(0, idx) : '';
+  }
+
+  function archiveBasename(path) {
+    const p = normalizeArchivePath(path);
+    const idx = p.lastIndexOf('/');
+    return idx >= 0 ? p.slice(idx + 1) : p;
+  }
+
+  function extensionOf(path) {
+    const p = normalizeArchivePath(path).toLowerCase();
+    const idx = p.lastIndexOf('.');
+    return idx >= 0 ? p.slice(idx + 1) : '';
+  }
+
+  function objectToArchiveEntries(node, prefix = '', out = []) {
+    if (!node || typeof node !== 'object') return out;
+    for (const [name, value] of Object.entries(node)) {
+      const path = prefix ? `${prefix}/${name}` : name;
+      if (!value) continue;
+      if (
+        typeof value.arrayBuffer === 'function' ||
+        (typeof Blob !== 'undefined' && value instanceof Blob)
+      ) {
+        out.push({ path: normalizeArchivePath(path), file: value });
+      } else if (typeof File !== 'undefined' && value instanceof File) {
+        out.push({ path: normalizeArchivePath(path), file: value });
+      } else if (typeof value === 'object' && 'file' in value) {
+        out.push({
+          path: normalizeArchivePath(value.path || path),
+          file: value.file,
+        });
+      } else {
+        objectToArchiveEntries(value, path, out);
+      }
+    }
+    return out;
+  }
+
+  function normalizeArchiveEntries(entriesOrTree) {
+    const entries = Array.isArray(entriesOrTree)
+      ? entriesOrTree
+      : objectToArchiveEntries(entriesOrTree);
+    return entries
+      .map((entry) => {
+        const file = entry.file || entry;
+        const rawPath = entry.path || file?.webkitRelativePath || file?.name || '';
+        const path = normalizeArchivePath(rawPath);
+        return path && file ? { path, file } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function makeArchiveBlob(buf, format, opts) {
+    const name = opts?.archiveFileName || opts?.fileName || `model.${format}`;
+    const type = format === 'zip' ? 'application/zip' : 'application/vnd.rar';
+    if (typeof File !== 'undefined') {
+      return new File([buf], name, { type });
+    }
+    if (typeof Blob !== 'undefined') {
+      const blob = new Blob([buf], { type });
+      try { blob.name = name; } catch {}
+      return blob;
+    }
+    throw new Error('Blob API unavailable; cannot extract model archive');
+  }
+
+  async function extractArchiveFiles(buf, format, opts = {}) {
+    if (typeof opts.extractArchiveFiles === 'function') {
+      return normalizeArchiveEntries(await opts.extractArchiveFiles(buf, format, opts));
+    }
+    const Archive = opts.Archive || window.LibArchive;
+    if (!Archive?.open) {
+      throw new Error('libarchive unavailable; cannot extract ZIP/RAR MMD model archive');
+    }
+    const archiveFile = makeArchiveBlob(buf, format, opts);
+    const archive = await Archive.open(archiveFile);
+    try {
+      const files = await archive.extractFiles();
+      return normalizeArchiveEntries(files);
+    } finally {
+      try { await archive.close?.(); } catch {}
+    }
+  }
+
+  function resolveMMDLoader(opts) {
+    const MMDLoaderCtor = opts?.MMDLoader || window.MMDLoader || window.THREE?.MMDLoader;
+    if (!MMDLoaderCtor) throw new Error('MMDLoader unavailable');
+    return MMDLoaderCtor;
+  }
+
+  function resolveArchiveThree(opts) {
+    const THREE = opts?.THREE || window.THREE;
+    if (!THREE?.Group) throw new Error('THREE.Group unavailable');
+    if (!THREE?.LoadingManager) throw new Error('THREE.LoadingManager unavailable');
+    return THREE;
+  }
+
+  function resolveObjectURL(opts) {
+    const urlApi = opts?.URL
+      || (typeof URL !== 'undefined' ? URL : null)
+      || (typeof window !== 'undefined' ? window.URL : null);
+    const createObjectURL = opts?.createObjectURL || urlApi?.createObjectURL?.bind(urlApi);
+    const revokeObjectURL = opts?.revokeObjectURL || urlApi?.revokeObjectURL?.bind(urlApi) || (() => {});
+    if (!createObjectURL) throw new Error('URL.createObjectURL unavailable');
+    return { createObjectURL, revokeObjectURL };
+  }
+
+  function loadMMD(loader, url) {
+    return new Promise((resolve, reject) => {
+      loader.load(url, resolve, undefined, reject);
+    });
+  }
+
+  async function parseMMDArchive(buf, format, opts = {}) {
+    const fmt = String(format || '').toLowerCase();
+    const entries = await extractArchiveFiles(buf, fmt, opts);
+    const modelEntries = entries
+      .filter((entry) => {
+        const ext = extensionOf(entry.path);
+        return ext === 'pmx' || ext === 'pmd';
+      })
+      .sort((a, b) => a.path.localeCompare(b.path));
+    if (!modelEntries.length) {
+      throw new Error(`Archive model package (${fmt.toUpperCase()}) contains no PMX/PMD model files`);
+    }
+
+    const THREE = resolveArchiveThree(opts);
+    const MMDLoaderCtor = resolveMMDLoader(opts);
+    const { createObjectURL, revokeObjectURL } = resolveObjectURL(opts);
+    const objectUrls = [];
+    const pathToBlobUrl = new Map();
+    try {
+      for (const entry of entries) {
+        const blobUrl = createObjectURL(entry.file);
+        objectUrls.push(blobUrl);
+        const path = normalizeArchivePath(entry.path);
+        pathToBlobUrl.set(path, blobUrl);
+        pathToBlobUrl.set(path.toLowerCase(), blobUrl);
+      }
+
+      const archiveId = String(opts.archiveId || opts.archiveFileName || `archive-${Date.now()}`)
+        .replace(/[^a-z0-9._-]+/gi, '-');
+      const virtualRoot = `mmd-archive://${archiveId}/`;
+      const group = new THREE.Group();
+      group.name = opts.modelName || archiveBasename(opts.archiveFileName || '') || 'MMD archive';
+
+      for (const modelEntry of modelEntries) {
+        const modelPath = normalizeArchivePath(modelEntry.path);
+        const modelDir = archiveDirname(modelPath);
+        const resourcePath = virtualRoot + (modelDir ? `${modelDir}/` : '');
+        const manager = new THREE.LoadingManager();
+        manager.setURLModifier((url) => {
+          const path = normalizeArchivePath(url);
+          return pathToBlobUrl.get(path) || pathToBlobUrl.get(path.toLowerCase()) || url;
+        });
+        const loader = new MMDLoaderCtor(manager);
+        loader.setResourcePath?.(resourcePath);
+        const mesh = await loadMMD(loader, `${virtualRoot}${modelPath}`);
+        if (!mesh.name) mesh.name = archiveBasename(modelPath).replace(/\.(pmx|pmd)$/i, '');
+        group.add(mesh);
+      }
+
+      return {
+        ok: true,
+        format: fmt,
+        kind: 'mmd',
+        scene: group,
+        objectUrls,
+        archive: {
+          fileCount: entries.length,
+          modelFiles: modelEntries.map((entry) => entry.path),
+          textureCount: entries.filter((entry) => /\.(bmp|png|jpe?g|tga|gif|webp)$/i.test(entry.path)).length,
+        },
+      };
+    } catch (e) {
+      objectUrls.forEach((url) => {
+        try { revokeObjectURL(url); } catch {}
+      });
+      throw e;
+    }
   }
 
   async function fetchBuffer(url, opts) {
@@ -140,7 +332,7 @@
   async function loadModelFromBuffer(buf, format, opts = {}) {
     const fmt = String(format || '').toLowerCase();
     if (!fmt) throw new Error('format is required');
-    if (isArchiveFormat(fmt)) throw archiveModelError(fmt);
+    if (isArchiveFormat(fmt)) return parseMMDArchive(buf, fmt, opts);
     if (fmt === 'vrm') {
       const gltf = await parseGLB(buf, { ...opts, asVRM: true });
       const VRM = opts?.THREE_VRM || window.THREE_VRM;
@@ -175,13 +367,15 @@
   // SONIC robot loader (which fetches scene.xml + STL meshes itself).
   async function loadModelFromURL(url, opts = {}) {
     if (!url) throw new Error('URL is empty');
+    const resolved = window.ACS_normalizeModelURL
+      ? window.ACS_normalizeModelURL(url)
+      : url;
     let format = opts.format ? String(opts.format).toLowerCase() : opts.format;
     let buf = null;
     let contentType = '';
     if (!format) {
-      format = window.ACS_detectModelFormat?.(url, null, null);
+      format = window.ACS_detectModelFormat?.(resolved, null, null);
     }
-    if (isArchiveFormat(format)) throw archiveModelError(format);
     // MJCF: hand off to gearSonic.js — it fetches scene.xml and the STL
     // meshes itself, so we skip the buffer fetch here.
     if (format === 'mjcf') {
@@ -189,7 +383,7 @@
       if (typeof window.ACS_loadGearSonicRobotModel !== 'function') {
         throw new Error('ACS_loadGearSonicRobotModel unavailable; cannot load MJCF');
       }
-      const baseUrl = url.replace(/\/assets\/robot\/scene\.xml$/, '');
+      const baseUrl = resolved.replace(/\/assets\/robot\/scene\.xml$/, '');
       const robot = await window.ACS_loadGearSonicRobotModel(THREE, {
         baseUrl, fetch: opts.fetch, onProgress: opts.onProgress,
       });
@@ -197,7 +391,7 @@
         ok: true,
         format: 'mjcf',
         kind: 'robot',
-        url,
+        url: resolved,
         scene: robot.root,
         bodyMap: robot.bodyMap,
         info: robot.info,
@@ -205,19 +399,23 @@
     }
     if (!format) {
       // Fetch first so we can read the Content-Type for a final guess.
-      const fetched = await fetchBuffer(url, opts);
+      const fetched = await fetchBuffer(resolved, opts);
       buf = fetched.buf;
       contentType = fetched.contentType;
-      format = window.ACS_detectModelFormat?.(url, contentType, null);
+      format = window.ACS_detectModelFormat?.(resolved, contentType, null);
     } else {
-      const fetched = await fetchBuffer(url, opts);
+      const fetched = await fetchBuffer(resolved, opts);
       buf = fetched.buf;
       contentType = fetched.contentType;
     }
-    const result = await loadModelFromBuffer(buf, format, opts);
-    return { ...result, url, contentType };
+    const result = await loadModelFromBuffer(buf, format, {
+      ...opts,
+      archiveFileName: opts.archiveFileName || resolved.split('/').pop() || `model.${format}`,
+    });
+    return { ...result, url: resolved, contentType };
   }
 
+  window.ACS_extractArchiveFiles = extractArchiveFiles;
   window.ACS_loadModelFromBuffer = loadModelFromBuffer;
   window.ACS_loadModelFromURL = loadModelFromURL;
 })();

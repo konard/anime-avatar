@@ -290,41 +290,171 @@ describe('ACS_loadModelFromURL routing (issue #36)', () => {
   });
 });
 
-describe('GF2 Exilium art archive support (issue #39)', () => {
-  const gf2Rar =
-    'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Dorm)_e2901aa602.rar';
-  const gf2Zip =
-    'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Sultry Tempo)_bb6e25da88.zip';
+const gf2Rar =
+  'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Dorm)_e2901aa602.rar';
+const gf2Zip =
+  'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Sultry Tempo)_bb6e25da88.zip';
 
+describe('GF2 Exilium art archive inventory (issue #39)', () => {
   it('detects official GF2 ZIP/RAR model archives by extension', () => {
     expect(window.ACS_detectModelFormat(gf2Rar)).toBe('rar');
     expect(window.ACS_detectModelFormat(gf2Zip)).toBe('zip');
   });
 
-  it('ships the complete official GF2 MMD archive inventory as download-only presets', () => {
+  it('ships the complete official GF2 MMD archive inventory as renderable MMD presets', () => {
     const gf2 = window.ACS_MODEL_PRESETS.filter((p) => p.id.startsWith('gf2-'));
     expect(gf2).toHaveLength(134);
-    expect(gf2.every((p) => p.kind === 'archive')).toBe(true);
-    expect(gf2.every((p) => p.downloadOnly === true)).toBe(true);
+    expect(gf2.every((p) => p.kind === 'mmd')).toBe(true);
+    expect(gf2.every((p) => p.downloadOnly !== true)).toBe(true);
 
     expect(gf2.find((p) => p.officialId === 134)).toMatchObject({
-      label: 'GF2 Phaetusa (Dorm) MMD archive',
+      label: 'GF2 Phaetusa (Dorm) MMD model',
       format: 'rar',
       url: gf2Rar,
     });
     expect(gf2.find((p) => p.officialId === 128)).toMatchObject({
-      label: 'GF2 Leva (Sultry Tempo) MMD archive',
+      label: 'GF2 Leva (Sultry Tempo) MMD model',
       format: 'zip',
       url: gf2Zip,
     });
   });
+});
 
-  it('rejects model archives before fetching because they are download-only packages', async () => {
-    const fakeFetch = vi.fn();
-    await expect(
-      window.ACS_loadModelFromURL(gf2Rar, { fetch: fakeFetch })
-    ).rejects.toThrow(/download-only/i);
-    expect(fakeFetch).not.toHaveBeenCalled();
+describe('GF2 Exilium MMD archive loading (issue #39)', () => {
+  it('extracts GF2 archive buffers and routes PMX files through MMDLoader', async () => {
+    const archiveEntries = [
+      {
+        path: 'GF2 Sample/GirlsFrontline Sample.pmx',
+        file: { name: 'GirlsFrontline Sample.pmx' },
+      },
+      { path: 'GF2 Sample/Textures/body.png', file: { name: 'body.png' } },
+    ];
+    const extractArchiveFiles = vi.fn(async () => archiveEntries);
+    const createObjectURL = vi.fn((file) => `blob:${file.name}`);
+    const revokeObjectURL = vi.fn();
+    const loadCalls = [];
+
+    class FakeLoadingManager {
+      setURLModifier(fn) {
+        this.resolveURL = fn;
+        return this;
+      }
+    }
+    class FakeGroup {
+      constructor() {
+        this.children = [];
+        this.name = '';
+      }
+      add(child) {
+        this.children.push(child);
+      }
+      traverse(fn) {
+        for (const child of this.children) {
+          fn(child);
+        }
+      }
+    }
+    class FakeMMDLoader {
+      constructor(manager) {
+        this.manager = manager;
+      }
+      setResourcePath(path) {
+        this.resourcePath = path;
+        return this;
+      }
+      load(url, onLoad) {
+        loadCalls.push({
+          modelUrl: url,
+          modelBlobUrl: this.manager.resolveURL(url),
+          textureBlobUrl: this.manager.resolveURL(
+            `${this.resourcePath}Textures/body.png`
+          ),
+        });
+        onLoad({ name: 'sample mesh', traverse() {} });
+      }
+    }
+
+    const result = await window.ACS_loadModelFromBuffer(
+      new ArrayBuffer(8),
+      'zip',
+      {
+        extractArchiveFiles,
+        createObjectURL,
+        revokeObjectURL,
+        MMDLoader: FakeMMDLoader,
+        THREE: { Group: FakeGroup, LoadingManager: FakeLoadingManager },
+      }
+    );
+
+    expect(extractArchiveFiles).toHaveBeenCalledTimes(1);
+    expect(result.ok).toBe(true);
+    expect(result.format).toBe('zip');
+    expect(result.kind).toBe('mmd');
+    expect(result.scene.children).toHaveLength(1);
+    expect(result.archive.modelFiles).toEqual([
+      'GF2 Sample/GirlsFrontline Sample.pmx',
+    ]);
+    expect(loadCalls).toEqual([
+      {
+        modelUrl: expect.stringContaining('GirlsFrontline Sample.pmx'),
+        modelBlobUrl: 'blob:GirlsFrontline Sample.pmx',
+        textureBlobUrl: 'blob:body.png',
+      },
+    ]);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('fetches official GF2 RAR URLs and parses them as MMD model archives', async () => {
+    const fakeBuf = new ArrayBuffer(8);
+    const fakeFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => fakeBuf,
+      headers: { get: () => 'application/vnd.rar' },
+    }));
+
+    class FakeLoadingManager {
+      setURLModifier(fn) {
+        this.resolveURL = fn;
+        return this;
+      }
+    }
+    class FakeGroup {
+      constructor() {
+        this.children = [];
+      }
+      add(child) {
+        this.children.push(child);
+      }
+      traverse() {}
+    }
+    class FakeMMDLoader {
+      constructor(manager) {
+        this.manager = manager;
+      }
+      setResourcePath(path) {
+        this.resourcePath = path;
+        return this;
+      }
+      load(url, onLoad) {
+        expect(this.manager.resolveURL(url)).toBe('blob:main.pmx');
+        onLoad({ name: 'rar mesh', traverse() {} });
+      }
+    }
+
+    const result = await window.ACS_loadModelFromURL(gf2Rar, {
+      fetch: fakeFetch,
+      extractArchiveFiles: vi.fn(async () => [
+        { path: 'Phaetusa(Dorm)/main.pmx', file: { name: 'main.pmx' } },
+      ]),
+      createObjectURL: vi.fn((file) => `blob:${file.name}`),
+      MMDLoader: FakeMMDLoader,
+      THREE: { Group: FakeGroup, LoadingManager: FakeLoadingManager },
+    });
+
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+    expect(result.format).toBe('rar');
+    expect(result.kind).toBe('mmd');
   });
 });
 

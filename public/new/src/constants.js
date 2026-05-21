@@ -479,11 +479,10 @@ window.ACS_GF2_MMD_MODEL_ARCHIVES = ACS_GF2_MMD_MODEL_ARCHIVE_DATA.map(
     const format = filename.toLowerCase().endsWith('.zip') ? 'zip' : 'rar';
     return {
       id: `gf2-${officialId}-${_modelPresetSlug(name)}-${_modelPresetSlug(typeName)}`,
-      label: `GF2 ${name} (${typeName}) MMD archive`,
+      label: `GF2 ${name} (${typeName}) MMD model`,
       url,
       format,
-      kind: 'archive',
-      downloadOnly: true,
+      kind: 'mmd',
       officialId,
       archiveFilename: filename,
       sourceUrl: ACS_GF2_ART_SOURCE_URL,
@@ -495,8 +494,9 @@ window.ACS_GF2_MMD_MODEL_ARCHIVES = ACS_GF2_MMD_MODEL_ARCHIVE_DATA.map(
 
 // Centralized model presets — superset of the original VRM-only list. Issue
 // #36 asked for a single selector that lists every model regardless of
-// underlying file format (VRM, GLB/glTF, FBX, PLY, OBJ, MJCF, ZIP/RAR
-// archives) so the user picks one entry and the loader dispatches by format.
+// underlying file format (VRM, GLB/glTF, FBX, PLY, OBJ, MJCF, or MMD models
+// wrapped in ZIP/RAR archives) so the user picks one entry and the loader
+// dispatches by format.
 // Each entry carries:
 //
 //   id         — stable cfg key
@@ -505,7 +505,7 @@ window.ACS_GF2_MMD_MODEL_ARCHIVES = ACS_GF2_MMD_MODEL_ARCHIVE_DATA.map(
 //                via ACS_normalizeModelURL before fetch)
 //   format     — 'vrm' | 'glb' | 'gltf' | 'fbx' | 'ply' | 'obj' | 'mjcf'
 //                | 'zip' | 'rar'
-//   kind       — 'humanoid' | 'prop' | 'robot' | 'archive' (drives mode-aware UI:
+//   kind       — 'humanoid' | 'prop' | 'robot' | 'mmd' (drives mode-aware UI:
 //                expression / spring-bone / pose panels are hidden for non-
 //                humanoid kinds)
 //   credit     — attribution string for the © overlay
@@ -523,8 +523,6 @@ window.ACS_GF2_MMD_MODEL_ARCHIVES = ACS_GF2_MMD_MODEL_ARCHIVE_DATA.map(
 //                          is silent. Used when the licence (e.g. Niconi
 //                          Commons) demands attribution but the file's own
 //                          creditNotation isn't 'required'.
-//   downloadOnly         — open the URL directly. Used for official archive
-//                          packages that must be extracted before loading.
 window.ACS_MODEL_PRESETS = [
   { id:'pixiv',   label:'pixiv VRM1 sample (CC-ish / VRM license)',
                   url:window.ACS_DEFAULT_VRM_URL,

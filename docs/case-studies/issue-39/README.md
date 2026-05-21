@@ -22,6 +22,8 @@ requirements, alternatives, and an implementation plan. This folder contains:
   inventory used by the implementation.
 - `screenshots/01-gf2-model-preset.png` - browser verification of a selected
   GF2 archive preset in the model selector.
+- `screenshots/02-gf2-leva-mmd-loaded.png` - browser verification that the
+  official Leva ZIP archive extracts and renders in the editor.
 
 ## 2. Source analysis
 
@@ -59,38 +61,35 @@ Spot checks:
 
 ## 3. Requirement inventory
 
-| #   | Requirement                                                            | Implementation response                                                                                                                              |
-| --- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | Collect issue data in `docs/case-studies/issue-39`.                    | Added issue capture files, this analysis, and the extracted archive inventory JSON.                                                                  |
-| R2  | Search and inspect the official GF2 art source.                        | Parsed the live official page shell, route chunks, and download context.                                                                             |
-| R3  | Support GF2 character models in the new studio.                        | Added all 134 official MMD model archives to `window.ACS_MODEL_PRESETS`.                                                                             |
-| R4  | Keep support in the same model selector flow as other models.          | GF2 entries appear in the central `Model` preset dropdown with `RAR`/`ZIP` format labels.                                                            |
-| R5  | Avoid pretending browser runtime can parse archive packages as meshes. | ZIP/RAR are detected as model archive formats, opened as downloads from presets, and rejected by low-level loaders with a clear download-only error. |
-| R6  | Add regression coverage.                                               | Added tests for ZIP/RAR detection, the 134-entry inventory, and the no-fetch download-only loader guard.                                             |
+| #   | Requirement                                                   | Implementation response                                                                                                                                |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | Collect issue data in `docs/case-studies/issue-39`.           | Added issue capture files, this analysis, visual evidence, and the extracted archive inventory JSON.                                                   |
+| R2  | Search and inspect the official GF2 art source.               | Parsed the live official page shell, route chunks, and download context.                                                                               |
+| R3  | Support GF2 character models in the new studio.               | Added all 134 official MMD model archives to `window.ACS_MODEL_PRESETS` and load ZIP/RAR archives by extracting PMX/PMD packages in the browser.       |
+| R4  | Keep support in the same model selector flow as other models. | GF2 entries appear in the central `Model` preset dropdown with `RAR`/`ZIP` format labels and load through the normal model dispatcher.                 |
+| R5  | Actually render the official archive packages.                | Added browser archive extraction, MMDLoader integration, texture path remapping, static-model disposal, and local `.zip`/`.rar` drag-and-drop support. |
+| R6  | Add regression coverage.                                      | Added unit coverage for archive extraction and browser tests for the GF2 selector inventory plus editor ZIP archive rendering.                         |
 
 ## 4. Format constraints
 
-The current studio can render direct runtime model files such as VRM, GLB,
-glTF, FBX, PLY, OBJ, and MJCF. The GF2 art page publishes MMD model packages
-as ZIP/RAR archives instead of single browser-ready model URLs.
+The studio can render direct runtime model files such as VRM, GLB, glTF, FBX,
+PLY, OBJ, and MJCF. The GF2 art page publishes MMD model packages as ZIP/RAR
+archives instead of single browser-ready model URLs.
 
-That matters because direct in-browser rendering would require at least:
+The implementation now handles those constraints directly:
 
-- archive extraction in the browser;
-- RAR support, likely through a separate library or WebAssembly;
-- MMD PMX/PMD parsing through a loader such as three.js `MMDLoader`;
-- material and texture path resolution inside the extracted package.
+- ZIP and RAR archives are extracted in the browser through a vendored
+  `libarchive.js` 2.0.2 runtime.
+- Extracted PMX/PMD files are parsed with three.js `MMDLoader`.
+- Extracted textures and sibling assets are converted to blob URLs.
+- A `THREE.LoadingManager` URL modifier maps MMD relative asset paths back to
+  the extracted blob URLs.
+- The loaded MMD result is inserted as a static scene model and disposed when a
+  different model replaces it.
 
-That is materially different from the existing direct-file loader path and
-would add a large binary/archive parsing surface. The practical support for
-this PR is therefore:
-
-1. Make the official GF2 model packages discoverable from the existing model
-   selector.
-2. Open the official CDN archive URL when the user selects one.
-3. Teach the dispatcher that ZIP/RAR are known model package formats so custom
-   archive URLs fail with a clear "download-only" message rather than
-   "unknown format" or an attempted GLB parse.
+This renders the official meshes and textures as static MMD models. They do
+not become VRM humanoid avatars, so VRM-only controls such as humanoid bone
+editing and expressions still apply only to VRM models.
 
 ## 5. Solution plan
 
@@ -98,9 +97,10 @@ this PR is therefore:
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Preset data      | Add `window.ACS_GF2_MMD_MODEL_ARCHIVES` generated from the official art chunk and spread it into `window.ACS_MODEL_PRESETS`.                                      |
 | Format detection | Extend `ACS_detectModelFormat` with `.zip`, `.rar`, `application/zip`, `application/x-zip-compressed`, `application/vnd.rar`, and `application/x-rar-compressed`. |
-| Runtime loader   | Reject `zip` and `rar` before fetching or parsing, with an explicit archive download-only message.                                                                |
-| Editor UX        | For ZIP/RAR selections, open the official URL in a new tab instead of routing into mesh loaders.                                                                  |
-| Tests            | Assert the official representative ZIP/RAR URLs, exact inventory count, sample metadata, and no-fetch archive guard.                                              |
+| Archive runtime  | Vendor `libarchive.js` 2.0.2 browser assets so ZIP and RAR archives can be extracted client-side.                                                                 |
+| MMD loader       | Load extracted PMX/PMD files with three.js `MMDLoader` and remap extracted texture paths through blob URLs.                                                       |
+| Editor UX        | Route GF2 selections and local `.zip`/`.rar` drops through the normal model loading path and display them as static scene models.                                 |
+| Tests            | Assert archive extraction behavior, exact inventory count, selector contents, and editor ZIP rendering.                                                           |
 
 ## 6. Verification target
 
@@ -113,7 +113,20 @@ npm run check
 npm run build
 ```
 
-For visual review, open `/new/`, use the `Model` preset dropdown, and verify
-the GF2 entries appear with `RAR`/`ZIP` labels.
+Local verification on 2026-05-21:
+
+- `npm run test -- tests/modelLoader.test.js` passed.
+- `npm run test` passed.
+- `npm run check` passed with existing function-length warnings.
+- `npm run build` passed.
+- Browser GF2 tests passed for selector inventory and editor ZIP rendering.
+- Playwright loaded `GF2 Leva (Sultry Tempo) MMD model` from the official CDN
+  ZIP URL as `format: "zip"`, `kind: "mmd"`, with 42 extracted files and
+  `Leva (Sultry Tempo)/GirlsFrontline LevaSummer.pmx`.
+
+For visual review, open `/new/`, use the `Model` preset dropdown, select a GF2
+entry, and verify the archive loads as a static MMD model in the stage.
 
 ![GF2 archive preset selected in the model selector](./screenshots/01-gf2-model-preset.png)
+
+![GF2 Leva MMD archive loaded in the editor](./screenshots/02-gf2-leva-mmd-loaded.png)

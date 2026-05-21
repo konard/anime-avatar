@@ -41,7 +41,9 @@
   import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
   import { PLYLoader }     from 'three/addons/loaders/PLYLoader.js';
   import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
+  import { MMDLoader }     from 'three/addons/loaders/MMDLoader.js';
   import * as VRM from '@pixiv/three-vrm';
+  import { Archive }       from './vendor/libarchive/libarchive.js';
   const THREE = Object.assign({}, THREE_NS);
   THREE.OrbitControls = OrbitControls;
   THREE.TransformControls = TransformControls;
@@ -51,9 +53,13 @@
   THREE.STLLoader = STLLoader;
   THREE.PLYLoader = PLYLoader;
   THREE.OBJLoader = OBJLoader;
+  THREE.MMDLoader = MMDLoader;
+  Archive.init({ workerUrl: new URL('./vendor/libarchive/worker-bundle.js', import.meta.url) });
   window.STLLoader = STLLoader;
   window.PLYLoader = PLYLoader;
   window.OBJLoader = OBJLoader;
+  window.MMDLoader = MMDLoader;
+  window.LibArchive = Archive;
   window.THREE = THREE;
   window.TransformControls = TransformControls;
   window.GLTFLoader = GLTFLoader;
