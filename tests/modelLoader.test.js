@@ -290,6 +290,44 @@ describe('ACS_loadModelFromURL routing (issue #36)', () => {
   });
 });
 
+describe('GF2 Exilium art archive support (issue #39)', () => {
+  const gf2Rar =
+    'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Dorm)_e2901aa602.rar';
+  const gf2Zip =
+    'https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Sultry Tempo)_bb6e25da88.zip';
+
+  it('detects official GF2 ZIP/RAR model archives by extension', () => {
+    expect(window.ACS_detectModelFormat(gf2Rar)).toBe('rar');
+    expect(window.ACS_detectModelFormat(gf2Zip)).toBe('zip');
+  });
+
+  it('ships the complete official GF2 MMD archive inventory as download-only presets', () => {
+    const gf2 = window.ACS_MODEL_PRESETS.filter((p) => p.id.startsWith('gf2-'));
+    expect(gf2).toHaveLength(134);
+    expect(gf2.every((p) => p.kind === 'archive')).toBe(true);
+    expect(gf2.every((p) => p.downloadOnly === true)).toBe(true);
+
+    expect(gf2.find((p) => p.officialId === 134)).toMatchObject({
+      label: 'GF2 Phaetusa (Dorm) MMD archive',
+      format: 'rar',
+      url: gf2Rar,
+    });
+    expect(gf2.find((p) => p.officialId === 128)).toMatchObject({
+      label: 'GF2 Leva (Sultry Tempo) MMD archive',
+      format: 'zip',
+      url: gf2Zip,
+    });
+  });
+
+  it('rejects model archives before fetching because they are download-only packages', async () => {
+    const fakeFetch = vi.fn();
+    await expect(
+      window.ACS_loadModelFromURL(gf2Rar, { fetch: fakeFetch })
+    ).rejects.toThrow(/download-only/i);
+    expect(fakeFetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('ACS_MODEL_PRESETS / ACS_VRM_PRESETS alias (issue #36)', () => {
   it('every preset entry has a format and a kind', () => {
     expect(Array.isArray(window.ACS_MODEL_PRESETS)).toBe(true);

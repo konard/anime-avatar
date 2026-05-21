@@ -24,6 +24,15 @@ const MOODS = window.ACS_MOOD_PRESETS;
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
+function isArchiveModelFormat(format) {
+  return format === 'zip' || format === 'rar';
+}
+
+function archiveDownloadMessage(format) {
+  const label = String(format || 'archive').toUpperCase();
+  return `Archive model package (${label}) is download-only; extract a supported .vrm, .glb, .gltf, .fbx, .ply, or .obj file before loading.`;
+}
+
 function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
                    drawerWidth = 420, testsOnRight = false, testsWidth = 420,
                    hideDrawerTitle = false }) {
@@ -605,6 +614,12 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           : 'vrm');
       if (fmt === 'vrm') {
         await loadVRMFromURL(url);
+        return;
+      }
+      if (isArchiveModelFormat(fmt)) {
+        if (typeof window.open !== 'function') throw new Error(archiveDownloadMessage(fmt));
+        window.open(resolved, '_blank', 'noopener,noreferrer');
+        setStatus(stateRef.current.vrm || stateRef.current.staticModel ? 'loaded' : 'idle');
         return;
       }
       // MJCF + GLB + FBX + PLY + OBJ — go through the dispatcher.
@@ -1298,7 +1313,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <S.Row label="URL">
               <div style={{ display:'flex', gap:4, flex:1, maxWidth:'100%' }}>
                 <input data-testid="url-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)}
-                  placeholder="paste any .vrm / .glb / .gltf / .fbx / .ply / .obj URL"
+                  placeholder="paste any .vrm / .glb / .gltf / .fbx / .ply / .obj URL or .zip / .rar archive"
                   style={inputStyle} />
                 <button data-testid="url-load" onClick={()=>{
                     setCfg({

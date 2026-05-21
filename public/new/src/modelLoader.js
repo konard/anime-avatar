@@ -33,6 +33,18 @@
     return opts?.fetch || (typeof fetch !== 'undefined' ? fetch : null);
   }
 
+  function isArchiveFormat(format) {
+    return format === 'zip' || format === 'rar';
+  }
+
+  function archiveModelError(format) {
+    const label = String(format || 'archive').toUpperCase();
+    return new Error(
+      `Archive model package (${label}) is download-only; extract a supported ` +
+      '.vrm, .glb, .gltf, .fbx, .ply, or .obj file before loading.'
+    );
+  }
+
   async function fetchBuffer(url, opts) {
     const resolved = window.ACS_normalizeModelURL
       ? window.ACS_normalizeModelURL(url)
@@ -128,6 +140,7 @@
   async function loadModelFromBuffer(buf, format, opts = {}) {
     const fmt = String(format || '').toLowerCase();
     if (!fmt) throw new Error('format is required');
+    if (isArchiveFormat(fmt)) throw archiveModelError(fmt);
     if (fmt === 'vrm') {
       const gltf = await parseGLB(buf, { ...opts, asVRM: true });
       const VRM = opts?.THREE_VRM || window.THREE_VRM;
@@ -162,12 +175,13 @@
   // SONIC robot loader (which fetches scene.xml + STL meshes itself).
   async function loadModelFromURL(url, opts = {}) {
     if (!url) throw new Error('URL is empty');
-    let format = opts.format;
+    let format = opts.format ? String(opts.format).toLowerCase() : opts.format;
     let buf = null;
     let contentType = '';
     if (!format) {
       format = window.ACS_detectModelFormat?.(url, null, null);
     }
+    if (isArchiveFormat(format)) throw archiveModelError(format);
     // MJCF: hand off to gearSonic.js — it fetches scene.xml and the STL
     // meshes itself, so we skip the buffer fetch here.
     if (format === 'mjcf') {
