@@ -6,8 +6,8 @@
 //  - Orbit mouse: rotates camera, syncs cameraDist/Height/Fov back into cfg.
 //  - Ctrl+drag: translates the character (charPos + dynamic offset). Release
 //    triggers spring-back if cfg.charInertia is on.
-//  - Drop .vrm / .glb: loads a new model. Drop .fbx (after model loaded):
-//    loads and retargets as a Mixamo animation.
+//  - Drop .vrm / .glb / .zip / .rar: loads a new model. Drop .fbx (after
+//    model loaded): loads and retargets as a Mixamo animation.
 //  - Mouse move: feeds s.mouseNDC for lookMode='mouse'.
 const S = window.Studio;
 const { useRef, useEffect, useState, useCallback, useMemo } = React;
@@ -23,6 +23,34 @@ const GESTURES = window.ACS_GESTURE_PRESETS;
 const MOODS = window.ACS_MOOD_PRESETS;
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function disposeMaterial(material) {
+  if (!material) return;
+  for (const value of Object.values(material)) {
+    if (value?.isTexture) value.dispose?.();
+  }
+  material.dispose?.();
+}
+
+function disposeStaticModel(s) {
+  if (!s?.staticModel?.scene) return;
+  const model = s.staticModel;
+  s.scene?.remove(model.scene);
+  try {
+    model.scene.traverse?.((n) => {
+      if (n.geometry) n.geometry.dispose?.();
+      if (n.material) {
+        const mats = Array.isArray(n.material) ? n.material : [n.material];
+        mats.forEach(disposeMaterial);
+      }
+    });
+  } catch {}
+  const urlApi = typeof URL !== 'undefined' ? URL : window.URL;
+  (model.objectUrls || []).forEach((url) => {
+    try { urlApi?.revokeObjectURL?.(url); } catch {}
+  });
+  s.staticModel = null;
+}
 
 function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
                    drawerWidth = 420, testsOnRight = false, testsWidth = 420,
@@ -343,6 +371,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       if (s.jointCtl?.tc) {
         try { s.jointCtl.tc.detach(); s.jointCtl.tc.dispose?.(); } catch {}
       }
+      disposeStaticModel(s);
       if (s.renderer) {
         s.renderer.dispose();
         if (mountRef.current && s.renderer.domElement.parentNode === mountRef.current)
@@ -383,19 +412,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       }
       // Issue #36: also remove any static (non-VRM) model loaded through
       // the multi-format dispatcher so the VRM replaces it cleanly.
-      if (s.staticModel?.scene) {
-        s.scene.remove(s.staticModel.scene);
-        try {
-          s.staticModel.scene.traverse?.((n) => {
-            if (n.geometry) n.geometry.dispose?.();
-            if (n.material) {
-              const mats = Array.isArray(n.material) ? n.material : [n.material];
-              mats.forEach((m) => m.dispose?.());
-            }
-          });
-        } catch {}
-        s.staticModel = null;
-      }
+      disposeStaticModel(s);
       s.vrm = vrm;
       s.scene.add(vrm.scene);
       try { window.THREE_VRM.VRMUtils.rotateVRM0?.(vrm); } catch {}
@@ -522,17 +539,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
     const s = stateRef.current;
     if (!s.THREE || !result?.scene) return;
     // Dispose any previously attached static model.
-    if (s.staticModel) {
-      s.scene.remove(s.staticModel.scene);
-      try { s.staticModel.scene.traverse?.(n => {
-        if (n.geometry) n.geometry.dispose?.();
-        if (n.material) {
-          const mats = Array.isArray(n.material) ? n.material : [n.material];
-          mats.forEach(m => m.dispose?.());
-        }
-      }); } catch {}
-      s.staticModel = null;
-    }
+    disposeStaticModel(s);
     // Remove the previous VRM so the user always sees the latest pick.
     if (s.vrm) {
       s.scene.remove(s.vrm.scene);
@@ -572,6 +579,8 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       kind: result.kind,
       url: result.url || '',
       name,
+      objectUrls: result.objectUrls || [],
+      archive: result.archive || null,
     };
     s.baseYaw = 0;
     setBones([]);
@@ -582,6 +591,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
       version: result.format?.toUpperCase() || '',
       authors: [],
       licenseUrl: '',
+      archiveModels: result.archive?.modelFiles || undefined,
     });
     setVrmName(name || `loaded.${result.format || 'model'}`);
     setStatus('loaded');
@@ -607,7 +617,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         await loadVRMFromURL(url);
         return;
       }
-      // MJCF + GLB + FBX + PLY + OBJ — go through the dispatcher.
+      // MJCF + GLB + FBX + PLY + OBJ + ZIP/RAR MMD archives go through the dispatcher.
       const s = stateRef.current;
       const result = await window.ACS_loadModelFromURL(url, {
         ...opts,
@@ -618,6 +628,8 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         PLYLoader: window.PLYLoader,
         OBJLoader: window.OBJLoader,
         STLLoader: window.STLLoader,
+        MMDLoader: window.MMDLoader,
+        Archive: window.LibArchive,
       });
       await loadStaticModel(result, resolved.split('/').pop() || `model.${fmt}`);
     } catch (e) {
@@ -650,6 +662,9 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
         FBXLoader: window.FBXLoader,
         PLYLoader: window.PLYLoader,
         OBJLoader: window.OBJLoader,
+        MMDLoader: window.MMDLoader,
+        Archive: window.LibArchive,
+        archiveFileName: name,
       });
       await loadStaticModel(result, name);
     } catch (e) {
@@ -1224,7 +1239,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
           pointerEvents:'none', textAlign:'right', lineHeight:1.5,
           fontFamily: 'ui-monospace, Menlo, monospace',
         }}>
-          Drop .vrm / .fbx anywhere · Ctrl+drag to move
+          Drop model files anywhere · Ctrl+drag to move
         </window.GlassPanel>
 
         {/* On-stage attribution overlay. Rendered into the canvas region so it
@@ -1298,7 +1313,7 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <S.Row label="URL">
               <div style={{ display:'flex', gap:4, flex:1, maxWidth:'100%' }}>
                 <input data-testid="url-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)}
-                  placeholder="paste any .vrm / .glb / .gltf / .fbx / .ply / .obj URL"
+                  placeholder="paste any .vrm / .glb / .gltf / .fbx / .ply / .obj URL or .zip / .rar archive"
                   style={inputStyle} />
                 <button data-testid="url-load" onClick={()=>{
                     setCfg({
@@ -1315,17 +1330,18 @@ function Editor({ cfg, setCfg, hideDrawer = false, inlineDrawer = false,
             <S.Row label="Local file">
               <>
                 <input ref={fileInputRef} data-testid="file-input" type="file"
-                  accept=".vrm,.glb,.gltf,.fbx,.ply,.obj" onChange={onFileChosen}
+                  accept=".vrm,.glb,.gltf,.fbx,.ply,.obj,.zip,.rar" onChange={onFileChosen}
                   style={{ display:'none' }} />
                 <button onClick={()=>fileInputRef.current?.click()} style={btn}>Choose model file</button>
               </>
             </S.Row>
             <div style={{ fontSize:10, opacity:0.5, marginTop:4, lineHeight:1.5 }}>
               Single selector for every model regardless of format (VRM, GLB,
-              glTF, FBX, PLY, OBJ, MJCF). Drop any of those on the stage to
-              load it; .fbx drops while a VRM is loaded are retargeted as a
-              Mixamo animation. The "Text to Model" section below generates
-              a new GLB through TRELLIS / TRELLIS.2 when a backend is set.
+              glTF, FBX, PLY, OBJ, MJCF, ZIP/RAR MMD archives). Drop any of
+              those on the stage to load it; .fbx drops while a VRM is loaded
+              are retargeted as a Mixamo animation. The "Text to Model" section
+              below generates a new GLB through TRELLIS / TRELLIS.2 when a
+              backend is set.
             </div>
           </S.Section>
 

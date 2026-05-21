@@ -1,0 +1,1217 @@
+{
+  "sourceUrl": "https://gf2exilium.sunborngame.com/main/art",
+  "officialCdnPrefix": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/",
+  "total": 134,
+  "counts": {
+    "rar": 115,
+    "zip": 19
+  },
+  "archives": [
+    {
+      "officialId": 134,
+      "name": "Phaetusa",
+      "typeName": "Dorm",
+      "filename": "Phaetusa(Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Dorm)_e2901aa602.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 133,
+      "name": "Phaetusa",
+      "typeName": "Default",
+      "filename": "Phaetusa(Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Default)_75a750bac9.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 132,
+      "name": "Phaetusa",
+      "typeName": "Caged in the Evernight Garden",
+      "filename": "Phaetusa(Caged in the Evernight Garden).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Phaetusa(Caged in the Evernight Garden)_107f807112.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 131,
+      "name": "Helen",
+      "typeName": "Starlit Waltz",
+      "filename": "Helen (Starlit Waltz).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Helen (Starlit Waltz)_588f2e0f1b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 130,
+      "name": "Helen",
+      "typeName": "Dorm",
+      "filename": "Helen (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Helen (Dorm)_b9b7827b6a.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 129,
+      "name": "Helen",
+      "typeName": "Default",
+      "filename": "Helen (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Helen (Default)_ccf55149db.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 128,
+      "name": "Leva",
+      "typeName": "Sultry Tempo",
+      "filename": "Leva (Sultry Tempo).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Sultry Tempo)_bb6e25da88.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 127,
+      "name": "Dushevnaya",
+      "typeName": "Tomorrow's Savior",
+      "filename": "Dushevnaya (Tomorrow's Savior).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Dushevnaya (Tomorrow's Savior)_4e6b394bcd.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 126,
+      "name": "Lainie",
+      "typeName": "Dorm",
+      "filename": "Lainie (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lainie (Dorm)_3d5075dba3.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 125,
+      "name": "Lainie",
+      "typeName": "Default",
+      "filename": "Lainie (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lainie (Default)_5dfa04c411.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 124,
+      "name": "Lainie",
+      "typeName": "Operation Butterfly",
+      "filename": "Lainie (Operation Butterfly).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lainie (Operation Butterfly)_13232951cd.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 123,
+      "name": "Voymastina",
+      "typeName": "Default",
+      "filename": "Voymastina(Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Voymastina(Default)_0683150449.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 122,
+      "name": "Voymastina",
+      "typeName": "Erwin",
+      "filename": "Voymastina (Erwin).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Voymastina (Erwin)_39baa91c9b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 121,
+      "name": "Voymastina",
+      "typeName": "Dorm",
+      "filename": "Voymastina (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Voymastina (Dorm)_26742cc811.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 120,
+      "name": "Robella",
+      "typeName": "Enforcer of the Law",
+      "filename": "Robella(Enforcer of the Law）.rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Robella(Enforcer of the Law）_45beeb5ed2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 119,
+      "name": "Alva",
+      "typeName": "Antje",
+      "filename": "Alva (Antje).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Alva (Antje)_510d7c453b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 118,
+      "name": "Alva",
+      "typeName": "Default",
+      "filename": "Alva (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Alva (Default)_3bc3f162a9.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 117,
+      "name": "Alva",
+      "typeName": "Dorm",
+      "filename": "Alva (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Alva (Dorm)_1415cacc9f.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 116,
+      "name": "Balthilde",
+      "typeName": "Default",
+      "filename": "Balthilde (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Balthilde (Default)_691137c385.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 115,
+      "name": "Balthilde",
+      "typeName": "Dorm",
+      "filename": "Balthilde (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Balthilde (Dorm)_4e9d480817.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 114,
+      "name": "Lenna",
+      "typeName": "Flying Phantom",
+      "filename": "Lenna (FlyingPhantom).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lenna (FlyingPhantom)_4d2a680915.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 113,
+      "name": "Nikketa",
+      "typeName": "Night on the Silver Bay",
+      "filename": "Nikketa (NightontheSilverBay).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nikketa (NightontheSilverBay)_ecb8640f47.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 112,
+      "name": "Sakura",
+      "typeName": "Dorm",
+      "filename": "Sakura(Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sakura(Dorm)_457ea5e131.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 111,
+      "name": "Sakura",
+      "typeName": "Tale of the Butterflies",
+      "filename": "Sakura (TaleoftheButterflies).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sakura (TaleoftheButterflies)_0e4338230f.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 110,
+      "name": "Sakura",
+      "typeName": "Default",
+      "filename": "Sakura (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sakura (Default)_955dd32ac9.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 109,
+      "name": "Lewis",
+      "typeName": "Sunscreen Battle",
+      "filename": "Lewis (Sunscreen Battle).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lewis (Sunscreen Battle)_6ea0388803.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 108,
+      "name": "Lewis",
+      "typeName": "Dorm",
+      "filename": "Lewis (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lewis (Dorm)_53006db910.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 107,
+      "name": "Lewis",
+      "typeName": "Default",
+      "filename": "Lewis (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lewis (Default)_dea01ad77f.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 106,
+      "name": "Robella",
+      "typeName": "Future Navigator",
+      "filename": "Robella (Future Navigator).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Robella (Future Navigator)_d121af8321.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 105,
+      "name": "Robella",
+      "typeName": "Dorm",
+      "filename": "Robella (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Robella (Dorm)_ec456e2f71.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 104,
+      "name": "Robella",
+      "typeName": "Default",
+      "filename": "Robella (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Robella (Default)_27716a2b73.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 103,
+      "name": "Springfield",
+      "typeName": "Enjoy the Fragrance",
+      "filename": "Springfield (Enjoy the Fragrance).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Springfield (Enjoy the Fragrance)_b54c381481.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 102,
+      "name": "Qiuhua",
+      "typeName": "Dragon Chef",
+      "filename": "Qiuhua (Dragon Chef).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Qiuhua (Dragon Chef)_c216b9a70c.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 101,
+      "name": "Andoris",
+      "typeName": "Midnight Whisper",
+      "filename": "Andoris (Midnight Whisper).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Andoris (Midnight Whisper)_1ce10a3764.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 100,
+      "name": "Leva",
+      "typeName": "Dorm",
+      "filename": "Leva (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Dorm)_2b2fa70f16.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 99,
+      "name": "Leva",
+      "typeName": "Diamond Flower",
+      "filename": "Leva (Diamond Flower).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Diamond Flower)_1fa90f4fb8.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 98,
+      "name": "Leva",
+      "typeName": "Default",
+      "filename": "Leva (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Leva (Default)_38a7f97acb.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 97,
+      "name": "Lenna",
+      "typeName": "Vitality Magic",
+      "filename": "Lenna (Vitality Magic).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lenna (Vitality Magic)_f2aff2ed87.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 96,
+      "name": "Lenna",
+      "typeName": "Dorm",
+      "filename": "Lenna (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lenna (Dorm)_1797c4b860.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 95,
+      "name": "Lenna",
+      "typeName": "Default",
+      "filename": "Lenna (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lenna (Default)_af84b0706c.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 94,
+      "name": "Lind",
+      "typeName": "The Sun Never Rises",
+      "filename": "Lind (The Sun Never Rises).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lind (The Sun Never Rises)_e643252d01.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 93,
+      "name": "Lind",
+      "typeName": "Dorm",
+      "filename": "Lind (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lind (Dorm)_1e645a189b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 92,
+      "name": "Lind",
+      "typeName": "Default",
+      "filename": "Lind (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lind (Default)_12dac1ac46.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 91,
+      "name": "Florence",
+      "typeName": "Marvelous Yam Pastry",
+      "filename": "Florence (Marvelous Yam Pastry).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Florence (Marvelous Yam Pastry)_8821b9a96e.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 90,
+      "name": "Florence",
+      "typeName": "Dorm",
+      "filename": "Florence (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Florence (Dorm)_cd21b152c1.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 89,
+      "name": "Florence",
+      "typeName": "Default",
+      "filename": "Florence (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Florence (Default)_1068d784ed.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 88,
+      "name": "Tololo",
+      "typeName": "Horizon Cruise",
+      "filename": "Tololo (Horizon Cruise).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Tololo (Horizon Cruise)_839ea6f16b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 87,
+      "name": "JiangYu",
+      "typeName": "Raindrop-Cleaving Blades",
+      "filename": "JiangYu (Raindrop-Cleaving Blades).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/JiangYu (Raindrop-Cleaving Blades)_f43f6659a6.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 86,
+      "name": "JiangYu",
+      "typeName": "Dorm",
+      "filename": "JiangYu (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/JiangYu (Dorm)_2f6c6303ae.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 85,
+      "name": "JiangYu",
+      "typeName": "Default",
+      "filename": "JiangYu (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/JiangYu (Default)_91eb1c3e6d.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 84,
+      "name": "Belka",
+      "typeName": "Enchanting Imp",
+      "filename": "Belka (Enchanting Imp).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Belka (Enchanting Imp)_3e0b5b2b91.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 83,
+      "name": "Belka",
+      "typeName": "Dorm",
+      "filename": "Belka (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Belka (Dorm)_bb1f2bd299.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 82,
+      "name": "Belka",
+      "typeName": "Default",
+      "filename": "Belka (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Belka (Default)_f0c481e4d2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 81,
+      "name": "Andoris",
+      "typeName": "Default",
+      "filename": "Andoris (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Andoris (Default)_1d44d4f840.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 80,
+      "name": "Andoris",
+      "typeName": "Dorm",
+      "filename": "Andoris (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Andoris (Dorm)_d6db0f1112.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 79,
+      "name": "Nikketa",
+      "typeName": "DanceLiketheBlazingSun",
+      "filename": "Nikketa (DanceLiketheBlazingSun).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nikketa (DanceLiketheBlazingSun)_8d1e2bc15a.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 78,
+      "name": "Nikketa",
+      "typeName": "Default",
+      "filename": "Nikketa (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nikketa (Default)_67c742fe6e.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 77,
+      "name": "Nikketa",
+      "typeName": "Dorm",
+      "filename": "Nikketa (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nikketa (Dorm)_9eb03790a3.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 76,
+      "name": "Qiuhua",
+      "typeName": "BenevolentHerbalist",
+      "filename": "Qiuhua (BenevolentHerbalist).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Qiuhua (BenevolentHerbalist)_c12883ee97.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 75,
+      "name": "Qiuhua",
+      "typeName": "Default",
+      "filename": "Qiuhua (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Qiuhua (Default)_fe07ef267d.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 74,
+      "name": "Qiuhua",
+      "typeName": "Dorm",
+      "filename": "Qiuhua (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Qiuhua (Dorm)_f633f0d743.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 73,
+      "name": "Springfield",
+      "typeName": "QueenInRadiance",
+      "filename": "Springfield (QueenInRadiance).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Springfield (QueenInRadiance)_383982fdd7.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 72,
+      "name": "Springfield",
+      "typeName": "Dorm",
+      "filename": "Springfield (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Springfield (Dorm)_bd37ef10e6.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 71,
+      "name": "Springfield",
+      "typeName": "Default",
+      "filename": "Springfield (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Springfield (Default)_1ae0c264aa.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 70,
+      "name": "Peri",
+      "typeName": "Dorm",
+      "filename": "Peri (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Peri (Dorm)_d6925c7a96.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 69,
+      "name": "Peri",
+      "typeName": "Default",
+      "filename": "Peri (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Peri (Default)_aaef1856c6.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 68,
+      "name": "Faye",
+      "typeName": "FlurryCrimson",
+      "filename": "Faye (FlurryCrimson).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Faye (FlurryCrimson)_d8b753ba17.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 67,
+      "name": "Faye",
+      "typeName": "Dorm",
+      "filename": "Faye (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Faye (Dorm)_b5c4a48480.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 66,
+      "name": "Faye",
+      "typeName": "Default",
+      "filename": "Faye (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Faye (Default)_d3bfb51f04.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 65,
+      "name": "Zhaohui",
+      "typeName": "SuperspeedChequer",
+      "filename": "Zhaohui (SuperspeedChequer).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Zhaohui (SuperspeedChequer)_934f618ffe.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 64,
+      "name": "Zhaohui",
+      "typeName": "Dorm",
+      "filename": "Zhaohui (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Zhaohui (Dorm)_1c033aa96a.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 63,
+      "name": "Zhaohui",
+      "typeName": "Default",
+      "filename": "Zhaohui (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Zhaohui (Default)_88d7707dfc.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 1,
+      "name": "Yoohee",
+      "typeName": "Default",
+      "filename": "Yoohee (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Yoohee (Default)_5d9d94a617.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 2,
+      "name": "Yoohee",
+      "typeName": "Dorm",
+      "filename": "Yoohee (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Yoohee (Dorm)_24dc73c5dd.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 3,
+      "name": "Yoohee",
+      "typeName": "MiracleSweetheart",
+      "filename": "Yoohee (MiracleSweetheart).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Yoohee (MiracleSweetheart)_f0888c9b66.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 4,
+      "name": "Centaureissi",
+      "typeName": "Default",
+      "filename": "Centaureissi (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Centaureissi (Default)_79ea1873e7.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 5,
+      "name": "Cheeta",
+      "typeName": "Default",
+      "filename": "Cheeta (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Cheeta (Default)_d4058a68ae.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 6,
+      "name": "Cheeta",
+      "typeName": "SparksOnTheCircuit",
+      "filename": "Cheeta (SparksOnTheCircuit).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Cheeta (SparksOnTheCircuit)_22c8c6294e.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 7,
+      "name": "Colphne",
+      "typeName": "TrainingOutfit",
+      "filename": "Colphne (TrainingOutfit).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Colphne (TrainingOutfit)_b905b4687e.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 8,
+      "name": "Colphne",
+      "typeName": "Default",
+      "filename": "Colphne (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Colphne (Default)_fec89b8f80.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 9,
+      "name": "Colphne",
+      "typeName": "SilentHeart",
+      "filename": "Colphne (SilentHeart).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Colphne (SilentHeart)_8a3c14c4e8.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 10,
+      "name": "Daiyan",
+      "typeName": "Default",
+      "filename": "Daiyan (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Daiyan (Default)_6ed5a3b1bf.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 11,
+      "name": "Daiyan",
+      "typeName": "Narcissus",
+      "filename": "Daiyan (Narcissus).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Daiyan (Narcissus)_919e37c40c.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 12,
+      "name": "Dushevnaya",
+      "typeName": "Default",
+      "filename": "Dushevnaya (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Dushevnaya (Default)_629ddbdf56.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 13,
+      "name": "Dushevnaya",
+      "typeName": "Dorm",
+      "filename": "Dushevnaya (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Dushevnaya (Dorm)_2bd74073e2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 14,
+      "name": "Groza",
+      "typeName": "TrainingOutfit",
+      "filename": "Groza (TrainingOutfit).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Groza (TrainingOutfit)_43579eca90.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 15,
+      "name": "Groza",
+      "typeName": "DawnOfBattle",
+      "filename": "Groza (DawnOfBattle).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Groza (DawnOfBattle)_9c3596aff2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 16,
+      "name": "Groza",
+      "typeName": "Default",
+      "filename": "Groza (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Groza (Default)_d9d65f2cf8.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 17,
+      "name": "Groza",
+      "typeName": "SangriaSucculent",
+      "filename": "Groza (SangriaSucculent).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Groza (SangriaSucculent)_a0fab7f3ed.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 18,
+      "name": "Klukai",
+      "typeName": "AstralLuminous",
+      "filename": "Klukai (AstralLuminous).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Klukai (AstralLuminous)_50595d48d9.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 19,
+      "name": "Klukai",
+      "typeName": "Default",
+      "filename": "Klukai (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Klukai (Default)_15a471ec13.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 20,
+      "name": "Klukai",
+      "typeName": "Dorm",
+      "filename": "Klukai (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Klukai (Dorm)_806e2959d6.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 21,
+      "name": "Klukai",
+      "typeName": "SpeedStar",
+      "filename": "Klukai (SpeedStar).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Klukai (SpeedStar)_48b9366d95.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 22,
+      "name": "Krolik",
+      "typeName": "TrainingOutfit",
+      "filename": "Krolik (TrainingOutfit).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Krolik (TrainingOutfit)_bdb6b955b3.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 23,
+      "name": "Krolik",
+      "typeName": "Default",
+      "filename": "Krolik (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Krolik (Default)_7942e6e4c1.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 24,
+      "name": "Krolik",
+      "typeName": "PrancingBunny",
+      "filename": "Krolik (PrancingBunny).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Krolik (PrancingBunny)_03b4bfff01.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 25,
+      "name": "Ksenia",
+      "typeName": "Default",
+      "filename": "Ksenia (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Ksenia (Default)_be45dac8cf.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 26,
+      "name": "Littara",
+      "typeName": "Default",
+      "filename": "Littara (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Littara (Default)_d2cc5b8312.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 27,
+      "name": "Lotta",
+      "typeName": "AthleticsRookie",
+      "filename": "Lotta (AthleticsRookie).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lotta (AthleticsRookie)_a1a01d043a.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 28,
+      "name": "Lotta",
+      "typeName": "Default",
+      "filename": "Lotta (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lotta (Default)_df644097a0.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 29,
+      "name": "Lotta",
+      "typeName": "Dorm",
+      "filename": "Lotta (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Lotta (Dorm)_9d9fc321a1.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 30,
+      "name": "Makiatto",
+      "typeName": "BallroomInterlude",
+      "filename": "Makiatto (BallroomInterlude).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Makiatto (BallroomInterlude)_1418839701.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 31,
+      "name": "Makiatto",
+      "typeName": "Default",
+      "filename": "Makiatto (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Makiatto (Default)_8d321d9d05.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 32,
+      "name": "Makiatto",
+      "typeName": "Dorm",
+      "filename": "Makiatto (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Makiatto (Dorm)_90275d7b70.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 33,
+      "name": "Makiatto",
+      "typeName": "EmbroideredBambooBloomingShadows",
+      "filename": "Makiatto (EmbroideredBambooBloomingShadows).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Makiatto (EmbroideredBambooBloomingShadows)_4475bf92eb.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 34,
+      "name": "Mechty",
+      "typeName": "Default",
+      "filename": "Mechty (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Mechty (Default)_74358771a7.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 35,
+      "name": "Mechty",
+      "typeName": "Dorm",
+      "filename": "Mechty (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Mechty (Dorm)_752c302470.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 36,
+      "name": "Mosin-Nagant",
+      "typeName": "Default",
+      "filename": "Mosin-Nagant (Default).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Mosin-Nagant (Default)_f67e160939.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 37,
+      "name": "Nagant",
+      "typeName": "Default",
+      "filename": "Nagant (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nagant (Default)_e497dc59ce.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 38,
+      "name": "Nemesis",
+      "typeName": "TrainingOutfit",
+      "filename": "Nemesis (TrainingOutfit).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nemesis (TrainingOutfit)_ecc90b3016.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 39,
+      "name": "Nemesis",
+      "typeName": "Default",
+      "filename": "Nemesis (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Nemesis (Default)_bf6eb64c43.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 40,
+      "name": "Papasha",
+      "typeName": "Default",
+      "filename": "Papasha (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Papasha (Default)_12a69181f2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 41,
+      "name": "Papasha",
+      "typeName": "Dorm",
+      "filename": "Papasha (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Papasha (Dorm)_e9b9b3b498.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 42,
+      "name": "Peritya",
+      "typeName": "BornHuntress",
+      "filename": "Peritya (BornHuntress).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Peritya (BornHuntress)_47e80c428d.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 43,
+      "name": "Peritya",
+      "typeName": "Default",
+      "filename": "Peritya (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Peritya (Default)_f820cfa9ea.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 44,
+      "name": "Qiongjiu",
+      "typeName": "Default",
+      "filename": "Qiongjiu (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Qiongjiu (Default)_ca306d1263.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 45,
+      "name": "Sabrina",
+      "typeName": "Default",
+      "filename": "Sabrina (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sabrina (Default)_a5a42efead.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 46,
+      "name": "Sabrina",
+      "typeName": "StrawberryZabaione",
+      "filename": "Sabrina (StrawberryZabaione).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sabrina (StrawberryZabaione)_513f45b3a2.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 47,
+      "name": "Sharkry",
+      "typeName": "Default",
+      "filename": "Sharkry (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sharkry (Default)_47c6f79fc9.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 48,
+      "name": "Sharkry",
+      "typeName": "SwimsuitIdol",
+      "filename": "Sharkry (SwimsuitIdol).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Sharkry (SwimsuitIdol)_ad909c421b.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 49,
+      "name": "Suomi",
+      "typeName": "Default",
+      "filename": "Suomi (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Suomi (Default)_e41db19801.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 50,
+      "name": "Suomi",
+      "typeName": "Dorm",
+      "filename": "Suomi (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Suomi (Dorm)_852ed59b4e.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 51,
+      "name": "Suomi",
+      "typeName": "SparklingOcean",
+      "filename": "Suomi (SparklingOcean).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Suomi (SparklingOcean)_4cd86fa3d9.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 52,
+      "name": "Tololo",
+      "typeName": "CelestialRiverAtDusk",
+      "filename": "Tololo (CelestialRiverAtDusk).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Tololo (CelestialRiverAtDusk)_a7311a6595.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 53,
+      "name": "Tololo",
+      "typeName": "Default",
+      "filename": "Tololo (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Tololo (Default)_d6e89f9af1.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 54,
+      "name": "Ullrid",
+      "typeName": "Default",
+      "filename": "Ullrid (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Ullrid (Default)_a50929a1cd.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 55,
+      "name": "Ullrid",
+      "typeName": "Dorm",
+      "filename": "Ullrid (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Ullrid (Dorm)_5e43872a97.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 56,
+      "name": "Vector",
+      "typeName": "Default",
+      "filename": "Vector (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vector (Default)_a0af6d2715.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 57,
+      "name": "Vector",
+      "typeName": "Dorm",
+      "filename": "Vector (Dorm).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vector (Dorm)_dae7a06b44.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 58,
+      "name": "Vector",
+      "typeName": "MolotovBunny",
+      "filename": "Vector (MolotovBunny).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vector (MolotovBunny)_20bdaf7b3d.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 59,
+      "name": "Vector",
+      "typeName": "ViviSometimesHidesHerMolotovs",
+      "filename": "Vector (ViviSometimesHidesHerMolotovs).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vector (ViviSometimesHidesHerMolotovs)_4e80b0f0bb.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 60,
+      "name": "Vepley",
+      "typeName": "Default",
+      "filename": "Vepley (Default).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vepley (Default)_a7d66898cf.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 61,
+      "name": "Vepley",
+      "typeName": "SparklingWish",
+      "filename": "Vepley (SparklingWish).zip",
+      "format": "zip",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vepley (SparklingWish)_5c09742187.zip",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    },
+    {
+      "officialId": 62,
+      "name": "Vepley",
+      "typeName": "SummerEcho",
+      "filename": "Vepley (SummerEcho).rar",
+      "format": "rar",
+      "url": "https://gf2-us-cdn.sunborngame.com/prod/website/official_zf/pc/zip/Vepley (SummerEcho)_8c2df2865c.rar",
+      "sourceUrl": "https://gf2exilium.sunborngame.com/main/art"
+    }
+  ]
+}

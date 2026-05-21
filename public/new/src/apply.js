@@ -1253,6 +1253,13 @@
     if (s.groundMat) out.scene.groundOpacity = Math.round(s.groundMat.opacity * 1000) / 1000;
     out.scene.floorGrid = s.floorGrid?.style || '';
     out.scene.floorGridSize = s.floorGrid?.size || 0;
+    if (s.staticModel) {
+      out.scene.modelFormat = s.staticModel.format || '';
+      out.scene.modelKind = s.staticModel.kind || '';
+      out.scene.staticModelName = s.staticModel.name || '';
+      out.scene.staticModelChildren = s.staticModel.scene?.children?.length || 0;
+      out.scene.archiveModels = (s.staticModel.archive?.modelFiles || []).join('|');
+    }
     if (s.renderer) { try { out.canvas.filter = s.renderer.domElement.style.filter || ''; } catch {} }
     if (vrm) {
       out.scene.rootY = Math.round(vrm.scene.rotation.y * 1000) / 1000;

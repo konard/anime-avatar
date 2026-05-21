@@ -646,6 +646,75 @@
       if (H.cfg().vrmUrl !== window.ACS_DEFAULT_VRM_URL) throw new Error('url not prefilled');
     });
 
+    // ----- GF2 MMD model archives ---------------------------------------
+    add('gf2', 'official GF2 MMD inventory is present in the model selector', async () => {
+      const presets = (window.ACS_MODEL_PRESETS || []).filter(p => p.id?.startsWith('gf2-'));
+      if (presets.length !== 134) throw new Error(`expected 134 GF2 presets, got ${presets.length}`);
+      if (!presets.every(p => p.kind === 'mmd' && (p.format === 'zip' || p.format === 'rar'))) {
+        throw new Error('GF2 presets are not renderable ZIP/RAR MMD entries');
+      }
+      const sample = presets.find(p => p.officialId === 128);
+      if (!sample || !/Leva \(Sultry Tempo\) MMD model/.test(sample.label)) {
+        throw new Error('Leva Sultry Tempo preset missing');
+      }
+      const sel = document.querySelector('[data-testid="model-preset"]');
+      if (sel) {
+        const labels = Array.from(sel.options || []).map(o => o.textContent || '');
+        if (!labels.some(label => label.includes('GF2 Leva (Sultry Tempo) MMD model'))) {
+          throw new Error('GF2 presets are missing from the rendered selector');
+        }
+      }
+    });
+
+    add('gf2', 'ZIP MMD archive loads through the editor as a visible static model', async () => {
+      await H.waitFor(() => !!window.__acsB_load?.loadModelFromBuffer, { tries: 120, every: 50, label: 'model loader bridge' });
+      if (!window.LibArchive?.open) throw new Error('LibArchive missing');
+      const { zipSync, strToU8 } = await import('fflate');
+      const zip = zipSync({
+        'GF2 Test/GirlsFrontline Test.pmx': strToU8('fake-pmx'),
+        'GF2 Test/Textures/body.png': strToU8('fake-png'),
+      });
+      const beforeFingerprint = H.fingerprint?.();
+      const realMMDLoader = window.MMDLoader;
+      window.MMDLoader = class TestMMDLoader {
+        constructor(manager) {
+          this.manager = manager;
+        }
+        setResourcePath(path) {
+          this.resourcePath = path;
+          return this;
+        }
+        load(url, onLoad) {
+          const pmxURL = this.manager.resolveURL(url);
+          const textureURL = this.manager.resolveURL(`${this.resourcePath}Textures/body.png`);
+          if (!String(pmxURL).startsWith('blob:')) throw new Error('PMX URL was not remapped to a blob URL');
+          if (!String(textureURL).startsWith('blob:')) throw new Error('texture URL was not remapped to a blob URL');
+          const THREE = H.state().THREE || window.THREE;
+          const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 1.2, 0.35),
+            new THREE.MeshStandardMaterial({ color: 0xff6a9a, roughness: 0.65 })
+          );
+          mesh.name = 'GF2 synthetic MMD mesh';
+          onLoad(mesh);
+        }
+      };
+      try {
+        const buffer = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength);
+        await window.__acsB_load.loadModelFromBuffer(buffer, 'gf2-synthetic.zip', 'zip');
+        await H.waitFor(() => H.probe().scene.modelKind === 'mmd', { tries: 120, every: 50, label: 'MMD static model' });
+        await wait(100);
+      } finally {
+        window.MMDLoader = realMMDLoader;
+      }
+      const p = H.probe();
+      if (p.scene.modelFormat !== 'zip') throw new Error(`format ${p.scene.modelFormat}`);
+      if (!/GirlsFrontline Test\.pmx/.test(p.scene.archiveModels || '')) throw new Error('archive PMX not recorded');
+      const afterFingerprint = H.fingerprint?.();
+      if (beforeFingerprint && afterFingerprint && beforeFingerprint.hash === afterFingerprint.hash) {
+        throw new Error('canvas fingerprint did not change after GF2 archive load');
+      }
+    });
+
     // ----- animation presets + metadata ---------------------------------
     add('animation', 'preset dropdown holds id, not URL', async () => {
       const presets = window.ACS_ANIMATION_PRESETS;
