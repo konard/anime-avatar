@@ -1,11 +1,11 @@
-// Unit tests for the face-front-aware look-at math added to public/new/src/apply.js
+// Unit tests for the face-front-aware look-at math added to public/studio/apply.js
 // to fix issue #26. The studio runs in the browser via Babel-standalone, so we
 // re-implement the two pure functions here in a way that mirrors the production
 // code 1:1 (same names, same signatures, same constants). If you change the
 // formulas in apply.js, mirror the change here and re-run.
 import { describe, it, expect } from 'vitest';
 
-// --- mirror of public/new/src/apply.js --------------------------------------
+// --- mirror of public/studio/apply.js --------------------------------------
 function getFaceFrontSign(vrm) {
   const ff = vrm?.lookAt?.faceFront;
   if (ff && typeof ff.z === 'number' && ff.z !== 0) {
@@ -18,7 +18,7 @@ function getFaceFrontSign(vrm) {
 }
 
 // Sign applied to X/Z components of any user/preset/gesture/follow rotation
-// pushed into a humanoid bone. Mirrors public/new/src/apply.js — matches
+// pushed into a humanoid bone. Mirrors public/studio/apply.js — matches
 // faceFrontSign for our VRM 0/1 presets but is logically distinct (it
 // tracks scene-rotation-induced bone-axis mirroring, not face-front axis).
 function getBoneAxisFlip(vrm) {

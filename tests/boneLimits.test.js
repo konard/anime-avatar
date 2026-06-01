@@ -1,11 +1,11 @@
-// Unit tests for the anatomical bone-limit table added to public/new/src/
+// Unit tests for the anatomical bone-limit table added to public/studio/
 // constants.js for issue #28. The studio runs in the browser via
 // Babel-standalone, so we re-implement the helpers here in a way that
 // mirrors the production code 1:1. If you change the table or the helper
 // functions in constants.js, mirror the change here and re-run.
 import { describe, it, expect } from 'vitest';
 
-// --- mirror of public/new/src/constants.js (helpers + sample table) ---------
+// --- mirror of public/studio/constants.js (helpers + sample table) ---------
 
 // Pulls a small sample of real-world entries from constants.js — enough to
 // verify the lookup, the per-axis null behaviour, and the side-mirror logic.

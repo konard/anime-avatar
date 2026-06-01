@@ -4,7 +4,7 @@
 // joint, what a "hyper-extended" preset is clamped to.
 //
 // The studio's runtime exposes the same API as `window.ACS_clampBoneRad` /
-// `window.ACS_boneLimitDeg` from `public/new/src/constants.js`. We mirror a
+// `window.ACS_boneLimitDeg` from `public/studio/constants.js`. We mirror a
 // minimal slice here so this script is self-contained.
 
 const BONE_LIMITS = {

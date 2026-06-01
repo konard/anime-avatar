@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('GEAR-SONIC-inspired opt-in studio controls', () => {
   beforeAll(async () => {
-    await import('../public/new/src/constants.js');
-    await import('../public/new/src/defaults.js');
-    await import('../public/new/src/apply.js');
+    await import('../public/studio/constants.js');
+    await import('../public/studio/defaults.js');
+    await import('../public/studio/apply.js');
   });
 
   it('keeps floor grid and mouse force disabled by default', () => {
