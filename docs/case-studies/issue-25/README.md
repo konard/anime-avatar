@@ -34,7 +34,7 @@ configuration keys, animation path, and tests needed for larger phonetic models.
 | --- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | R1  | Animate talking as true to real mouth/tongue physics as possible from IPA.         | Implemented as IPA-derived visemes with articulatory metadata, VRM mouth expressions, and jaw. |
 | R2  | Leave a path toward 3D sound generation from air movement and mouth/tongue shapes. | Documented as a future physics/acoustics layer; not implemented in this PR.                    |
-| R3  | Convert English text to IPA.                                                       | Implemented in `public/new/src/ipaSpeech.js` with dictionary plus rule fallback.               |
+| R3  | Convert English text to IPA.                                                       | Implemented in `public/studio/ipaSpeech.js` with dictionary plus rule fallback.                |
 | R4  | Convert IPA to actual mouth animation.                                             | Implemented in `ACS_ipaSpeechDelta()` and layered through `ACS_applyAll()`.                    |
 | R5  | Add a small text area and switch in the editor.                                    | Implemented as the IPA Speech editor section.                                                  |
 | R6  | Keep the feature off by default and mark it experimental.                          | Implemented as `ipaSpeechEnabled: false` in defaults.                                          |
@@ -187,7 +187,7 @@ can feed such a layer later.
 
 New files and entry points:
 
-- `public/new/src/ipaSpeech.js`
+- `public/studio/ipaSpeech.js`
 - `tests/ipaSpeech.test.js`
 
 New cfg keys:
@@ -215,12 +215,12 @@ Automated:
 - `tests/ipaSpeech.test.js` verifies English-to-IPA conversion, dictionary
   coverage, fallback behavior, viseme mapping, jaw deltas, and VRM mouth
   expression deltas.
-- `public/new/src/tests-registry.js` adds in-browser smoke coverage for the
+- `public/studio/tests-registry.js` adds in-browser smoke coverage for the
   resource report, IPA plan creation, and live mouth-state progression.
 
 Manual:
 
-1. Open `/anime-avatar/new/?view=editor`.
+1. Open `/anime-avatar/?view=editor`.
 2. Enable IPA Speech.
 3. Type `My mouth moves`, click Run, and observe the IPA/status display.
 4. Watch the jaw and VRM mouth expressions change while the phrase plays.

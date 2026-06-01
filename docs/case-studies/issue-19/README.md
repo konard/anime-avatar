@@ -10,7 +10,7 @@
 
 ## Reproductions
 
-The studio code lives entirely under `public/new/src/` and is loaded as a static React-via-CDN single-page app (see `public/new/index.html` + `vite.config.js`). All reproductions below assume `npm run dev` and a browser pointed at `/new`.
+The studio code lives entirely under `public/studio/` and is loaded as a static React-via-CDN single-page app (see `public/index.html` + `vite.config.js`). All reproductions below assume `npm run dev` and a browser pointed at `/`.
 
 ### R1 — Alicia Solid faces away from the camera
 

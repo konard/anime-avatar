@@ -16,7 +16,7 @@ for two things on top of it:
    style backend.
 2. **A centralized model selector** — today the studio's preset dropdown is
    VRM-only (`window.ACS_VRM_PRESETS` →
-   `public/new/src/Editor.jsx:1014` "VRM Source"). Once the studio supports
+   `public/studio/Editor.jsx:1014` "VRM Source"). Once the studio supports
    more formats (GLB, PLY, USDZ, gaussian splats), there should be a **single**
    selector that lets the user pick a model regardless of format, and a URL
    field that accepts any of the supported formats so users can paste their
@@ -55,22 +55,22 @@ Key facts that constrain the design:
 
 Implication: text→model is a **hosted backend feature** — exactly the same
 shape as the GEAR-SONIC `/api/generate` integration the studio already
-supports for text→motion (`public/new/src/gearSonic.js`).
+supports for text→motion (`public/studio/gearSonic.js`).
 
 ## 3. Existing studio surface this issue extends
 
 The avatar studio already has the building blocks:
 
-| Concern                  | Today                                                                                                                         | Reference                                     |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Preset list              | `window.ACS_VRM_PRESETS` — id, label, url, credit, license, flipped, attributionRequired                                      | `public/new/src/constants.js:349`             |
-| Selector UI              | `S.Select` "Preset" + `S.Row "URL"` + Local file (`.vrm,.glb,.gltf,.fbx`)                                                     | `public/new/src/Editor.jsx:1014` "VRM Source" |
-| URL load                 | `loadVRMFromURL(url)` → `ACS_normalizeModelURL` → `ACS_fetchVRMCached` → `loadVRMBuffer`                                      | `public/new/src/Editor.jsx:478`               |
-| Buffer load              | `loadVRMBuffer(buf, name)` — `GLTFLoader` + `VRMLoaderPlugin`, fails with "No VRM extension in file" if the file is plain GLB | `public/new/src/Editor.jsx:349`               |
-| GitHub URL helper        | `ACS_normalizeModelURL` rewrites `github.com/.../blob/...` → `raw.githubusercontent.com`                                      | `public/new/src/constants.js:373`             |
-| Animation preset list    | `window.ACS_ANIMATION_PRESETS` — same shape, used by `S.Section "Animation"`                                                  | `public/new/src/constants.js:319`             |
-| Robot preset (issue #31) | `ACS_loadGearSonicRobotModel` — mesh-only model loaded by URL, lives next to the VRM                                          | `public/new/src/gearSonic.js`                 |
-| Backend client pattern   | `ACS_generateGearSonicMotion(prompt, {backendURL, …})` — POST `/api/generate`, surface error verbatim, never fake             | `public/new/src/gearSonic.js`                 |
+| Concern                  | Today                                                                                                                         | Reference                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Preset list              | `window.ACS_VRM_PRESETS` — id, label, url, credit, license, flipped, attributionRequired                                      | `public/studio/constants.js:349`             |
+| Selector UI              | `S.Select` "Preset" + `S.Row "URL"` + Local file (`.vrm,.glb,.gltf,.fbx`)                                                     | `public/studio/Editor.jsx:1014` "VRM Source" |
+| URL load                 | `loadVRMFromURL(url)` → `ACS_normalizeModelURL` → `ACS_fetchVRMCached` → `loadVRMBuffer`                                      | `public/studio/Editor.jsx:478`               |
+| Buffer load              | `loadVRMBuffer(buf, name)` — `GLTFLoader` + `VRMLoaderPlugin`, fails with "No VRM extension in file" if the file is plain GLB | `public/studio/Editor.jsx:349`               |
+| GitHub URL helper        | `ACS_normalizeModelURL` rewrites `github.com/.../blob/...` → `raw.githubusercontent.com`                                      | `public/studio/constants.js:373`             |
+| Animation preset list    | `window.ACS_ANIMATION_PRESETS` — same shape, used by `S.Section "Animation"`                                                  | `public/studio/constants.js:319`             |
+| Robot preset (issue #31) | `ACS_loadGearSonicRobotModel` — mesh-only model loaded by URL, lives next to the VRM                                          | `public/studio/gearSonic.js`                 |
+| Backend client pattern   | `ACS_generateGearSonicMotion(prompt, {backendURL, …})` — POST `/api/generate`, surface error verbatim, never fake             | `public/studio/gearSonic.js`                 |
 
 Three observations matter:
 
@@ -113,13 +113,13 @@ in file'` when the GLB has no `VRMC_*` extension. To accept generic
 
 The minimum to honour R5 without scope creep is **VRM + GLB/glTF + FBX +
 PLY (mesh) + OBJ**, all of which ship with three.js core/addons (already
-loaded in `public/new/index.html`).
+loaded in `public/index.html`).
 
 ## 6. Existing libraries and components we should reuse
 
 | Need                              | Library                                                                   | Why it fits                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| GLB/glTF parsing                  | `three/addons/loaders/GLTFLoader.js`                                      | Already imported (`public/new/index.html:38`).                                                                                   |
+| GLB/glTF parsing                  | `three/addons/loaders/GLTFLoader.js`                                      | Already imported (`public/index.html:38`).                                                                                       |
 | VRM parsing                       | `@pixiv/three-vrm` `VRMLoaderPlugin`                                      | Already imported. Re-use as a parser plugin only when the file actually has `VRMC_*` extension.                                  |
 | FBX parsing                       | `three/addons/loaders/FBXLoader.js`                                       | Already imported.                                                                                                                |
 | PLY parsing                       | `three/addons/loaders/PLYLoader.js`                                       | Three.js core addon — same CDN bundle. ([three-vrm rendering guide](https://threejs.org/docs/#examples/en/loaders/PLYLoader))    |
@@ -129,14 +129,14 @@ loaded in `public/new/index.html`).
 | TRELLIS production endpoint       | NVIDIA NIM TRELLIS (https://build.nvidia.com/microsoft/trellis/modelcard) | Authenticated alternative to public Spaces; documented endpoint.                                                                 |
 | Self-host backend reference       | TRELLIS / TRELLIS.2 `app.py` Gradio file                                  | Can be wrapped behind FastAPI to expose `POST /api/generate` returning `{glbUrl}` or a binary GLB.                               |
 | Gaussian splat viewer (optional)  | `@mkkellogg/gaussian-splats-3d` or `three.js` ports of `gsplat.js`        | Defer until issue explicitly asks for it.                                                                                        |
-| Existing repo pattern             | `public/new/src/gearSonic.js` (text→motion backend client)                | Same shape: configurable URL, off by default, error surfacing.                                                                   |
+| Existing repo pattern             | `public/studio/gearSonic.js` (text→motion backend client)                 | Same shape: configurable URL, off by default, error surfacing.                                                                   |
 
 ## 7. Solution plan per requirement
 
 ### R1 + R2 + R3 — Text-to-model backend integration
 
 Mirror the GEAR-SONIC text→motion architecture. New module
-`public/new/src/textToModel.js` exposing:
+`public/studio/textToModel.js` exposing:
 
 ```js
 window.ACS_DEFAULT_TEXT_TO_MODEL_BACKEND_URL = ''; // empty by default
@@ -284,7 +284,7 @@ window.ACS_VRM_PRESETS = window.ACS_MODEL_PRESETS.filter(
 
 #### Loader dispatcher
 
-New `public/new/src/modelLoader.js`:
+New `public/studio/modelLoader.js`:
 
 ```js
 window.ACS_detectModelFormat = function (url, contentType, hint) {
@@ -428,7 +428,7 @@ Automated (jsdom):
 
 Manual reproduction (browser):
 
-1. Open `/anime-avatar/new/?view=editor`.
+1. Open `/anime-avatar/?view=editor`.
 2. _Model → Preset_ — pick `Alicia Solid`, then `Unitree G1`. Both load
    in the same selector with their format suffix.
 3. _Model → URL_ — paste a public Sketchfab GLB URL, click _Load_, the
