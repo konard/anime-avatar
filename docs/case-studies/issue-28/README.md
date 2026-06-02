@@ -7,7 +7,7 @@
 ## Summary
 
 Issue #28 covers four mostly-independent improvements to the avatar studio
-(`public/new/src/`):
+(`public/studio/`):
 
 1. **Waving (`wave`) gesture is not natural.** The current bell-shaped
    envelope swings the whole forearm sideways like a windscreen wiper, but the
@@ -64,7 +64,7 @@ roughly still during the wave's plateau.
 
 ## Reproductions
 
-All reproductions assume the studio is open at `/anime-avatar/new/?view=editor`
+All reproductions assume the studio is open at `/anime-avatar/?view=editor`
 with the default pixiv VRM 1.0 sample loaded.
 
 ### R1 — Wave looks like a windscreen wiper
@@ -75,7 +75,7 @@ with the default pixiv VRM 1.0 sample loaded.
    rad, i.e. arm horizontal-ish), and the **forearm** swings sideways at the
    shoulder — not the wrist. The hand barely contributes (`y * 0.4`).
 
-Code path: `public/new/src/gestures.js`, the `wave` branch (~lines 42-55).
+Code path: `public/studio/gestures.js`, the `wave` branch (~lines 42-55).
 
 ### R2 — Sliders allow anatomically impossible rotations
 
@@ -86,7 +86,7 @@ Code path: `public/new/src/gestures.js`, the `wave` branch (~lines 42-55).
    the long axis, which the elbow physically cannot do (the radius/ulna
    stop at ~85° supination / ~75° pronation).
 
-Code path: `public/new/src/Editor.jsx::renderBoneGroup` (`ranges` map, ~lines
+Code path: `public/studio/Editor.jsx::renderBoneGroup` (`ranges` map, ~lines
 628-634) hardcodes the same range for every bone in the same group.
 
 ### R3 — Rotations shown in radians, not degrees
@@ -102,7 +102,7 @@ Same code path. Sliders show e.g. `1.20` for ~69°.
    smoothed look-at angle to (mostly) zero, plays the nod, and snaps back
    to look-at at the end of the gesture.
 
-Code path: `public/new/src/apply.js::applyLookAt` (~lines 488-494) gates
+Code path: `public/studio/apply.js::applyLookAt` (~lines 488-494) gates
 `head.rotation += idle.headYawCur` on `!animActive && !gestureActive`. At
 the gesture boundary `idle.headYawCur` is non-zero but the head bone is
 suddenly authoritative again; no inter-frame smoothing covers the seam.
@@ -338,7 +338,7 @@ We add three layers of automated coverage:
 1. **Pure-function unit tests in `tests/` (vitest)** — the `clampBoneEulerDeg`
    helper, mirror-side resolution, and the Euler ↔ degrees conversion
    round-trip.
-2. **Editor in-browser smoke tests in `public/new/src/tests-registry.js`** —
+2. **Editor in-browser smoke tests in `public/studio/tests-registry.js`** —
    the existing test runner exercises the React app. We add:
    - "wave gesture oscillates the wrist, not the lower arm"
    - "joint control gizmo appears when toggled on, disappears off"
@@ -373,20 +373,20 @@ We add three layers of automated coverage:
 
 ## Files touched (planned)
 
-- `public/new/src/constants.js` — `ACS_BONE_LIMITS`, helper.
-- `public/new/src/gestures.js` — rewritten `wave` branch.
-- `public/new/src/apply.js` — additive head blending across gesture
+- `public/studio/constants.js` — `ACS_BONE_LIMITS`, helper.
+- `public/studio/gestures.js` — rewritten `wave` branch.
+- `public/studio/apply.js` — additive head blending across gesture
   boundary.
-- `public/new/src/Editor.jsx` — degrees-in-UI, per-axis slider ranges,
+- `public/studio/Editor.jsx` — degrees-in-UI, per-axis slider ranges,
   optional gizmo wiring + experimental flag.
-- `public/new/src/defaults.js` — flag defaults.
-- `public/new/src/randomizers.js` — randomizers respect bone limits.
+- `public/studio/defaults.js` — flag defaults.
+- `public/studio/randomizers.js` — randomizers respect bone limits.
 - `tests/waveGesture.test.js` — wave-trajectory unit tests.
 - `experiments/issue-28-wave-trajectory.mjs` — headless trajectory FK.
 - `experiments/issue-28-wave-trajectory-old-buggy.mjs` — regression
   proof-of-concept showing the original `z = -2.27` value crosses the
   centerline.
-- `public/new/src/tests-registry.js` — new in-browser tests.
+- `public/studio/tests-registry.js` — new in-browser tests.
 - `tests/boneLimits.test.js` — new unit tests.
 - `experiments/issue-28-bone-limits.mjs` — new headless verification
   script.

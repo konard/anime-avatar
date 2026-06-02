@@ -4,9 +4,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 // ACS_fetchVRMCached (color.js). We import the helpers in setup so the
 // dispatcher can use them like it would in the browser.
 beforeAll(async () => {
-  await import('../public/new/src/constants.js');
-  await import('../public/new/src/color.js');
-  await import('../public/new/src/modelLoader.js');
+  await import('../public/studio/constants.js');
+  await import('../public/studio/color.js');
+  await import('../public/studio/modelLoader.js');
 });
 
 afterEach(() => {

@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('experimental IPA speech adapter', () => {
   beforeAll(async () => {
-    await import('../public/new/src/ipaSpeech.js');
+    await import('../public/studio/ipaSpeech.js');
   });
 
   it('converts dictionary-backed English text into IPA phonemes', () => {

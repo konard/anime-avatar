@@ -6,12 +6,12 @@
 // matrix-based forward kinematics chain) the world-space hand trajectory.
 //
 // IMPORTANT: keep the wave-delta math here in sync with
-// public/new/src/gestures.js. The gesture module owns the source of truth
+// public/studio/gestures.js. The gesture module owns the source of truth
 // (it lives in the runtime bundle); this file replicates the same formula
 // because vitest runs in node where window.ACS_* doesn't exist.
 import { describe, it, expect } from 'vitest';
 
-// --- gesture math (mirror of public/new/src/gestures.js wave branch) -------
+// --- gesture math (mirror of public/studio/gestures.js wave branch) -------
 
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;

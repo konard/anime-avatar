@@ -4,7 +4,37 @@ A configurable AI anime avatar React component with animations, designed for use
 
 **[Live Demo](https://konard.github.io/anime-avatar)**
 
+## Site Layout
+
+The deployment exposes two applications:
+
+| Path       | Application                 | Description                                                                                                                                  |
+| ---------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`        | **Avatar Studio** (current) | The standalone multi-format avatar studio: load/generate models (VRM, GLB, glTF, FBX, PLY, OBJ, MMD), pose, animate, and run the test suite. |
+| `/archive` | **Avatar (previous)**       | The earlier React component demo with the 2D SVG / 3D WebGL procedural avatar and configuration panel.                                       |
+
+The Avatar Studio (`/`) is a no-build static app that loads React, Babel, and
+Three.js from CDNs at runtime — its source lives in `public/` (`public/index.html`
+plus `public/studio/`). The archived demo (`/archive`) is the Vite-bundled React
+component library whose source lives in `src/`. Both ship from the same
+`npm run build` to GitHub Pages.
+
+> Previously the studio was reachable at `/new`. It is now the top-level entry
+> at `/`, and the previous version moved to `/archive`.
+
 ## Screenshots
+
+### Avatar Studio at `/` (current)
+
+![Avatar Studio at root](docs/screenshots/issue-41/studio-at-root.png)
+
+_The Avatar Studio is now served at the top-level path `/`._
+
+### Previous version at `/archive`
+
+![Previous version at /archive](docs/screenshots/issue-41/archive-at-archive.png)
+
+_The previous React component demo is archived at `/archive`._
 
 ### 2D SVG Avatar - Fullscreen Immersive View
 
@@ -293,11 +323,21 @@ anime-avatar/
 │   └── workflows/
 │       ├── ci.yml             # Lint, test, and build on PRs
 │       └── deploy.yml         # Deploy to GitHub Pages on main
+├── public/                    # Avatar Studio — served at "/" (no-build static app)
+│   ├── index.html             # Studio entry point (loads React/Babel/Three from CDN)
+│   ├── studio/                # Studio modules (plain JS helpers + Babel-transpiled JSX)
+│   ├── vendor/                # Vendored browser libs (libarchive for MMD ZIP/RAR)
+│   └── svgWorker.js           # Web worker for SVG model rasterization
+├── archive/                   # Previous version — served at "/archive"
+│   ├── index.html             # Main HTML entry for the React component demo
+│   ├── test-2d.html           # 2D test page entry point
+│   ├── test-3d.html           # 3D test page entry point
+│   └── test-components.html   # Component test page entry point
 ├── screenshots/               # Visual documentation
 │   ├── avatar-2d-main.png     # 2D SVG avatar screenshot
 │   ├── avatar-3d-main.png     # 3D WebGL avatar screenshot
 │   └── avatar-3d-pink-preset.png  # Preset customization example
-├── src/
+├── src/                       # Previous version source (bundled by Vite for /archive)
 │   ├── components/
 │   │   ├── Avatar.jsx         # Legacy CSS-based avatar (deprecated)
 │   │   ├── AvatarSVG.jsx      # 2D SVG avatar component
@@ -326,13 +366,13 @@ anime-avatar/
 │   │   └── avatar3d.css       # 3D avatar styles
 │   ├── App.jsx                # Demo application showcasing all features
 │   └── main.jsx               # Entry point
-├── tests/
+├── tests/                     # Unit tests for both apps (Vitest)
 │   ├── Avatar.test.jsx        # SVG component tests
-│   └── Avatar3D.test.jsx      # 3D component tests
-├── index.html                 # Main HTML template
-├── test-2d.html               # 2D test page entry point
-├── test-3d.html               # 3D test page entry point
-├── vite.config.js             # Vite configuration
+│   ├── Avatar3D.test.jsx      # 3D component tests
+│   └── *.test.js              # Avatar Studio module tests (public/studio/*)
+├── docs/
+│   └── case-studies/          # Per-issue research, requirements, and plans
+├── vite.config.js             # Vite configuration (archive inputs + dev routing)
 ├── eslint.config.js           # ESLint configuration
 ├── .prettierrc                # Prettier configuration
 └── package.json               # Project dependencies and scripts
@@ -366,12 +406,15 @@ This project uses:
 
 ## Test Pages
 
-The project includes dedicated test pages for isolated testing of each render mode:
+The archived demo (`/archive`) includes dedicated test pages for isolated testing of each render mode:
 
-- **2D Test Page**: `/test-2d.html` - Test SVG rendering independently
-- **3D Test Page**: `/test-3d.html` - Test WebGL rendering independently
+- **2D Test Page**: `/archive/test-2d.html` - Test SVG rendering independently
+- **3D Test Page**: `/archive/test-3d.html` - Test WebGL rendering independently
 
 Both test pages include the full configuration panel and navigation between modes.
+
+The Avatar Studio (`/`) has its own in-app test harness, reachable via the
+`Tests` view in the top bar (or `?view=tests`).
 
 ## Roadmap
 

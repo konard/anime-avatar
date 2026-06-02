@@ -10,7 +10,7 @@ const GOOD_RESOURCES = {
 
 describe('experimental text-to-motion browser adapter', () => {
   beforeAll(async () => {
-    await import('../public/new/src/textMotion.js');
+    await import('../public/studio/textMotion.js');
   });
 
   it('reports insufficient resources instead of creating a plan', () => {

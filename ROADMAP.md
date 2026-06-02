@@ -74,6 +74,12 @@ This document tracks the development progress of the Anime Avatar project, inclu
 
 - [x] **2D Rendering Size** - Fixed rendering size issue at lowest detail levels
 
+### Site Reorganization (Issue #41)
+
+- [x] **Avatar Studio at `/`** - The standalone multi-format Avatar Studio (previously at `/new`) is now the top-level entry point
+- [x] **Previous version at `/archive`** - The earlier React component demo is archived under `/archive`
+- [x] **Single-build deploy** - Both apps ship from one `npm run build`; dev server mirrors the deployed path layout
+
 ## Planned Features (Future Issues)
 
 ### Voice Integration (Issue #4)

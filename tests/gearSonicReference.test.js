@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 beforeAll(async () => {
   // Load gearSonic.js which attaches helpers to window.
-  await import('../public/new/src/gearSonic.js');
+  await import('../public/studio/gearSonic.js');
 });
 
 afterEach(() => {

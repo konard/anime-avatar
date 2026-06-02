@@ -46,11 +46,11 @@ backend).
 ## What changed in PR #35
 
 ```
-public/new/index.html              import STLLoader; load gearSonic.js
-public/new/src/gearSonic.js        new — real GEAR-SONIC fetcher / loader / backend client
-public/new/src/defaults.js         new cfg keys for reference / backend / robot toggles
-public/new/src/apply.js            stepTextMotion uses the fetched motion when available
-public/new/src/Editor.jsx          new "GEAR-SONIC reference clips" / "backend" / "robot" sub-sections
+public/index.html              import STLLoader; load gearSonic.js
+public/studio/gearSonic.js        new — real GEAR-SONIC fetcher / loader / backend client
+public/studio/defaults.js         new cfg keys for reference / backend / robot toggles
+public/studio/apply.js            stepTextMotion uses the fetched motion when available
+public/studio/Editor.jsx          new "GEAR-SONIC reference clips" / "backend" / "robot" sub-sections
 tests/gearSonicReference.test.js   15 unit tests covering retarget + backend client
 docs/case-studies/issue-31/        updated case study (this file)
 ```
@@ -155,7 +155,7 @@ table below; full details remain in
 ## Verified in browser
 
 The PR was driven through a real session against
-`http://localhost:5173/anime-avatar/new/?view=editor`:
+`http://localhost:5173/anime-avatar/?view=editor`:
 
 - `ACS_fetchGearSonicReferenceMotion('squat_001__A359')` returned 424 frames @ 50 fps
   from `https://nvlabs.github.io/GEAR-SONIC/assets/motions/squat_001__A359.json` —
@@ -193,12 +193,12 @@ Automated:
   base URL paths).
 - `tests/textMotion.test.js`, `tests/gearSonicControls.test.js`,
   `tests/ipaSpeech.test.js` — existing coverage retained.
-- `public/new/src/tests-registry.js` — browser smoke tests for the floor
+- `public/studio/tests-registry.js` — browser smoke tests for the floor
   grid and mouse-force defaults retained.
 
 Manual reproduction:
 
-1. Open `/anime-avatar/new/?view=editor`.
+1. Open `/anime-avatar/?view=editor`.
 2. _Scene → Floor grid_ — verify it draws a multi-style infinite-grid floor.
 3. _Character → Mouse force_ — toggle on, click and drag inside the stage.
 4. _Text to Motion → Enabled_ — type `walk` or pick a reference button, click

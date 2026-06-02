@@ -14,15 +14,15 @@ Issue #19 previously baked a 180° Y rotation onto Alicia's `vrm.scene` (the `fl
 - **2026-04-25 13:07Z** — Commit `f651e77` (PR #20) ships the `flipped: true` per-preset flag for Alicia and rewrites the per-frame autoRotate-off branch to preserve `baseYaw`. Alicia loads facing the camera. Other look-at math is untouched.
 - **2026-04-25 14:55Z** — Issue #26 opens: `Follow camera` eyes/head for Alicia direction-flipped.
 - **2026-04-25 14:55Z** — PR #27 opens (this branch).
-- **2026-04-25 (later that day)** — This case study added; root cause traced to the head-local forward-axis assumption in `worldPointToHeadAngles` and `applyLookAt`'s target-construction code in `public/new/src/apply.js`.
+- **2026-04-25 (later that day)** — This case study added; root cause traced to the head-local forward-axis assumption in `worldPointToHeadAngles` and `applyLookAt`'s target-construction code in `public/studio/apply.js`.
 
 ## Reproductions
 
-The studio code lives entirely under `public/new/src/`. All reproductions assume `npm run dev` and a browser pointed at `/anime-avatar/new/`.
+The studio code lives entirely under `public/studio/`. All reproductions assume `npm run dev` and a browser pointed at `/anime-avatar/`.
 
 ### R1 — Alicia head-follow direction is reversed
 
-1. Open `/anime-avatar/new/?view=editor`.
+1. Open `/anime-avatar/?view=editor`.
 2. In **VRM Source → Preset**, pick `Alicia Solid (Dwango / Nikoni Commons)`.
 3. In **Idle Animation → Gaze sources** the `Follow camera` source is on by default with both `eyes` and `head` chips enabled.
 4. Orbit the camera around the model (drag in the empty stage area). Observe: Alicia's head turns the **wrong** way — when the camera ends up on her right (world +X), her head and eyes drift toward her left, and vice versa. With a VRM 1 preset (pixiv / Seed-san) the same drag turns the head correctly toward the camera.
@@ -70,7 +70,7 @@ VRM 0 with the OLD formula produces yaw values either out of the front cone (in-
 
 ### RC1 — `worldPointToHeadAngles` assumes face-forward is head-local +Z
 
-`public/new/src/apply.js` (pre-fix, lines 268-285):
+`public/studio/apply.js` (pre-fix, lines 268-285):
 
 ```js
 function worldPointToHeadAngles(s, THREE, worldPoint) {
@@ -106,7 +106,7 @@ Even when our smoothed yaw was 0, we placed the look-target at `head-local (0, 0
 
 ## Solutions implemented in this PR
 
-1. **`getFaceFrontSign(vrm)` helper** in `public/new/src/apply.js`. Reads `vrm.lookAt.faceFront.z` (signed by `VRMLookAtLoaderPlugin._v0Import`) and falls back to `vrm.meta.metaVersion === '0' ? -1 : 1`. Single source of truth for "which way is forward in head-local space".
+1. **`getFaceFrontSign(vrm)` helper** in `public/studio/apply.js`. Reads `vrm.lookAt.faceFront.z` (signed by `VRMLookAtLoaderPlugin._v0Import`) and falls back to `vrm.meta.metaVersion === '0' ? -1 : 1`. Single source of truth for "which way is forward in head-local space".
 2. **`worldPointToHeadAngles` multiplies `local.x`/`local.z` by `getFaceFrontSign(vrm)`** before `atan2`. Pitch is unchanged (the up axis is +Y in both versions). Yaw now reads 0 when the target is in front for both VRM 0 and VRM 1.
 3. **Look-target construction multiplies its head-local x/z output by the same sign**, so the world-space target lands in front of the model for both VRM 0 and VRM 1.
 4. **`Editor.jsx` baseYaw fallback** now uses `vrm.meta?.metaVersion === '0' ? Math.PI : 0` as the default and only overrides when the matched preset has an explicit `baseYaw` / `flipped`. VRM 0.x models loaded outside the preset list (URL, drag-drop) now face the camera.
@@ -116,7 +116,7 @@ Even when our smoothed yaw was 0, we placed the look-target at `head-local (0, 0
 
 ## Existing components / libraries reviewed
 
-- `@pixiv/three-vrm` (v2.1.1, in `public/new/index.html`) — already loaded. We now reuse its `vrm.lookAt.faceFront` instead of duplicating the convention. The library's own `VRMLookAt` and `VRMLookAtBoneApplier` use exactly the same sign-flip internally for their built-in lookAt, so our code is consistent with theirs.
+- `@pixiv/three-vrm` (v2.1.1, in `public/index.html`) — already loaded. We now reuse its `vrm.lookAt.faceFront` instead of duplicating the convention. The library's own `VRMLookAt` and `VRMLookAtBoneApplier` use exactly the same sign-flip internally for their built-in lookAt, so our code is consistent with theirs.
 - `@pixiv/three-vrm` `VRMUtils.rotateVRM0` — confirms `vrm.scene.rotation.y = Math.PI` for VRM 0 models. We leave that call in place; the new `baseYaw` derivation re-applies the same value so the autoRotate-off branch can't clobber it later.
 - `three.js` `Object3D.matrixWorld` / `Matrix4.invert` — used as-is. The matrix math is correct; the bug was in the post-transform interpretation, not in the transform itself.
 
@@ -132,7 +132,7 @@ No upstream issue is needed.
 
 `node experiments/follow-camera-axes.mjs` prints the OLD vs NEW yaw for both VRM 0 and VRM 1.
 
-`npm run dev` → `/anime-avatar/new/`:
+`npm run dev` → `/anime-avatar/`:
 
 1. Default pixiv preset (VRM 1) — camera-follow tracks correctly (regression check).
 2. Pick **Alicia Solid** preset → loads facing forward (issue #19 still good).
@@ -186,7 +186,7 @@ The same mirror affected:
 
 ### Solution — `getBoneAxisFlip(vrm)` helper, X/Z multiplied for VRM 0
 
-`public/new/src/apply.js` now derives a separate sign just for bone-axis mirroring:
+`public/studio/apply.js` now derives a separate sign just for bone-axis mirroring:
 
 ```js
 function getBoneAxisFlip(vrm) {
@@ -213,7 +213,7 @@ Yaw is unchanged — it already worked because `worldPointToHeadAngles` produces
 
 - **Headless math** — `node experiments/follow-camera-pitch-bone-axis.mjs` rotates a unit face vector through both versions' head.rotation.x with and without the flip. Without the flip the VRM 0 face.y has the OPPOSITE sign from VRM 1 (the bug). With the flip the signs match.
 - **Unit tests** — 11 new cases in `tests/lookAt.test.js` cover `getBoneAxisFlip` (VRM 0 vs VRM 1 vs missing meta), the bone-rotation flip's X/Z-only behaviour, its idempotency under double-application, and a Rodrigues rotation test that confirms both versions' final face direction matches after the head pitch is applied. Total `npm test` is now 87 passing.
-- **Browser** — `npm run dev` + `/anime-avatar/new/?view=editor`:
+- **Browser** — `npm run dev` + `/anime-avatar/?view=editor`:
   1. Pick Alicia preset.
   2. Programmatically position camera at `(0, 4, 2)` (above + slightly in front).
      Before fix: top of head visible (face tilted DOWN). After fix: face tilted UP, eyes visible from the high angle.

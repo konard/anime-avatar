@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 beforeAll(async () => {
-  await import('../public/new/src/textToModel.js');
+  await import('../public/studio/textToModel.js');
 });
 
 // Synthetic GLB-shaped ArrayBuffer. The client only checks byteLength so a
